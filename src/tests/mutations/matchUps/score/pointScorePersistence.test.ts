@@ -217,6 +217,94 @@ describe('setMatchUpStatus preserves point scores', () => {
 });
 
 // ──────────────────────────────────────────────────────────────────────────────
+// setMatchUpStatus — IN_PROGRESS partial score persistence
+// ──────────────────────────────────────────────────────────────────────────────
+
+describe('setMatchUpStatus persists IN_PROGRESS partial scores', () => {
+  test('partial score with point scores persists through setMatchUpStatus', () => {
+    const drawId = 'drawId';
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [{ drawId, drawSize: 4, idPrefix: 'm' }],
+      setState: true,
+    });
+
+    // Partial score: 2-1 with point scores 15-30, match still in progress
+    const outcome = {
+      score: {
+        sets: [
+          {
+            setNumber: 1,
+            side1Score: 2,
+            side2Score: 1,
+            side1PointScore: '15',
+            side2PointScore: '30',
+          },
+        ],
+      },
+      matchUpFormat: 'SET3-S:6/TB7',
+      matchUpStatus: 'IN_PROGRESS',
+    };
+
+    const result = tournamentEngine.setMatchUpStatus({
+      matchUpId: 'm-1-1',
+      drawId,
+      outcome,
+    });
+    expect(result.success).toBe(true);
+
+    const { matchUps } = tournamentEngine.allTournamentMatchUps();
+    const matchUp = matchUps.find((m: any) => m.matchUpId === 'm-1-1');
+    expect(matchUp).toBeDefined();
+    expect(matchUp.matchUpStatus).toBe('IN_PROGRESS');
+
+    // Score must persist — not empty
+    expect(matchUp.score.sets).toBeDefined();
+    expect(matchUp.score.sets.length).toBe(1);
+
+    const set1 = matchUp.score.sets[0];
+    expect(set1.side1Score).toBe(2);
+    expect(set1.side2Score).toBe(1);
+    expect(set1.side1PointScore).toBe('15');
+    expect(set1.side2PointScore).toBe('30');
+  });
+
+  test('partial score without point scores persists through setMatchUpStatus', () => {
+    const drawId = 'drawId';
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [{ drawId, drawSize: 4, idPrefix: 'm' }],
+      setState: true,
+    });
+
+    const outcome = {
+      score: {
+        sets: [
+          {
+            setNumber: 1,
+            side1Score: 4,
+            side2Score: 3,
+          },
+        ],
+      },
+      matchUpFormat: 'SET3-S:6/TB7',
+      matchUpStatus: 'IN_PROGRESS',
+    };
+
+    const result = tournamentEngine.setMatchUpStatus({
+      matchUpId: 'm-1-1',
+      drawId,
+      outcome,
+    });
+    expect(result.success).toBe(true);
+
+    const { matchUps } = tournamentEngine.allTournamentMatchUps();
+    const matchUp = matchUps.find((m: any) => m.matchUpId === 'm-1-1');
+    expect(matchUp.score.sets.length).toBe(1);
+    expect(matchUp.score.sets[0].side1Score).toBe(4);
+    expect(matchUp.score.sets[0].side2Score).toBe(3);
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
 // validateScore — string point score handling
 // ──────────────────────────────────────────────────────────────────────────────
 
