@@ -90,7 +90,8 @@ export function directParticipants(params): ResultType {
     } = targetData;
 
     // In lucky draws, all round-to-round advancement is handled by
-    // luckyDrawAdvancement — suppress both winner and loser propagation
+    // luckyDrawAdvancement — suppress both winner and loser propagation.
+    // Non-pre-feed rounds auto-trigger luckyDrawAdvancement when the round completes.
     const isLuckyDraw = isLuckyBasedDraw(drawDefinition?.drawType);
 
     if (winnerMatchUp && !isLuckyDraw) {

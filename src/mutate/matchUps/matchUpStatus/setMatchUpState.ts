@@ -5,6 +5,7 @@ import { addMatchUpScheduleItems } from '@Mutate/matchUps/schedule/scheduleItems
 import { hasPropagatedExitDownstream } from '@Query/drawDefinition/hasPropagatedExitDownstream';
 import { getProjectedDualWinningSide } from '@Query/matchUp/getProjectedDualWinningSide';
 import { updateTieMatchUpScore } from '@Mutate/matchUps/score/updateTieMatchUpScore';
+import { luckyDrawAdvancement } from '@Mutate/drawDefinitions/luckyDrawAdvancement';
 import { isMatchUpEventType } from '@Helpers/matchUpEventTypes/isMatchUpEventType';
 import { resolveTieFormat } from '@Query/hierarchical/tieFormats/resolveTieFormat';
 import { swapWinnerLoser } from '@Mutate/matchUps/drawPositions/swapWinnerLoser';
@@ -13,6 +14,7 @@ import { ensureSideLineUps } from '@Mutate/matchUps/lineUps/ensureSideLineUps';
 import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
 import { isActiveDownstream } from '@Query/drawDefinition/isActiveDownstream';
 import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
+import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
 import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { removeExtension } from '@Mutate/extensions/removeExtension';
 import { getAllDrawMatchUps } from '@Query/matchUps/drawMatchUps';
@@ -51,6 +53,7 @@ import {
   BYE,
   CANCELLED,
   COMPLETED,
+  completedMatchUpStatuses,
   DEFAULTED,
   DOUBLE_DEFAULT,
   DOUBLE_WALKOVER,
@@ -450,6 +453,35 @@ export function setMatchUpState(params: SetMatchUpStateArgs): any {
       error: NO_VALID_ACTIONS,
     };
 
+  // Auto-advance winners in lucky draw non-pre-feed rounds when the round is complete
+  if (!result.error && winningSide && isLuckyBasedDraw(drawDefinition?.drawType) && structure) {
+    const roundNumber = inContextMatchUp?.roundNumber;
+    if (roundNumber) {
+      const roundMatchUps = (structure.matchUps || []).filter((m) => m.roundNumber === roundNumber);
+      const roundMatchUpCount = roundMatchUps.length;
+      const isFinalRound = roundMatchUpCount === 1;
+      const isPreFeedRound = !isFinalRound && roundMatchUpCount % 2 !== 0;
+
+      if (!isPreFeedRound && !isFinalRound) {
+        // Check if all matchUps in this round are now complete
+        const allComplete = roundMatchUps.every(
+          (m) => completedMatchUpStatuses.includes(m.matchUpStatus) || m.winningSide || m.matchUpStatus === BYE,
+        );
+
+        if (allComplete) {
+          const structureId = structure.structureId;
+          luckyDrawAdvancement({
+            tournamentRecord,
+            drawDefinition,
+            structureId,
+            roundNumber,
+            event,
+          });
+        }
+      }
+    }
+  }
+
   return decorateResult({ result, stack });
 }
 
@@ -522,12 +554,12 @@ function checkParticipants({
 
   const participantsCount = inContextMatchUp?.sides?.map((side) => side.participantId).filter(Boolean).length;
 
-  const positionAssignments = !matchUp?.sides
-    ? getPositionAssignments({
+  const positionAssignments = matchUp?.sides
+    ? []
+    : getPositionAssignments({
         structureId: structure?.structureId,
         drawDefinition,
-      }).positionAssignments
-    : [];
+      }).positionAssignments;
 
   const requiredParticipants =
     (participantsCount && participantsCount === 2) ||
