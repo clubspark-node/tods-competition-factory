@@ -18,9 +18,15 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
+      - run: npm run check-types
+
       - run: npm run build
 
       - run: npm test -- --run
+
+      - run: npm run test:server -- --forceExit
 
       - name: Determine npm tag
         id: tag
