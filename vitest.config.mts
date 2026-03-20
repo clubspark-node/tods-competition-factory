@@ -27,7 +27,6 @@ export default defineConfig({
         '**/types/**',
         '**/*.json',
         // deprecated code and data - excluded from coverage
-        'src/helpers/scoreParser/**',
         'src/mutate/score/staticScoreChange/**',
         'src/mutate/matchUps/score/history/**',
         'src/tests/testHarness/**',
