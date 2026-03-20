@@ -1,14 +1,6 @@
 import { calculatePressureRatings, getSideValues } from '@Query/matchUps/roundRobinTally/calculatePressureRatings';
 import { describe, expect, it } from 'vitest';
 
-import mocksEngine from '@Assemblies/engines/mock';
-import tournamentEngine from '@Engines/syncEngine';
-import { ROUND_ROBIN } from '@Constants/drawDefinitionConstants';
-
-// constants
-import { SINGLES } from '@Constants/matchUpTypes';
-import { ELO } from '@Constants/ratingConstants';
-
 describe('calculatePressureRatings', () => {
   // getSideValues tests
   describe('getSideValues', () => {
@@ -135,35 +127,6 @@ describe('calculatePressureRatings', () => {
 
   // calculatePressureRatings integration tests
   describe('calculatePressureRatings - integration', () => {
-    it.skip('updates participantResults with pressure scores', () => {
-      mocksEngine.generateTournamentRecord({
-        drawProfiles: [
-          {
-            category: { ratingType: 'ELO', ratingMin: 1200, ratingMax: 1600 },
-            drawType: ROUND_ROBIN,
-            eventType: SINGLES,
-            drawSize: 4,
-          },
-        ],
-        completeAllMatchUps: true,
-        setState: true,
-      });
-
-      const matchUps = tournamentEngine.allTournamentMatchUps().matchUps;
-      const participantResults = tournamentEngine.getParticipantResults({ matchUps });
-
-      // addPressureOrder({ participantResults });
-      for (const matchUp of matchUps) {
-        const { sides, score } = matchUp;
-        calculatePressureRatings({ participantResults, sides, score });
-      }
-
-      expect(participantResults.p1.pressureScores).toHaveLength(1);
-      expect(participantResults.p2.pressureScores).toHaveLength(1);
-      expect(participantResults.p1.ratingVariation).toHaveLength(1);
-      expect(participantResults.p2.ratingVariation).toHaveLength(1);
-    });
-
     it('does not update when ratings missing', () => {
       const participantResults = {
         p1: { pressureScores: [], ratingVariation: [] },
@@ -191,45 +154,6 @@ describe('calculatePressureRatings', () => {
 
       expect(participantResults.p1.pressureScores).toHaveLength(0);
       expect(participantResults.p2.pressureScores).toHaveLength(0);
-    });
-
-    it.skip('handles multiple matchUps', () => {
-      const participantResults = {
-        p1: { pressureScores: [], ratingVariation: [] },
-        p2: { pressureScores: [], ratingVariation: [] },
-      };
-
-      const sides = [
-        {
-          sideNumber: 1,
-          participantId: 'p1',
-          participant: {
-            ratings: {
-              [SINGLES]: [{ ratingType: ELO, rating: 1500 }],
-            },
-          },
-        },
-        {
-          sideNumber: 2,
-          participantId: 'p2',
-          participant: {
-            ratings: {
-              [SINGLES]: [{ ratingType: ELO, rating: 1600 }],
-            },
-          },
-        },
-      ];
-
-      const score = {
-        sets: [{ side1Score: 6, side2Score: 4 }],
-      };
-
-      // Call twice to simulate multiple matches
-      calculatePressureRatings({ participantResults, sides, score });
-      calculatePressureRatings({ participantResults, sides, score });
-
-      expect(participantResults.p1.pressureScores).toHaveLength(2);
-      expect(participantResults.p2.pressureScores).toHaveLength(2);
     });
 
     it('handles undefined sides', () => {
@@ -261,41 +185,5 @@ describe('calculatePressureRatings', () => {
       expect(Object.keys(participantResults)).toHaveLength(0);
     });
 
-    it.skip('calculates rating variation', () => {
-      const participantResults = {
-        p1: { pressureScores: [], ratingVariation: [] },
-        p2: { pressureScores: [], ratingVariation: [] },
-      };
-
-      const sides = [
-        {
-          sideNumber: 1,
-          participantId: 'p1',
-          participant: {
-            ratings: {
-              [SINGLES]: [{ ratingType: ELO, rating: 1500 }],
-            },
-          },
-        },
-        {
-          sideNumber: 2,
-          participantId: 'p2',
-          participant: {
-            ratings: {
-              [SINGLES]: [{ ratingType: ELO, rating: 1600 }],
-            },
-          },
-        },
-      ];
-
-      const score = {
-        sets: [{ side1Score: 6, side2Score: 3 }],
-      };
-
-      calculatePressureRatings({ participantResults, sides, score });
-
-      expect(participantResults.p1.ratingVariation[0]).toBeGreaterThan(0);
-      expect(participantResults.p2.ratingVariation[0]).toBeLessThan(0);
-    });
   });
 });
