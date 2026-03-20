@@ -1,15 +1,10 @@
 import { getOrderedDrawPositionPairs } from '../../drawDefinitions/testingUtilities';
-import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
 import { getRoundMatchUps } from '@Query/matchUps/getRoundMatchUps';
-import { toBePlayed } from '@Fixtures/scoring/outcomes/toBePlayed';
-import { getDrawPosition } from '@Functions/global/extractors';
 import { setSubscriptions } from '@Global/state/globalState';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { expect, it, test } from 'vitest';
 
-import { FIRST_MATCH_LOSER_CONSOLATION } from '@Constants/drawDefinitionConstants';
-import { POLICY_TYPE_PROGRESSION } from '@Constants/policyConstants';
 import { MODIFY_MATCHUP } from '@Constants/topicConstants';
 import { BYE, DOUBLE_WALKOVER, WALKOVER } from '@Constants/matchUpStatusConstants';
 
@@ -282,106 +277,6 @@ test('DOUBLE DOUBLE_WALKOVERs will convert a produced WALKOVER into a DOUBLE_WAL
   expect(targetMatchUp.drawPositions.filter(Boolean)).toEqual([1]);
   expect(targetMatchUp.matchUpStatus).toEqual(WALKOVER);
   expect(targetMatchUp.winningSide).toEqual(1);
-});
-
-it.skip('supports entering/removing DOUBLE_WALKOVER matchUpStatus with doubleExitPropagateBye', () => {
-  // create an FMLC with the 1st position matchUp completed
-  const drawProfiles = [
-    {
-      policyDefinitions: {
-        [POLICY_TYPE_PROGRESSION]: {
-          doubleExitPropagateBye: true,
-        },
-      },
-      drawSize: 8,
-      drawType: FIRST_MATCH_LOSER_CONSOLATION,
-      outcomes: [
-        {
-          roundNumber: 1,
-          roundPosition: 1,
-          scoreString: '6-1 6-2',
-          winningSide: 1,
-        },
-      ],
-    },
-  ];
-  const {
-    drawIds: [drawId],
-    tournamentRecord,
-  } = mocksEngine.generateTournamentRecord({ drawProfiles });
-
-  // get the first upcoming matchUp, which will be { roundPosition: 2 }
-  const { upcomingMatchUps } = tournamentEngine.setState(tournamentRecord).drawMatchUps({ drawId });
-  const [matchUp] = upcomingMatchUps;
-  const { matchUpId, roundPosition } = matchUp;
-  expect(roundPosition).toEqual(2);
-
-  let {
-    drawDefinition: {
-      structures: [mainStructure, consolationStructure],
-    },
-  } = tournamentEngine.getEvent({ drawId });
-
-  const mainStructureOrderedPairs = [[1, 2], [3, 4], [5, 6], [7, 8], [1]];
-  const consolationStructureOrderedPairs = [[3, 4], [5, 6], [1], [2]];
-
-  let { filteredOrderedPairs } = getOrderedDrawPositionPairs({
-    structureId: mainStructure.structureId,
-  });
-  expect(filteredOrderedPairs.filter((p) => p?.length)).toEqual(mainStructureOrderedPairs);
-
-  ({ filteredOrderedPairs } = getOrderedDrawPositionPairs({
-    structureId: consolationStructure.structureId,
-  }));
-  expect(filteredOrderedPairs.filter((p) => p?.length)).toEqual(consolationStructureOrderedPairs);
-
-  let result = tournamentEngine.setMatchUpStatus({
-    outcome: { matchUpStatus: DOUBLE_WALKOVER },
-    matchUpId,
-    drawId,
-  });
-  expect(result.success).toEqual(true);
-
-  const { matchUp: updatedMatchUp } = tournamentEngine.findMatchUp({
-    matchUpId,
-    drawId,
-  });
-  expect(updatedMatchUp.matchUpStatus).toEqual(DOUBLE_WALKOVER);
-
-  ({
-    drawDefinition: {
-      structures: [mainStructure, consolationStructure],
-    },
-  } = tournamentEngine.getEvent({ drawId }));
-
-  const { positionAssignments } = getPositionAssignments({
-    structure: consolationStructure,
-  });
-  const consolationByeDrawPositions = positionAssignments?.filter(({ bye }) => bye).map(getDrawPosition);
-  expect(consolationByeDrawPositions).toEqual([1, 4]);
-
-  ({ filteredOrderedPairs } = getOrderedDrawPositionPairs({
-    structureId: mainStructure.structureId,
-  }));
-  expect(filteredOrderedPairs.filter((p) => p?.length)).toEqual([[1, 2], [3, 4], [5, 6], [7, 8], [1], [1]]);
-
-  ({ filteredOrderedPairs } = getOrderedDrawPositionPairs({
-    structureId: consolationStructure.structureId,
-  }));
-  expect(filteredOrderedPairs).toEqual([[3, 4], [5, 6], [1, 3], [2], [3]]);
-
-  // remove outcome
-  result = tournamentEngine.setMatchUpStatus({
-    outcome: toBePlayed,
-    matchUpId,
-    drawId,
-  });
-  expect(result.success).toEqual(true);
-
-  const {
-    drawDefinition: { structures },
-  } = tournamentEngine.getEvent({ drawId });
-  console.log(structures[0].matchUps.map((m) => m.drawPositions));
 });
 
 /*

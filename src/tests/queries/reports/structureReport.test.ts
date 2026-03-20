@@ -1,47 +1,13 @@
-import { findExtension } from '@Acquire/findExtension';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { instanceCount } from '@Tools/arrays';
 import * as tools from '@Assemblies/tools';
 import { expect, it } from 'vitest';
-import fs from 'fs';
 
 // constants
 import { INDIVIDUAL } from '@Constants/participantConstants';
 import { DOUBLES_EVENT } from '@Constants/eventConstants';
 import { COMPETITOR } from '@Constants/participantRoles';
-
-const sourcePath = './src/global/testHarness/structureReport';
-const filenames = [];
-
-it.skip.each(filenames)('can generate structureReports for all tournamentRecords in testHarness', (filename) => {
-  if (filename) {
-    const tournamentRecord = JSON.parse(fs.readFileSync(`${sourcePath}/${filename}`, { encoding: 'utf8' }));
-    tournamentEngine.setState(tournamentRecord);
-
-    if ((tournamentRecord?.extensions ?? []).find((e) => e?.name === 'level')) {
-      const districtCode = findExtension({
-        element: tournamentRecord,
-        name: 'districtCode',
-      })?.extension?.value;
-      const sectionCode = findExtension({
-        element: tournamentRecord,
-        name: 'sectionCode',
-      })?.extension?.value;
-
-      if (sectionCode && districtCode) {
-        const result = tournamentEngine.getEntryStatusReports();
-        const {
-          participantEntryReports,
-          // tournamentEntryReport,
-          // entryStatusReports,
-          // eventReports,
-        } = result;
-        console.log(participantEntryReports[0]);
-      }
-    }
-  }
-});
 
 it('can identify winningParticipants and map WTN and ranking', () => {
   const drawProfiles = [

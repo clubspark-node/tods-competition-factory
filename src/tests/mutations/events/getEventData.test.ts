@@ -1,7 +1,6 @@
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { expect, it, test } from 'vitest';
-import fs from 'fs-extra';
 
 // Constants and Fixtures
 import { INVALID_VALUES } from '@Constants/errorConditionConstants';
@@ -161,28 +160,36 @@ it('returns team information for participants in SINGLES and DOUBLES matchUps in
   expect(iocCount).toBeGreaterThan(0);
 });
 
-test.skip('hydrateParticipants: false will reduce getEventData payload size', () => {
+test('hydrateParticipants: false reduces getEventData payload size', () => {
   const eventId = 'eid';
-  const mockProfile = {
-    drawProfiles: [{ drawSize: 128, eventId, drawType: CURTIS_CONSOLATION }],
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawSize: 32, eventId, drawType: CURTIS_CONSOLATION }],
     completeAllMatchUps: true,
     setState: true,
-  };
+  });
 
-  mocksEngine.generateTournamentRecord(mockProfile);
-  let result = tournamentEngine.getEventData({
+  let result: any = tournamentEngine.getEventData({
     participantsProfile: { withIOC: true, withISO2: true },
     eventId,
   });
-  fs.writeFileSync('hydrated.json', JSON.stringify({ eventData: result.eventData }, undefined, 1));
+  const hydratedPayload = JSON.stringify(result.eventData);
 
   result = tournamentEngine.getEventData({
     participantsProfile: { withIOC: true, withISO2: true },
     hydrateParticipants: false,
     eventId,
   });
-  fs.writeFileSync(
-    'unhydrated.json',
-    JSON.stringify({ eventData: result.eventData, participants: result.participants }, undefined, 1),
-  );
+  const unhydratedPayload = JSON.stringify({ eventData: result.eventData, participants: result.participants });
+
+  // unhydrated should be meaningfully smaller since participant data is not duplicated in every matchUp
+  expect(unhydratedPayload.length).toBeLessThan(hydratedPayload.length);
+
+  // verify participants are returned separately
+  expect(result.participants.length).toBeGreaterThan(0);
+
+  // verify matchUp sides don't have embedded participant objects
+  const firstMatchUp = result.eventData.drawsData[0].structures[0].roundMatchUps[1][0];
+  firstMatchUp.sides.forEach((side) => {
+    expect(side.participant?.participantId).toBeUndefined();
+  });
 });
