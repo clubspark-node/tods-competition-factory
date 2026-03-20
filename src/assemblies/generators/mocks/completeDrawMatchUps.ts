@@ -144,6 +144,7 @@ function completeStructureMatchUps({
   randomWinningSide,
   completionGoal,
   completedCount,
+  roundNumber: roundNumberFilter,
 }) {
   const matchUps = getAllStructureMatchUps({
     contextFilters: { matchUpTypes: [DOUBLES, SINGLES] },
@@ -157,7 +158,7 @@ function completeStructureMatchUps({
   }).matchUps;
 
   const sortedMatchUpIds = matchUps
-    .filter(({ winningSide }) => !winningSide)
+    .filter(({ winningSide, roundNumber }) => !winningSide && (!roundNumberFilter || roundNumber === roundNumberFilter))
     .sort(matchUpSort)
     .map(getMatchUpId);
 
@@ -214,6 +215,9 @@ export function completeDrawMatchUps(params): {
     tournamentRecord,
     completionGoal,
     drawDefinition,
+    roundNumber,
+    stageSequence,
+    stage,
     event,
   } = params;
 
@@ -257,6 +261,9 @@ export function completeDrawMatchUps(params): {
     if (completedCount.value >= completionGoal) break;
     const structure = drawDefinition.structures.find((structure) => structure.structureId === structureId);
 
+    if (stage && structure.stage !== stage) continue;
+    if (stageSequence && structure.stageSequence !== stageSequence) continue;
+
     const result = completeStructureMatchUps({
       structure,
       matchUpsMap,
@@ -270,6 +277,7 @@ export function completeDrawMatchUps(params): {
       randomWinningSide,
       completionGoal,
       completedCount,
+      roundNumber,
     });
     if (result?.error) return result;
 

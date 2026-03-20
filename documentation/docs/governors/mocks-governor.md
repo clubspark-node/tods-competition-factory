@@ -483,6 +483,159 @@ mocksGovernor.modifyTournamentRecord({
 
 ---
 
+## completeDrawMatchUps
+
+Complete matchUps within a draw, with optional filters for targeting specific stages and rounds.
+
+### Complete All MatchUps
+
+```js
+const {
+  drawIds: [drawId],
+  tournamentRecord,
+} = mocksEngine.generateTournamentRecord({
+  drawProfiles: [{ drawSize: 16 }],
+});
+
+const event = tournamentRecord.events[0];
+const drawDefinition = event.drawDefinitions[0];
+
+const result = mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  completeAllMatchUps: '6-3 6-4', // score string or `true` for random scores
+});
+
+console.log(result.completedCount); // 15
+```
+
+### Stage Filter
+
+Complete only matchUps within a specific stage (`MAIN`, `CONSOLATION`, `QUALIFYING`):
+
+```js
+mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  stage: 'MAIN',
+  completeAllMatchUps: '6-1 6-1',
+});
+```
+
+### Round Filter
+
+Complete only matchUps in a specific round:
+
+```js
+mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  roundNumber: 1,
+  completeAllMatchUps: '6-3 6-4',
+});
+```
+
+### Combined Filters
+
+Filters can be combined for precise targeting:
+
+```js
+// Complete only round 1 of the MAIN stage
+mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  stage: 'MAIN',
+  roundNumber: 1,
+  completeAllMatchUps: '6-3 6-4',
+});
+```
+
+### Complete Options
+
+| Parameter              | Type              | Description                                                                         |
+| ---------------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `tournamentRecord`     | object            | **Required** — tournament record                                                    |
+| `drawDefinition`       | object            | **Required** — draw definition (direct reference from tournamentRecord, not a copy) |
+| `event`                | object            | Event containing the draw                                                           |
+| `completeAllMatchUps`  | boolean \| string | `true` for random scores, or a score string like `'6-3 6-4'`                        |
+| `completionGoal`       | number            | Stop after completing this many matchUps                                            |
+| `stage`                | string            | Filter: only complete matchUps in this stage                                        |
+| `stageSequence`        | number            | Filter: for multi-sequence qualifying                                               |
+| `roundNumber`          | number            | Filter: only complete matchUps in this round                                        |
+| `randomWinningSide`    | boolean           | Randomize winning side                                                              |
+| `matchUpStatusProfile` | object            | Status distribution (see [Outcome Generation](../testing/mocks-engine-outcomes.md)) |
+
+**Note:** The `drawDefinition` must be a direct reference from `tournamentRecord.events[n].drawDefinitions[n]`, not a copy returned by engine query methods like `getEvent()`.
+
+---
+
+## removeMatchUpOutcome
+
+Remove a matchUp outcome, resetting it to `TO_BE_PLAYED`. This is a convenience wrapper that calls `setMatchUpStatus` with the `toBePlayed` fixture.
+
+### Remove Basic Usage
+
+```js
+const result = mocksEngine.removeMatchUpOutcome({
+  tournamentRecord,
+  drawId,
+  matchUpId,
+});
+
+expect(result.success).toBe(true);
+```
+
+### Remove Complete Options
+
+```js
+mocksEngine.removeMatchUpOutcome({
+  tournamentRecord, // Required — tournament record
+  drawId, // Required (unless drawDefinition provided) — resolves drawDefinition
+  matchUpId, // Required — matchUp to reset
+  drawDefinition, // Optional — direct reference (resolved from drawId if omitted)
+  event, // Optional — resolved from drawId if omitted
+});
+```
+
+### Remove Purpose
+
+- **Score reversal testing** — triggers `removeDirectedParticipants` and consolation cleanup paths
+- **Test setup** — remove outcomes to create partially-completed draws
+- **Self-documenting** — clearer intent than manually constructing `toBePlayed` outcome objects
+
+### Example: Partial Reset
+
+```js
+const {
+  drawIds: [drawId],
+  tournamentRecord,
+} = mocksEngine.generateTournamentRecord({
+  drawProfiles: [{ drawSize: 4 }],
+  completeAllMatchUps: true,
+});
+
+// Remove final, then semi-final
+const matchUps = tournamentRecord.events[0].drawDefinitions[0].structures[0].matchUps;
+
+mocksEngine.removeMatchUpOutcome({
+  tournamentRecord,
+  drawId,
+  matchUpId: finalMatchUpId,
+});
+
+mocksEngine.removeMatchUpOutcome({
+  tournamentRecord,
+  drawId,
+  matchUpId: semiMatchUpId,
+});
+```
+
+---
+
 ## Related Documentation
 
 ### mocksEngine Documentation

@@ -20,6 +20,7 @@ import {
   SCHEDULED_DATE,
   SCHEDULED_TIME,
   ALLOCATE_COURTS,
+  COURT_ORDER,
 } from '@Constants/timeItemConstants';
 
 export function resetDrawDefinition({ tournamentRecord, removeScheduling, removeAssignments, drawDefinition }) {
@@ -130,13 +131,14 @@ export function resetDrawDefinition({ tournamentRecord, removeScheduling, remove
                 COURT_ANNOTATION,
                 SCHEDULED_DATE,
                 SCHEDULED_TIME,
+                COURT_ORDER,
               ].includes(timeItem.itemType),
           );
         }
 
         modifyMatchUpNotice({
           tournamentId: tournamentRecord?.tournamentId,
-          context: 'resetDrawDefiniton',
+          context: 'resetDrawDefinition',
           drawDefinition,
           matchUp,
         });
