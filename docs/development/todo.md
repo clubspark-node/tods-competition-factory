@@ -1,3 +1,0 @@
-# Factory TODOs
-
-## Embargo

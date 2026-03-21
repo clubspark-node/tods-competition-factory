@@ -146,6 +146,13 @@ The Competition Factory includes 16 governors organized into functional areas:
 - Validate format configurations
 - Format comparison and analysis
 
+**[tieFormat Governor](./tie-format-governor)** - Team matchUp format management
+
+- Define and modify tieFormat structures (collections, groups, win criteria)
+- Centralised storage and deduplication of tieFormats
+- Gender and category validation for collection definitions
+- tieFormat comparison and hierarchical resolution
+
 ### Scheduling
 
 **[Schedule Governor](./schedule-governor)** - Scheduling operations
@@ -427,6 +434,7 @@ const {
   reportGovernor,
   scheduleGovernor,
   scoreGovernor,
+  tieFormatGovernor,
   tournamentGovernor,
   venueGovernor,
 } = governors;
@@ -492,9 +500,10 @@ myEngine.scheduleMatchUps({ ... });
 
 | Governor                                             | Purpose            | Key Methods                                                     |
 | ---------------------------------------------------- | ------------------ | --------------------------------------------------------------- |
-| [MatchUp Governor](./matchup-governor)               | MatchUp management | `setMatchUpStatus`, `setMatchUpScore`, `advanceParticipants`    |
-| [Score Governor](./score-governor)                   | Score handling     | `parseScoreString`, `generateScoreString`, `checkSetIsComplete` |
-| [MatchUp Format Governor](./matchup-format-governor) | Format handling    | `parseMatchUpFormat`, `stringifyMatchUpFormat`                  |
+| [MatchUp Governor](./matchup-governor)               | MatchUp management      | `setMatchUpStatus`, `setMatchUpScore`, `advanceParticipants`        |
+| [Score Governor](./score-governor)                   | Score handling          | `parseScoreString`, `generateScoreString`, `checkSetIsComplete`     |
+| [MatchUp Format Governor](./matchup-format-governor) | Format handling         | `parseMatchUpFormat`, `stringifyMatchUpFormat`                      |
+| [tieFormat Governor](./tie-format-governor)          | Team format management  | `modifyTieFormat`, `aggregateTieFormats`, `addCollectionDefinition` |
 
 ### Scheduling & Venues
 

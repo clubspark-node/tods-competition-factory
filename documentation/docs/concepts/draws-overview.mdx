@@ -12,6 +12,10 @@ Themed visualization of draws by [courthive-components](https://github.com/Court
 
 <BrowserOnly>{() => <DrawType drawType="COMPASS" drawSize={8} />}</BrowserOnly>
 
+## Participant-Type Agnostic
+
+Draw structures are participant-type agnostic — the same elimination, round robin, and linked structures work whether participants are INDIVIDUAL, PAIR, or TEAM. The `eventType` determines what kind of participants flow through a draw, but the draw machinery itself (positioning, advancement, links) is identical in every case. See [Participant-Agnostic Logic](./participants#participant-agnostic-logic) for details.
+
 ## Generating Draw Definitions
 
 The Competition Factory provides `generateDrawDefinition()` as the primary convenience method for creating draw structures. This powerful function handles most common use cases for draw generation and can create draws of arbitrary complexity.

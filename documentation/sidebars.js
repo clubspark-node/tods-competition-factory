@@ -216,6 +216,7 @@ module.exports = {
         'governors/report-governor',
         'governors/schedule-governor',
         'governors/score-governor',
+        'governors/tie-format-governor',
         'governors/tournament-governor',
         'governors/venue-governor',
       ],
