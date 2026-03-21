@@ -9,6 +9,7 @@ import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
 import { tieFormatTelemetry } from '@Mutate/tieFormat/tieFormatTelemetry';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { validateTieFormat } from '@Validators/validateTieFormat';
+import { writeTieFormat } from '@Mutate/tieFormat/writeTieFormat';
 import { definedAttributes } from '@Tools/definedAttributes';
 import { validUpdate } from '@Validators/validUpdate';
 import { UUID } from '@Tools/UUID';
@@ -107,15 +108,15 @@ export function addCollectionDefinition({
     return decorateResult({ result: validationResult, stack });
   }
 
-  let result = !matchUp?.tieFormat
-    ? getTieFormat({
+  let result = matchUp?.tieFormat
+    ? undefined
+    : getTieFormat({
         drawDefinition,
         structureId,
         matchUpId,
         eventId,
         event,
-      })
-    : undefined;
+      });
 
   if (result?.error) return decorateResult({ result: { error: result.error }, stack });
 
@@ -129,15 +130,15 @@ export function addCollectionDefinition({
     return decorateResult({ result: { error: result.error }, stack });
   }
 
-  if (!collectionDefinition.collectionId) {
-    collectionDefinition.collectionId = UUID();
-  } else {
+  if (collectionDefinition.collectionId) {
     const collectionIds = tieFormat.collectionDefinitions.map(({ collectionId }) => collectionId);
     if (collectionIds.includes(collectionDefinition.collectionId))
       return decorateResult({
         context: { collectionId: collectionDefinition.collectionId },
         result: { error: DUPLICATE_VALUE },
       });
+  } else {
+    collectionDefinition.collectionId = UUID();
   }
 
   tieFormat.collectionDefinitions.push(collectionDefinition);
@@ -172,13 +173,13 @@ export function addCollectionDefinition({
   }
 
   if (eventId && event) {
-    event.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: event, tieFormat: prunedTieFormat, event });
 
     // all team matchUps in the event which do not have tieFormats and where draws/strucures do not have tieFormats should have matchUps added
     for (const drawDefinition of event.drawDefinitions ?? []) {
-      if (drawDefinition.tieFormat) continue;
+      if (drawDefinition.tieFormat || drawDefinition.tieFormatId) continue;
       for (const structure of drawDefinition.structures ?? []) {
-        if (structure.tieFormat) continue;
+        if (structure.tieFormat || structure.tieFormatId) continue;
         const result = updateStructureMatchUps({
           updateInProgressMatchUps,
           collectionDefinition,
@@ -201,7 +202,7 @@ export function addCollectionDefinition({
       stack,
     });
   } else if (structureId && structure) {
-    structure.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: structure, tieFormat: prunedTieFormat, event });
     const result = updateStructureMatchUps({
       updateInProgressMatchUps,
       collectionDefinition,
@@ -227,7 +228,7 @@ export function addCollectionDefinition({
         stack,
       });
 
-    matchUp.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: matchUp, tieFormat: prunedTieFormat, event });
     const newMatchUps: MatchUp[] = generateCollectionMatchUps({
       collectionDefinition,
       matchUp,
@@ -249,7 +250,7 @@ export function addCollectionDefinition({
     });
   } else if (drawDefinition) {
     // all team matchUps in the drawDefinition which do not have tieFormats and where strucures do not have tieFormats should have matchUps added
-    drawDefinition.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: drawDefinition, tieFormat: prunedTieFormat, event });
 
     for (const structure of drawDefinition.structures ?? []) {
       const result = updateStructureMatchUps({
@@ -302,7 +303,7 @@ function updateStructureMatchUps({ updateInProgressMatchUps, collectionDefinitio
 
   // all team matchUps in the structure which are not completed and which have no score value should have matchUps added
   const targetMatchUps = matchUps.filter(
-    (matchUp) => validUpdate({ matchUp, updateInProgressMatchUps }) && !matchUp.tieFormat,
+    (matchUp) => validUpdate({ matchUp, updateInProgressMatchUps }) && !matchUp.tieFormat && !matchUp.tieFormatId,
   );
 
   for (const matchUp of targetMatchUps) {

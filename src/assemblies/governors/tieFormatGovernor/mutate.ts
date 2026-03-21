@@ -6,3 +6,4 @@ export { addCollectionGroup } from '@Mutate/tieFormat/addCollectionGroup';
 export { addCollectionDefinition } from '@Mutate/tieFormat/addCollectionDefinition';
 export { modifyTieFormat } from '@Mutate/tieFormat/modifyTieFormat';
 export { aggregateTieFormats } from '@Mutate/tieFormat/aggregateTieFormats';
+export { removeOrphanedTieFormats } from '@Mutate/tieFormat/writeTieFormat';

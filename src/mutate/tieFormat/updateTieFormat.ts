@@ -14,6 +14,7 @@ import {
   modifyDrawNotice,
   modifyMatchUpNotice,
 } from '@Mutate/notifications/drawNotifications';
+import { writeTieFormat } from '@Mutate/tieFormat/writeTieFormat';
 
 // constants and types
 import { DrawDefinition, Event, MatchUp, Structure, TieFormat, Tournament } from '@Types/tournamentTypes';
@@ -105,7 +106,7 @@ export function updateTieFormat({
     for (const drawDefinition of event.drawDefinitions ?? []) {
       processDrawDefinition({ drawDefinition });
     }
-    event.tieFormat = copyTieFormat(tieFormat);
+    writeTieFormat({ target: event, tieFormat: copyTieFormat(tieFormat), event });
     modifiedCount += 1;
   } else if (matchUp) {
     if (!matchUp.tieMatchUps) {
@@ -124,7 +125,7 @@ export function updateTieFormat({
 
     if (check.equivalent) {
       if (validUpdate({ matchUp, updateInProgressMatchUps })) {
-        matchUp.tieFormat = copyTieFormat(tieFormat);
+        writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
         modifiedCount += 1;
       } else {
         return decorateResult({
@@ -168,15 +169,16 @@ export function updateTieFormat({
       modifiedCount += 1;
     }
 
+    const existingStructureTieFormat = structure.tieFormat ?? (structure.tieFormatId ? getTieFormat({ drawDefinition, structure, event })?.tieFormat : undefined);
     const different =
-      !structure.tieFormat ||
+      !existingStructureTieFormat ||
       compareTieFormats({
-        ancestor: structure.tieFormat,
+        ancestor: existingStructureTieFormat,
         descendant: tieFormat,
       }).different;
 
     if (different) {
-      structure.tieFormat = copyTieFormat(tieFormat);
+      writeTieFormat({ target: structure, tieFormat: copyTieFormat(tieFormat), event });
       modifiedStructuresCount += 1;
       modifiedCount += 1;
     }
@@ -190,7 +192,7 @@ export function updateTieFormat({
       });
   } else if (drawDefinition) {
     processDrawDefinition({ drawDefinition });
-    drawDefinition.tieFormat = copyTieFormat(tieFormat);
+    writeTieFormat({ target: drawDefinition, tieFormat: copyTieFormat(tieFormat), event });
     modifiedCount += 1;
   } else {
     return { error: MISSING_DRAW_DEFINITION };
@@ -211,7 +213,7 @@ export function updateTieFormat({
 
     for (const structure of structures) {
       // if a sub-structure has a tieFormat then setting drawDefinition.tieFormat will have no effect
-      if (structure.tieFormat) continue;
+      if (structure.tieFormat || structure.tieFormatId) continue;
 
       const inheritedTieFormat = eventDefaultTieFormat;
       const modifiedCount = processStructure({
@@ -261,18 +263,19 @@ export function updateTieFormat({
           check,
         });
 
-        if (changesArePossible && !matchUp.tieFormat) {
+        if (changesArePossible && !matchUp.tieFormat && !matchUp.tieFormatId) {
           makeChanges({ changes, matchUp, tieFormat, uuids });
         } else if (inheritedTieFormat) {
+          const matchUpTieFormat = matchUp.tieFormat ?? (matchUp.tieFormatId ? event?.tieFormats?.find((tf) => tf.tieFormatId === matchUp.tieFormatId) : undefined);
           const different =
-            !matchUp.tieFormat ||
+            !matchUpTieFormat ||
             compareTieFormats({
               ancestor: inheritedTieFormat,
-              descendant: matchUp.tieFormat,
+              descendant: matchUpTieFormat,
             }).different;
 
           if (different) {
-            matchUp.tieFormat = inheritedTieFormat;
+            writeTieFormat({ target: matchUp, tieFormat: inheritedTieFormat, event });
             modified = true;
           }
         } else {
@@ -281,8 +284,8 @@ export function updateTieFormat({
             stack,
           });
         }
-      } else if (matchUp.tieFormat && matchingCollections(matchUp) && validToUpdate) {
-        matchUp.tieFormat = copyTieFormat(tieFormat);
+      } else if ((matchUp.tieFormat || matchUp.tieFormatId) && matchingCollections(matchUp) && validToUpdate) {
+        writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
         modified = true;
       }
 
@@ -302,7 +305,7 @@ export function updateTieFormat({
   }
 
   function makeChanges({ uuids, matchUp, tieFormat, changes }) {
-    matchUp.tieFormat = copyTieFormat(tieFormat);
+    writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
     const matchUpIdsRemoved: string[] = [];
     const matchUpsAdded: MatchUp[] = [];
 
@@ -329,7 +332,6 @@ export function updateTieFormat({
         matchUp.tieMatchUps.push(...newMatchUps);
       } else {
         const tieMatchUpIdsToRemove = change.toBePlayedTieMatchUpIds.slice(0, Math.abs(change.countChange));
-        console.log('remove', tieMatchUpIdsToRemove.length);
         matchUpIdsRemoved.push(...tieMatchUpIdsToRemove);
         matchUp.tieMatchUps = matchUp.tieMatchUps.filter(({ matchUpId }) => !tieMatchUpIdsToRemove.includes(matchUpId));
       }

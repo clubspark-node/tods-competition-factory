@@ -105,6 +105,11 @@ export function generateEventWithDraw(params) {
 
   const tieFormat =
     (isObject(drawProfile.tieFormat) && drawProfile.tieFormat) ||
+    // look up tieFormatId in the event's tieFormats array if provided
+    (drawProfile.tieFormatId &&
+      tournamentRecord?.events
+        ?.find((e) => e.eventId === eventId)
+        ?.tieFormats?.find((tf) => tf.tieFormatId === drawProfile.tieFormatId)) ||
     (eventType === TEAM &&
       tieFormatDefaults({
         event: { eventId, category, gender },
