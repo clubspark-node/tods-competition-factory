@@ -4,8 +4,8 @@ import tournamentEngine from '@Engines/syncEngine';
 import { expect, it, describe } from 'vitest';
 
 import { COLLEGE_D3, DOMINANT_DUO, USTA_LEVEL_1, USTA_BREWER_CUP } from '@Constants/tieFormatConstants';
-import { POLICY_TYPE_SCORING } from '@Constants/policyConstants';
 import { TEAM_MATCHUP, SINGLES, DOUBLES } from '@Constants/matchUpTypes';
+import { POLICY_TYPE_SCORING } from '@Constants/policyConstants';
 import { TEAM_EVENT } from '@Constants/eventConstants';
 
 const policyDefinitions = { [POLICY_TYPE_SCORING]: { requireParticipantsForScoring: false } };
@@ -14,7 +14,6 @@ describe('tieFormat optimisation via aggregateTieFormats', () => {
   it('aggregates a basic team tournament and tieMatchUps still hydrate', () => {
     const drawSize = 8;
     const {
-      drawIds: [drawId],
       eventIds: [eventId],
     } = mocksEngine.generateTournamentRecord({
       drawProfiles: [{ drawSize, eventType: TEAM_EVENT, tieFormatName: COLLEGE_D3 }],
@@ -66,7 +65,6 @@ describe('tieFormat optimisation via aggregateTieFormats', () => {
     const drawSize = 4;
     const {
       drawIds: [drawId],
-      eventIds: [eventId],
     } = mocksEngine.generateTournamentRecord({
       drawProfiles: [{ drawSize, eventType: TEAM_EVENT, tieFormatName: DOMINANT_DUO }],
       policyDefinitions,
@@ -137,7 +135,6 @@ describe('tieFormat optimisation via aggregateTieFormats', () => {
     });
 
     const originalTieFormat = tournamentEngine.getTieFormat({ eventId, drawId }).tieFormat;
-    const originalCollectionCount = originalTieFormat.collectionDefinitions.length;
 
     // Get round 2 (final) matchUp
     const r2MatchUps = tournamentEngine.allTournamentMatchUps({

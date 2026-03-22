@@ -114,6 +114,7 @@ export function seedWithdrawalCascade({
     if (!blockSeeds.length) break; // No more seeds to cascade
 
     const replacement = blockSeeds[0];
+    if (!replacement.participantId) break;
     const replacementPosition = positionAssignments.find((a) => a.participantId === replacement.participantId);
     if (!replacementPosition) break;
 
@@ -184,6 +185,7 @@ export function seedWithdrawalCascade({
   });
 
   modifySeedAssignmentsNotice({
+    eventId: event?.eventId,
     drawDefinition,
     tournamentId,
     structure,

@@ -52,9 +52,7 @@ export function positionSeedBlocks({
   if (!structure) ({ structure } = findStructure({ drawDefinition, structureId }));
   if (!structureId) structureId = structure?.structureId;
 
-  if (!appliedPolicies) {
-    appliedPolicies = getAppliedPolicies({ drawDefinition }).appliedPolicies;
-  }
+  appliedPolicies ??= getAppliedPolicies({ drawDefinition }).appliedPolicies;
   if (!validSeedBlocks) {
     const result =
       structure &&
@@ -209,7 +207,7 @@ function reorderSeedsForAvoidance({
   // Build slot-to-section map (slot i → section of unfilledPositions[positionCount - 1 - i])
   const slotSections = unplacedSeedParticipantIds.map((_, i) => {
     const position = unfilledPositions[positionCount - 1 - i];
-    return position !== undefined ? getSection(position) : i;
+    return position === undefined ? i : getSection(position);
   });
 
   // For each conflict group, try to assign members to different sections
@@ -217,9 +215,7 @@ function reorderSeedsForAvoidance({
   for (const groupIds of conflictGroups) {
     if (groupIds.length < 2) continue;
 
-    const indices = groupIds
-      .map((id) => unplacedSeedParticipantIds.indexOf(id))
-      .filter((i) => i >= 0);
+    const indices = groupIds.map((id) => unplacedSeedParticipantIds.indexOf(id)).filter((i) => i >= 0);
 
     if (indices.length < 2) continue;
 
@@ -232,7 +228,7 @@ function reorderSeedsForAvoidance({
     // Find non-group seed indices that could be swapped
     const groupIdSet = new Set(groupIds);
     const nonGroupIndices = unplacedSeedParticipantIds
-      .map((id, i) => (!groupIdSet.has(id) ? i : -1))
+      .map((id, i) => (groupIdSet.has(id) ? -1 : i))
       .filter((i) => i >= 0);
 
     // Greedy: for each duplicate-section member (after the first), try to find a swap partner in a different section

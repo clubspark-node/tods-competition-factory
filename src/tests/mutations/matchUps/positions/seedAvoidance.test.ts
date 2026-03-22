@@ -1,8 +1,8 @@
 import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { getDrawStructures } from '@Acquire/findStructure';
-import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
+import mocksEngine from '@Assemblies/engines/mock';
 import { expect, it, describe } from 'vitest';
 
 import { POLICY_TYPE_AVOIDANCE } from '@Constants/policyConstants';
@@ -198,6 +198,6 @@ describe('seed placement avoidance', () => {
     // Verify draw was created with all seeds placed
     const { drawDefinition } = result;
     const { matchUps } = allDrawMatchUps({ drawDefinition });
-    expect(matchUps.length).toBeGreaterThan(0);
+    expect(matchUps?.length).toBeGreaterThan(0);
   });
 });

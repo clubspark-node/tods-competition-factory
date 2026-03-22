@@ -1,10 +1,10 @@
-import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
 import { getScheduledCourtMatchUps } from '@Query/venues/getScheduledCourtMatchUps';
-import { minutesDifference, timeToDate } from '@Tools/dateTime';
-import { startTimeSort } from '@Validators/time';
-import { addNotice } from '@Global/state/globalState';
 import { validDateAvailability } from '@Validators/validateDateAvailability';
+import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
+import { minutesDifference, timeToDate } from '@Tools/dateTime';
 import { findCourt } from '../../query/venues/findCourt';
+import { addNotice } from '@Global/state/globalState';
+import { startTimeSort } from '@Validators/time';
 
 import { Availability, Tournament } from '@Types/tournamentTypes';
 import { POLICY_TYPE_SCHEDULING } from '@Constants/policyConstants';
@@ -83,7 +83,10 @@ export function modifyCourtAvailability({
       return !dateWindows.some((window) => {
         const windowStart = timeToDate(window.startTime);
         const windowEnd = timeToDate(window.endTime);
-        return minutesDifference(windowStart, matchUpTime, false) <= 0 && minutesDifference(matchUpTime, windowEnd, false) <= 0;
+        return (
+          minutesDifference(windowStart, matchUpTime, false) <= 0 &&
+          minutesDifference(matchUpTime, windowEnd, false) <= 0
+        );
       });
     });
 
@@ -152,11 +155,7 @@ function getMergedAvailability(dateDetails) {
     const { startTime, endTime, bookings } = details;
     safety -= 1;
 
-    if (!lastStartTime) {
-      lastStartTime = startTime;
-      lastBookings = bookings;
-      lastEndTime = endTime;
-    } else {
+    if (lastStartTime) {
       const difference = minutesDifference(timeToDate(lastEndTime), timeToDate(startTime), false);
 
       if (difference > 0) {
@@ -180,6 +179,10 @@ function getMergedAvailability(dateDetails) {
         lastEndTime = endTime;
         mergeCount += 1;
       }
+    } else {
+      lastStartTime = startTime;
+      lastBookings = bookings;
+      lastEndTime = endTime;
     }
   }
   const availability: any = { startTime: lastStartTime, endTime: lastEndTime };

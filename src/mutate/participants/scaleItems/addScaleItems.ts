@@ -3,8 +3,8 @@ import { addEventTimeItem, addTournamentTimeItem } from '@Mutate/timeItems/addTi
 import { participantScaleItem } from '@Query/participant/participantScaleItem';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { addNotice, getTopics } from '@Global/state/globalState';
-import { isValidDateString } from '@Tools/dateTime';
 import { definedAttributes } from '@Tools/definedAttributes';
+import { isValidDateString } from '@Tools/dateTime';
 import { findEvent } from '@Acquire/findEvent';
 
 // constants and types
@@ -137,7 +137,7 @@ export function setParticipantScaleItems(params: SetParticipantScaleItemsArgs) {
     }
   }
 
-  const info = !modificationsApplied ? NO_MODIFICATIONS_APPLIED : undefined;
+  const info = modificationsApplied ? undefined : NO_MODIFICATIONS_APPLIED;
   const { topics } = getTopics();
   if (topics.includes(MODIFY_PARTICIPANTS) && modificationsApplied) {
     addNotice({
