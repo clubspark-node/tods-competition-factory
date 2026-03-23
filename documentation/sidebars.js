@@ -204,7 +204,16 @@ module.exports = {
         'governors/draws-governor',
         'governors/entries-governor',
         'governors/event-governor',
-        'governors/generation-governor',
+        {
+          type: 'category',
+          label: 'Generation Governor',
+          items: [
+            'governors/generation-governor',
+            'governors/generation/generateDrawDefinition',
+            'governors/generation/drawMatic',
+            'governors/generation/remapDrawDefinitionMatchUpIds',
+          ],
+        },
         'governors/matchup-governor',
         'governors/matchup-format-governor',
         'governors/mocks-governor',

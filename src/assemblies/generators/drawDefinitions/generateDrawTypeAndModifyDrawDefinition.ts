@@ -101,9 +101,11 @@ export function generateDrawTypeAndModifyDrawDefinition(params: GenerateDrawType
     });
   }
 
-  const existingMatchUpIds = getMatchUpsMap({
-    drawDefinition,
-  }).drawMatchUps.map(getMatchUpId);
+  const existingMatchUpIds = new Set(
+    getMatchUpsMap({
+      drawDefinition,
+    }).drawMatchUps.map(getMatchUpId),
+  );
 
   const result = generateDrawStructuresAndLinks(params);
   if (result.error) {
@@ -150,7 +152,7 @@ export function generateDrawTypeAndModifyDrawDefinition(params: GenerateDrawType
   if (tieFormat) {
     // if there were exiting matchUps, exclude them from this step
     matchUps?.forEach((matchUp) => {
-      if (!existingMatchUpIds.includes(matchUp.matchUpId)) {
+      if (!existingMatchUpIds.has(matchUp.matchUpId)) {
         const { tieMatchUps } = generateTieMatchUps({ tieFormat, matchUp, isMock });
         Object.assign(matchUp, { tieMatchUps, matchUpType });
       }

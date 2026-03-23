@@ -541,9 +541,20 @@ export type GenerateDrawDefinitionArgs = {
   drawSize?: number;
   idPrefix?: string;
   isMock?: boolean;
+  targetMatchUpIds?: TargetMatchUpId[];
   uuids?: string[];
   drawId?: string;
   event: Event;
+};
+
+export type TargetMatchUpId = {
+  matchUpId: string;
+  roundNumber: number;
+  roundPosition: number;
+  stage?: string;
+  stageSequence?: number;
+  exitProfile?: string;
+  structureId?: string;
 };
 
 export type DrawMaticArgs = {
