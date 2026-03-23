@@ -4,9 +4,9 @@ import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
 import { getMatchUpsMap } from '@Query/matchUps/getMatchUpsMap';
 
 // constants and types
+import { MAIN, QUALIFYING, VOLUNTARY_CONSOLATION } from '@Constants/drawDefinitionConstants';
 import { MISSING_DRAW_DEFINITION } from '@Constants/errorConditionConstants';
 import { DRAFT_STATE, POSITION_ACTIONS } from '@Constants/extensionConstants';
-import { MAIN, QUALIFYING } from '@Constants/drawDefinitionConstants';
 import { toBePlayed } from '@Fixtures/scoring/outcomes/toBePlayed';
 import { BYE } from '@Constants/matchUpStatusConstants';
 import { SUCCESS } from '@Constants/resultConstants';
@@ -42,6 +42,21 @@ export function resetDrawDefinition({ tournamentRecord, removeScheduling, remove
 
   for (const structure of drawDefinition.structures || []) {
     const { positionAssignments, stage, stageSequence } = structure;
+
+    // Voluntary consolation structures: clear all matchUps and assignments.
+    // VC matchUps are always dynamically added (either AD_HOC or via generateVoluntaryConsolation)
+    // and should be fully cleared on reset.
+    if (stage === VOLUNTARY_CONSOLATION) {
+      structure.matchUps = [];
+      if (structure.positionAssignments) {
+        structure.positionAssignments = structure.positionAssignments.map((a) => {
+          delete a.participantId;
+          return a;
+        });
+      }
+      structure.seedAssignments = [];
+      continue;
+    }
 
     const isMainOrQualifyingFirst = stageSequence === 1 && [QUALIFYING, MAIN].includes(stage);
 
