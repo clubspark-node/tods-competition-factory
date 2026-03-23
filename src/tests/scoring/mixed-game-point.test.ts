@@ -71,8 +71,8 @@ describe('Mixed addGame + addPoint', () => {
     });
 
     // The last episode should indicate game completion
-    const lastEpisode = episodes[episodes.length - 1];
-    expect(lastEpisode.game.complete).toBe(true);
+    const lastEpisode = episodes.at(-1);
+    expect(lastEpisode?.game.complete).toBe(true);
   });
 
   test('addGame p1 + addGame p2 + points p1: game index and scores correct', () => {
@@ -109,6 +109,65 @@ describe('Mixed addGame + addPoint', () => {
     entries.slice(2).forEach((entry: any) => {
       expect(entry.type).toBe('point');
     });
+  });
+
+  test('addPoint to 15-40 then addGame resets point scores to 0-0', () => {
+    const engine = new ScoringEngine({ matchUpFormat: 'SET3-S:6/TB7' });
+
+    // Play 3 points: p1 wins one (15-0), p2 wins two (15-30, 15-40)
+    engine.addPoint({ winner: 0 }); // 15-0
+    engine.addPoint({ winner: 1 }); // 15-15
+    engine.addPoint({ winner: 1 }); // 15-30
+
+    let score = engine.getScore();
+    expect(score.pointDisplay).toEqual(['15', '30']);
+
+    // Now addGame for player 1 (completes the game without finishing points)
+    engine.addGame({ winner: 1 });
+
+    score = engine.getScore();
+    expect(score.games).toEqual([0, 1]);
+
+    // Point scores should reset — next addPoint starts a fresh game at 0-0
+    engine.addPoint({ winner: 0 }); // should be 15-0 in the new game
+    score = engine.getScore();
+    expect(score.pointDisplay).toEqual(['15', '0']);
+    expect(score.games).toEqual([0, 1]); // game count unchanged
+
+    // Complete the new game via points
+    engine.addPoint({ winner: 0 }); // 30-0
+    engine.addPoint({ winner: 0 }); // 40-0
+    engine.addPoint({ winner: 0 }); // game won
+
+    score = engine.getScore();
+    expect(score.games).toEqual([1, 1]);
+  });
+
+  test('addPoint mid-game then addGame then more addPoint: no stale point carryover', () => {
+    const engine = new ScoringEngine({ matchUpFormat: 'SET3-S:6/TB7' });
+
+    // Build up to 40-30 via points
+    engine.addPoint({ winner: 0 }); // 15-0
+    engine.addPoint({ winner: 0 }); // 30-0
+    engine.addPoint({ winner: 0 }); // 40-0
+    engine.addPoint({ winner: 1 }); // 40-15
+    engine.addPoint({ winner: 1 }); // 40-30
+
+    let score = engine.getScore();
+    expect(score.pointDisplay).toEqual(['40', '30']);
+
+    // addGame completes this game for player 0 (overriding point state)
+    engine.addGame({ winner: 0 });
+
+    score = engine.getScore();
+    expect(score.games).toEqual([1, 0]);
+
+    // The underlying point scores must be reset
+    const state = engine.getState();
+    const currentSet = state.score.sets[0];
+    const lastGameIdx = (currentSet.side1GameScores?.length ?? 1) - 1;
+    expect(currentSet.side1GameScores?.[lastGameIdx]).toBe(0);
+    expect(currentSet.side2GameScores?.[lastGameIdx]).toBe(0);
   });
 
   test('addSet then addGame then points: score data is correct', () => {

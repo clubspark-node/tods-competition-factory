@@ -1161,6 +1161,17 @@ export class ScoringEngine {
       currentSet.side2Score = (currentSet.side2Score || 0) + 1;
     }
 
+    // Reset point-level tracking: close the current game's point scores
+    // and start a fresh 0-0 game for subsequent addPoint() calls
+    if (currentSet.side1GameScores?.length || currentSet.side2GameScores?.length) {
+      currentSet.side1GameScores = currentSet.side1GameScores || [];
+      currentSet.side2GameScores = currentSet.side2GameScores || [];
+      // Start a new game at 0-0 (the completed game's points are discarded
+      // since addGame provides the result without point detail)
+      currentSet.side1GameScores.push(0);
+      currentSet.side2GameScores.push(0);
+    }
+
     // Store tiebreak scores if provided
     if (tiebreakScore) {
       currentSet.side1TiebreakScore = tiebreakScore[0];
