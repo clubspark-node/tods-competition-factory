@@ -16,9 +16,9 @@ import { isAny } from '@Validators/isAny';
 // constants and types
 import { DrawDefinition, EntryStatusUnion, Event, Extension, StageTypeUnion, Tournament } from '@Types/tournamentTypes';
 import POLICY_MATCHUP_ACTIONS_DEFAULT from '@Fixtures/policies/POLICY_MATCHUP_ACTIONS_DEFAULT';
+import { DOUBLES_EVENT, HYBRID_EVENT, TEAM_EVENT } from '@Constants/eventConstants';
 import { INDIVIDUAL, PAIR, TEAM } from '@Constants/participantConstants';
 import { POLICY_TYPE_MATCHUP_ACTIONS } from '@Constants/policyConstants';
-import { DOUBLES_EVENT, TEAM_EVENT } from '@Constants/eventConstants';
 import { DIRECT_ACCEPTANCE } from '@Constants/entryStatusConstants';
 import { PolicyDefinitions, ResultType } from '@Types/factoryTypes';
 import { ROUND_TARGET } from '@Constants/extensionConstants';
@@ -140,6 +140,14 @@ function getTypedParticipantIdsHelper({
     return false;
   }
 
+  function isValidHybridParticipant(participant: any, event: Event, entryStatus: EntryStatusUnion) {
+    return (
+      event.eventType === HYBRID_EVENT &&
+      [INDIVIDUAL, PAIR].includes(participant.participantType) &&
+      !isUngrouped(entryStatus)
+    );
+  }
+
   function isValidTeamParticipant(participant: any, event: Event, entryStatus: EntryStatusUnion) {
     return (
       (event.eventType as string) === TEAM &&
@@ -168,6 +176,10 @@ function getTypedParticipantIdsHelper({
         }
 
         if (isValidUngroupedDoublesIndividual(participant, event, entryStatus, genderEnforced, mismatchedGender)) {
+          return true;
+        }
+
+        if (isValidHybridParticipant(participant, event, entryStatus)) {
           return true;
         }
 

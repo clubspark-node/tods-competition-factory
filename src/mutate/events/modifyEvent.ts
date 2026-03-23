@@ -15,7 +15,7 @@ import { unique } from '@Tools/arrays';
 // constants and types
 import { Category, Event, Tournament, EventTypeUnion, GenderUnion, TieFormat } from '@Types/tournamentTypes';
 import { ALTERNATE, STRUCTURE_SELECTED_STATUSES } from '@Constants/entryStatusConstants';
-import { DOUBLES, SINGLES, TEAM } from '@Constants/eventConstants';
+import { DOUBLES, HYBRID, SINGLES, TEAM } from '@Constants/eventConstants';
 import { INDIVIDUAL, PAIR } from '@Constants/participantConstants';
 import { OBJECT } from '@Constants/attributeConstants';
 import { SUCCESS } from '@Constants/resultConstants';
@@ -229,9 +229,12 @@ function checkGenderUpdates({ noFlightsNoDraws, enteredParticipantGenders, event
 }
 
 function checkEventType({ enteredParticipantTypes, eventUpdates, stack }) {
-  const validEventTypes = (enteredParticipantTypes.includes(TEAM) && [TEAM]) ||
-    (enteredParticipantTypes.includes(INDIVIDUAL) && [SINGLES]) ||
-    (enteredParticipantTypes.includes(PAIR) && [DOUBLES]) || [DOUBLES, SINGLES, TEAM];
+  const hasMixedTypes =
+    enteredParticipantTypes.includes(INDIVIDUAL) && enteredParticipantTypes.includes(PAIR);
+  const validEventTypes = (hasMixedTypes && [HYBRID]) ||
+    (enteredParticipantTypes.includes(TEAM) && [TEAM]) ||
+    (enteredParticipantTypes.includes(INDIVIDUAL) && [SINGLES, HYBRID]) ||
+    (enteredParticipantTypes.includes(PAIR) && [DOUBLES, HYBRID]) || [DOUBLES, SINGLES, TEAM, HYBRID];
 
   const validEventType = validEventTypes.includes(eventUpdates.eventType ?? '');
 
