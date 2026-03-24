@@ -354,6 +354,62 @@ console.log(eventPublishStatus.drawDetails); // granular details
 
 ---
 
+## getRoundVisibilityState
+
+Computes per-round visibility state (hidden / embargoed) for a draw structure. Used by clients to determine which rounds should be visually hidden (beyond `roundLimit`) or marked as embargoed when rendering a draw.
+
+```js
+const { publishState } = engine.getPublishState({ event });
+const structureDetail = publishState?.status?.drawDetails?.[drawId]?.structureDetails?.[structureId];
+
+const roundVisibility = publishingGovernor.getRoundVisibilityState(
+  structureDetail,
+  matchUps, // array of matchUp objects — only roundNumber is read
+);
+
+// roundVisibility is Record<number, { hidden?: boolean; embargoed?: boolean }> | undefined
+if (roundVisibility) {
+  for (const [roundNumber, state] of Object.entries(roundVisibility)) {
+    if (state.hidden) console.log(`Round ${roundNumber} is beyond roundLimit`);
+    if (state.embargoed) console.log(`Round ${roundNumber} has active schedule embargo`);
+  }
+}
+```
+
+**Parameters:**
+
+| Parameter         | Type                         | Description                                                                                                       |
+| ----------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `structureDetail` | `PublishingDetail`           | Structure-level publishing detail from `getPublishState()`. Contains optional `roundLimit` and `scheduledRounds`. |
+| `matchUps`        | `{ roundNumber?: number }[]` | Array of matchUp objects for the structure. Only `roundNumber` is read to determine the maximum round.            |
+
+**Returns:**
+
+```ts
+Record<number, RoundVisibility> | undefined;
+
+interface RoundVisibility {
+  hidden?: boolean; // true when roundNumber > roundLimit
+  embargoed?: boolean; // true when scheduledRound has active embargo
+}
+```
+
+Returns `undefined` when no rounds have visibility restrictions (no roundLimit set and no active embargoes).
+
+:::note
+A round can be both `hidden` and `embargoed` simultaneously — for example, when a round is beyond the roundLimit and also has a schedule embargo.
+:::
+
+**Purpose:**
+
+- Render draw structures with correct round visibility in admin/public views
+- Determine which rounds to grey out, hide, or mark with embargo indicators
+- Drive UI indicators for schedule embargo status per round
+
+**See**: [Publishing Events](../concepts/publishing/publishing-events) for `roundLimit` usage, [Embargo](../concepts/publishing/publishing-embargo) for embargo concepts.
+
+---
+
 ## getTournamentPublishStatus
 
 Returns publish status for tournament-level items (participants, order of play).
@@ -386,6 +442,69 @@ console.log(publishStatus.orderOfPlay.published); // boolean
 ```
 
 **Purpose:** Check if tournament-wide items like participants and order of play are published.
+
+---
+
+## isEmbargoed
+
+Returns `true` if a publishing detail has an active embargo — i.e., the `embargo` field is a valid ISO date string in the future.
+
+```js
+import { publishingGovernor } from 'tods-competition-factory';
+
+const { publishState } = engine.getPublishState({ event });
+const drawDetail = publishState?.status?.drawDetails?.[drawId]?.publishingDetail;
+
+if (publishingGovernor.isEmbargoed(drawDetail)) {
+  console.log('Draw is under embargo until', drawDetail.embargo);
+}
+
+// Also works with scheduled round details
+const roundDetail =
+  publishState?.status?.drawDetails?.[drawId]?.structureDetails?.[structureId]?.scheduledRounds?.[roundNumber];
+
+if (publishingGovernor.isEmbargoed(roundDetail)) {
+  console.log('Round schedule is embargoed');
+}
+```
+
+**Parameters:**
+
+| Parameter | Type                            | Description                                                       |
+| --------- | ------------------------------- | ----------------------------------------------------------------- |
+| `detail`  | `PublishingDetail \| undefined` | Any publishing detail object that may contain an `embargo` field. |
+
+**Returns:** `boolean` — `true` when `detail.embargo` is a valid ISO date string in the future.
+
+:::note
+Returns `false` for `undefined`, missing `embargo` field, or expired/invalid embargo dates. Validates ISO format before comparing.
+:::
+
+---
+
+## isVisiblyPublished
+
+Returns `true` if a publishing detail is both published **and** not currently embargoed. Combines the `published` flag check with the embargo expiry check.
+
+```js
+import { publishingGovernor } from 'tods-competition-factory';
+
+const drawDetail = publishState?.status?.drawDetails?.[drawId]?.publishingDetail;
+
+if (publishingGovernor.isVisiblyPublished(drawDetail)) {
+  // Draw is published and any embargo has expired — show to public
+}
+```
+
+**Parameters:**
+
+| Parameter | Type                            | Description                                                                  |
+| --------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| `detail`  | `PublishingDetail \| undefined` | Any publishing detail object with `published` and optional `embargo` fields. |
+
+**Returns:** `boolean` — `true` when `detail.published === true` and `isEmbargoed(detail)` is `false`.
+
+**Purpose:** Determine if content should be visible to end users, respecting both the publish flag and any active embargo.
 
 ---
 
