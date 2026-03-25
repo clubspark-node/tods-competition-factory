@@ -570,6 +570,7 @@ export type DrawMaticArgs = {
   participantIds?: string[];
   updateParticipantRatings?: boolean;
   dynamicRatings?: boolean;
+  convertToELO?: boolean;
   refreshDynamic?: boolean;
   encounterValue?: number;
   sameTeamValue?: number; // only required if not present in ratingsParameters.ts

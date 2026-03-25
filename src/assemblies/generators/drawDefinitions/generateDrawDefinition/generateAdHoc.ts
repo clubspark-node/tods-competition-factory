@@ -46,8 +46,16 @@ export function generateAdHoc(params) {
 }
 
 function automateAdHoc(params) {
-  const { restrictEntryStatus, generateMatchUps, structureId, matchUpIds, scaleName, scaleAccessor } =
-    params.drawMatic ?? {};
+  const {
+    restrictEntryStatus,
+    generateMatchUps,
+    structureId,
+    matchUpIds,
+    scaleName,
+    scaleAccessor,
+    convertToELO,
+    dynamicRatings,
+  } = params.drawMatic ?? {};
 
   const result = drawMatic({
     ...params,
@@ -58,6 +66,8 @@ function automateAdHoc(params) {
     participantIds: params.participantIds,
     roundsCount: params.roundsCount,
     restrictEntryStatus,
+    dynamicRatings,
+    convertToELO,
     structureId,
     matchUpIds,
   });
