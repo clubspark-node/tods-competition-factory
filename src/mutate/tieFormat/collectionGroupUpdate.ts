@@ -2,6 +2,7 @@ import { getTargetTeamMatchUps } from '@Query/hierarchical/tieFormats/getTargetT
 import { updateTargetTeamMatchUps } from '@Mutate/tieFormat/updateTargetTeamMatchUps';
 import { calculateWinCriteria } from '@Query/matchUp/calculateWinCriteria';
 import { modifyDrawNotice } from '@Mutate/notifications/drawNotifications';
+import { writeTieFormat } from '@Mutate/tieFormat/writeTieFormat';
 import { validateTieFormat } from '@Validators/validateTieFormat';
 import { definedAttributes } from '@Tools/definedAttributes';
 
@@ -77,14 +78,13 @@ export function collectionGroupUpdate({
   if (result.error) return result;
 
   if (eventId && event) {
-    event.tieFormat = prunedTieFormat;
-    // NOTE: there is not yet a modifyEventNotice
+    writeTieFormat({ target: event, tieFormat: prunedTieFormat, event });
   } else if (matchUpId && matchUp) {
-    matchUp.tieFormat = tieFormat;
+    writeTieFormat({ target: matchUp, tieFormat: prunedTieFormat, event });
   } else if (structure) {
-    structure.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: structure, tieFormat: prunedTieFormat, event });
   } else if (drawDefinition) {
-    drawDefinition.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: drawDefinition, tieFormat: prunedTieFormat, event });
   } else if (!matchUp || !drawDefinition) {
     return { error: MISSING_DRAW_DEFINITION };
   }

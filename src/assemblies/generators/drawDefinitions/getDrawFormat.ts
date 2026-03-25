@@ -1,3 +1,4 @@
+import { getObjectTieFormat } from '@Query/hierarchical/tieFormats/getObjectTieFormat';
 import { validateTieFormat } from '@Assemblies/governors/scoreGovernor';
 import tieFormatDefaults from '@Generators/templates/tieFormatDefaults';
 
@@ -14,6 +15,7 @@ export function getDrawFormat(params): ResultType & { tieFormat?: TieFormat; mat
     hydrateCollections,
     enforceGender,
     tieFormatName,
+    tieFormatId,
     matchUpType,
     eventType,
     isMock,
@@ -27,11 +29,19 @@ export function getDrawFormat(params): ResultType & { tieFormat?: TieFormat; mat
     // use this tieFormat ONLY when no tieFormat is specified in params
     const existingMainTieFormat = existingDrawDefinition?.structures?.find(({ stage }) => stage === MAIN)?.tieFormat;
 
+    // look up tieFormatId in event.tieFormats[] if provided
+    const referencedTieFormat = tieFormatId && event?.tieFormats?.find((tf) => tf.tieFormatId === tieFormatId);
+
+    // resolve event tieFormat (handles both inline and tieFormatId reference)
+    const eventTieFormat = getObjectTieFormat(event);
+
     tieFormat =
       tieFormat ||
+      referencedTieFormat ||
       existingMainTieFormat ||
-      // if tieFormatName is provided and it matches the name of the tieFormat attached to parent event...
-      (tieFormatName && event?.tieFormat?.tieFormatName === tieFormatName && event.tieFormat) ||
+      // if tieFormatName is provided, check event.tieFormats[] array first, then event.tieFormat
+      (tieFormatName && event?.tieFormats?.find((tf) => tf.tieFormatName === tieFormatName)) ||
+      (tieFormatName && eventTieFormat?.tieFormatName === tieFormatName && eventTieFormat) ||
       // if the tieFormatName is not found in the factory then will use default
       (tieFormatName &&
         tieFormatDefaults({
@@ -41,7 +51,7 @@ export function getDrawFormat(params): ResultType & { tieFormat?: TieFormat; mat
           event,
         })) ||
       // if no tieFormat is found on event then will use default
-      event?.tieFormat ||
+      eventTieFormat ||
       tieFormatDefaults({ event, isMock, hydrateCollections });
 
     matchUpFormat = undefined;

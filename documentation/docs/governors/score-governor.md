@@ -438,20 +438,6 @@ const code = scoreGovernor.stringify({
 
 ---
 
-## tidyScore
-
-Cleans and normalizes a score object, removing invalid or incomplete data.
-
-```js
-const tidied = scoreGovernor.tidyScore({
-  score, // required - score object to tidy
-});
-```
-
-**Purpose:** Normalize score data for storage and comparison.
-
----
-
 ## umo
 
 "Undo Multiple Operations" - undoes multiple scoring actions at once.

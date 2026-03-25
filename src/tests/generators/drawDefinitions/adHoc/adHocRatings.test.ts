@@ -161,6 +161,113 @@ it.each(scenarios)('will update adHocRatings and use DYNAMIC ratings for subsequ
   }
 });
 
+it('convertToELO produces ELO.DYNAMIC scale values from WTN source', () => {
+  const drawId = 'drawId';
+  const drawSize = 16;
+  const ratingType = WTN;
+
+  mocksEngine.generateTournamentRecord({
+    participantsProfile: { idPrefix: 'P', scaleAllParticipants: true },
+    completeAllMatchUps: true,
+    drawProfiles: [
+      {
+        category: { ratingType, ratingMin: 10, ratingMax: 14 },
+        scaleName: ratingType,
+        drawType: AD_HOC,
+        automated: true,
+        roundsCount: 1,
+        drawSize,
+        drawId,
+      },
+    ],
+    setState: true,
+  });
+
+  // Generate a second round with convertToELO
+  let result: any = tournamentEngine.drawMatic({
+    updateParticipantRatings: true,
+    dynamicRatings: true,
+    convertToELO: true,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  // modifiedScaleValues should contain ELO-range values (0-3000), not WTN-range (1-40)
+  const modifiedValues: any[] = Object.values(result.roundResults[0].modifiedScaleValues);
+  expect(modifiedValues.length).toEqual(drawSize);
+
+  for (const scaleItem of modifiedValues) {
+    // Scale name should be ELO.DYNAMIC
+    expect(scaleItem.scaleName).toEqual(`ELO.${DYNAMIC}`);
+    // Value should be a plain number (ELO has no accessor), in ELO range
+    const value = scaleItem.scaleValue;
+    expect(typeof value).toEqual('number');
+    expect(value).toBeGreaterThan(0);
+    expect(value).toBeLessThanOrEqual(3000);
+  }
+
+  // sourceRatingType should be reported
+  expect(result.roundResults[0].sourceRatingType).toEqual(ratingType);
+});
+
+it('convertToELO multi-round stays in ELO space', () => {
+  const drawId = 'drawId';
+  const drawSize = 8;
+  const ratingType = UTR;
+
+  mocksEngine.generateTournamentRecord({
+    participantsProfile: { idPrefix: 'P', scaleAllParticipants: true },
+    completeAllMatchUps: true,
+    drawProfiles: [
+      {
+        category: { ratingType, ratingMin: 8, ratingMax: 12 },
+        scaleName: ratingType,
+        drawType: AD_HOC,
+        automated: true,
+        roundsCount: 1,
+        drawSize,
+        drawId,
+      },
+    ],
+    setState: true,
+  });
+
+  // Generate round 2 with convertToELO + dynamicRatings via direct drawMatic call
+  let result: any = tournamentEngine.drawMatic({
+    updateParticipantRatings: true,
+    dynamicRatings: true,
+    convertToELO: true,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  const round1Values: any[] = Object.values(result.roundResults[0].modifiedScaleValues);
+  // All values should be ELO.DYNAMIC with numeric values in ELO range
+  for (const item of round1Values) {
+    expect(item.scaleName).toEqual(`ELO.${DYNAMIC}`);
+    expect(typeof item.scaleValue).toEqual('number');
+    expect(item.scaleValue).toBeGreaterThan(0);
+  }
+
+  // Attach round 2 matchUps and complete them
+  tournamentEngine.addAdHocMatchUps({ matchUps: result.matchUps, drawId });
+
+  // Generate round 3 — should read ELO.DYNAMIC values directly
+  result = tournamentEngine.drawMatic({
+    updateParticipantRatings: true,
+    dynamicRatings: true,
+    convertToELO: true,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  const round2Values: any[] = Object.values(result.roundResults[0].modifiedScaleValues);
+  for (const item of round2Values) {
+    expect(item.scaleName).toEqual(`ELO.${DYNAMIC}`);
+    expect(typeof item.scaleValue).toEqual('number');
+  }
+});
+
 it('will accept adHocRatings at generation time', () => {
   expect(true).toEqual(true);
 });

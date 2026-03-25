@@ -9,7 +9,7 @@ import { isConvertableInteger } from '@Tools/math';
 // constants and types
 import { INVALID_CATEGORY, INVALID_COLLECTION_DEFINITION, INVALID_OBJECT } from '@Constants/errorConditionConstants';
 import { Category, CollectionDefinition, Event, EventTypeUnion, GenderUnion } from '@Types/tournamentTypes';
-import { DOUBLES, SINGLES } from '@Constants/matchUpTypes';
+import { DOUBLES, HYBRID, SINGLES } from '@Constants/matchUpTypes';
 
 type ValidateCollectionDefinitionArgs = {
   collectionDefinition: CollectionDefinition;
@@ -60,8 +60,8 @@ export function validateCollectionDefinition({
   if (typeof matchUpCount !== 'number') {
     errors.push(`matchUpCount is not type number: ${matchUpCount}`);
   }
-  if (matchUpType && !includesMatchUpEventType([SINGLES, DOUBLES], matchUpType)) {
-    errors.push(`matchUpType must be SINGLES or DOUBLES: ${matchUpType}`);
+  if (matchUpType && !includesMatchUpEventType([SINGLES, DOUBLES, HYBRID], matchUpType)) {
+    errors.push(`matchUpType must be SINGLES, DOUBLES, or HYBRID: ${matchUpType}`);
   }
 
   const valueDeclarations = [!!collectionValueProfiles?.length]

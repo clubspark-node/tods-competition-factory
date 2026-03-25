@@ -311,7 +311,7 @@ export interface Interleave {
   offset: number;
 }
 
-export type EventTypeUnion = 'SINGLES' | 'DOUBLES' | 'TEAM';
+export type EventTypeUnion = 'SINGLES' | 'DOUBLES' | 'TEAM' | 'HYBRID';
 
 export interface MatchUp {
   collectionId?: string;

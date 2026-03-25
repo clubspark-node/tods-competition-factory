@@ -18,7 +18,7 @@
 import { resolveSetType, isAggregateFormat } from '@Tools/scoring/scoringUtilities';
 import { calculateMatchStatistics } from '@Query/scoring/statistics/standalone';
 import { toStatObjects } from '@Query/scoring/statistics/toStatObjects';
-import { addPoint, deriveServer } from '@Mutate/scoring/addPoint';
+import { addPoint, deriveServer, deriveServerBase } from '@Mutate/scoring/addPoint';
 import { createMatchUp } from '@Mutate/scoring/createMatchUp';
 import { getScoreboard } from '@Query/scoring/getScoreboard';
 import { getEpisodes } from '@Query/scoring/getEpisodes';
@@ -638,6 +638,45 @@ export class ScoringEngine {
   }
 
   /**
+   * Set who should serve the next point
+   *
+   * Use this to correct server tracking when players lose track of who
+   * should be serving, or to set the initial server at the start of a match.
+   * The correction applies from this point forward — points already recorded
+   * retain their original server values. Records a timeline entry so the
+   * change survives undo/redo.
+   *
+   * @param side - Who should serve the next point (0 = side 1, 1 = side 2)
+   */
+  setServer(side: 0 | 1): void {
+    if (!this.cachedFormatStructure) return;
+
+    const setsWon: [number, number] = [0, 0];
+    this.state.score.sets.forEach((set) => {
+      if (set.winningSide === 1) setsWon[0]++;
+      if (set.winningSide === 2) setsWon[1]++;
+    });
+    const setType = resolveSetType(this.cachedFormatStructure, setsWon);
+
+    // Compare desired server against the base derivation (which assumes
+    // side 0 served game 0). If they disagree, flip is needed.
+    const baseServer = deriveServerBase(this.state, this.cachedFormatStructure, setType);
+    this.state.serverFlip = side !== baseServer;
+
+    // Record in timeline for undo/redo — store the desired side so
+    // rebuild can recompute the flip at the correct position
+    this.ensureHistory();
+    this.state.history!.entries!.push({
+      type: 'setServer',
+      data: { side },
+      timestamp: new Date().toISOString(),
+    });
+
+    // Clear redo stack (new branch)
+    this.redoStack = [];
+  }
+
+  /**
    * Get episodes — point history enriched with game/set/match context
    *
    * Each episode contains the point data plus game boundaries, set boundaries,
@@ -1122,6 +1161,17 @@ export class ScoringEngine {
       currentSet.side2Score = (currentSet.side2Score || 0) + 1;
     }
 
+    // Reset point-level tracking: close the current game's point scores
+    // and start a fresh 0-0 game for subsequent addPoint() calls
+    if (currentSet.side1GameScores?.length || currentSet.side2GameScores?.length) {
+      currentSet.side1GameScores = currentSet.side1GameScores || [];
+      currentSet.side2GameScores = currentSet.side2GameScores || [];
+      // Start a new game at 0-0 (the completed game's points are discarded
+      // since addGame provides the result without point detail)
+      currentSet.side1GameScores.push(0);
+      currentSet.side2GameScores.push(0);
+    }
+
     // Store tiebreak scores if provided
     if (tiebreakScore) {
       currentSet.side1TiebreakScore = tiebreakScore[0];
@@ -1361,6 +1411,21 @@ export class ScoringEngine {
         case 'setInitialScore':
           // Already applied above via this.initialScore
           break;
+        case 'setServer': {
+          // Recompute the flip at this position during rebuild.
+          // The entry stores the desired side; we compare against the
+          // base derivation at the current (replayed) state to determine
+          // whether a flip is needed from this point forward.
+          const setsWon: [number, number] = [0, 0];
+          this.state.score.sets.forEach((set) => {
+            if (set.winningSide === 1) setsWon[0]++;
+            if (set.winningSide === 2) setsWon[1]++;
+          });
+          const setType = resolveSetType(this.cachedFormatStructure!, setsWon);
+          const baseServer = deriveServerBase(this.state, this.cachedFormatStructure!, setType);
+          this.state.serverFlip = entry.data.side !== baseServer;
+          break;
+        }
       }
     }
 

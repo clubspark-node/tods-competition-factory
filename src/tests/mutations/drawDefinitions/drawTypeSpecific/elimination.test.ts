@@ -6,44 +6,6 @@ import { expect, it } from 'vitest';
 import { verifyMatchUps, verifySideNumbers } from '../primitives/verifyMatchUps';
 import { generateRange, instanceCount, unique } from '@Tools/arrays';
 
-import { FORMAT_STANDARD } from '@Fixtures/scoring/matchUpFormats';
-
-/*
- * this test is no longer relevant given that byes must be distributed equally and seedNumbers with lower seedValues
- * could dictate that byes follow them into an unbalanced BYE scenario
- */
-it.skip('can generate and verify elmination structures', () => {
-  const {
-    drawIds: [drawId],
-    tournamentRecord,
-  } = mocksEngine.generateTournamentRecord({
-    drawProfiles: [
-      {
-        seedAssignmentProfile: { 5: 4 },
-        matchUpFormat: FORMAT_STANDARD,
-        participantsCount: 49,
-        assignSeedsCount: 5,
-        seedsCount: 8,
-        drawSize: 64,
-      },
-    ],
-  });
-  tournamentEngine.setState(tournamentRecord);
-  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
-  const structure = drawDefinition.structures[0];
-  const structureId = structure.structureId;
-
-  verifyStructure({
-    expectedSeedValuesWithBye: [1, 2, 3, 4, 4],
-    expectedPositionsAssignedCount: 64,
-    expectedByeAssignments: 15,
-    expectedSeedsWithByes: 5,
-    expectedSeeds: 5,
-    drawDefinition,
-    structureId,
-  });
-});
-
 it('can generate and verify elmination hierarchies', () => {
   let structureId, drawDefinition;
 

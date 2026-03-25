@@ -325,6 +325,64 @@ const { tournamentRecord } = mocksEngine.generateTournamentRecord({
 });
 ```
 
+### Targeted Completion
+
+Complete matchUps in a specific stage and/or round using `completeDrawMatchUps`:
+
+```js
+const {
+  drawIds: [drawId],
+  tournamentRecord,
+} = mocksEngine.generateTournamentRecord({
+  drawProfiles: [{ drawSize: 16, drawType: 'FIRST_MATCH_LOSER_CONSOLATION' }],
+});
+
+const event = tournamentRecord.events[0];
+const drawDefinition = event.drawDefinitions.find((d) => d.drawId === drawId);
+
+// Complete only round 1 of the MAIN stage
+mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  stage: 'MAIN',
+  roundNumber: 1,
+  completeAllMatchUps: '6-3 6-4',
+});
+
+// Then complete CONSOLATION separately
+mocksEngine.completeDrawMatchUps({
+  tournamentRecord,
+  drawDefinition,
+  event,
+  stage: 'CONSOLATION',
+  completeAllMatchUps: '6-2 6-2',
+});
+```
+
+**Note:** The `drawDefinition` must be a direct reference from `tournamentRecord.events[n].drawDefinitions[n]`, not a copy from engine query methods.
+
+See [completeDrawMatchUps](../governors/mocks-governor.md#completedrawmatchups) for all options.
+
+### Removing Outcomes
+
+Reset a matchUp to `TO_BE_PLAYED` using `removeMatchUpOutcome`:
+
+```js
+// Remove a completed matchUp's outcome
+const result = mocksEngine.removeMatchUpOutcome({
+  tournamentRecord,
+  drawId,
+  matchUpId,
+});
+
+expect(result.success).toBe(true);
+```
+
+This triggers the same cleanup paths as manual score removal — `removeDirectedParticipants`, consolation feed reversal, etc. — making it useful for testing score reversal scenarios.
+
+See [removeMatchUpOutcome](../governors/mocks-governor.md#removematchupoutcome) for all options.
+
 ## Common Patterns
 
 ### Testing Score Parsing

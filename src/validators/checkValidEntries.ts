@@ -1,13 +1,18 @@
 import { getParticipants } from '@Query/participants/getParticipants';
 import { isUngrouped } from '@Query/entries/isUngrouped';
+import { coercedGender } from '@Helpers/coercedGender';
+import { isGendered } from './isGendered';
 import { unique } from '@Tools/arrays';
+import { isMixed } from './isMixed';
+import { isAny } from './isAny';
 
+// constants, fixtures and types
+import { DOUBLES_EVENT, HYBRID_EVENT, TEAM_EVENT } from '@Constants/eventConstants';
 import POLICY_MATCHUP_ACTIONS_DEFAULT from '@Fixtures/policies/POLICY_MATCHUP_ACTIONS_DEFAULT';
 import { Entry, Event, Participant, Tournament } from '@Types/tournamentTypes';
 import { POLICY_TYPE_MATCHUP_ACTIONS } from '@Constants/policyConstants';
 import { INDIVIDUAL, PAIR, TEAM } from '@Constants/participantConstants';
 import { ParticipantMap, PolicyDefinitions } from '@Types/factoryTypes';
-import { DOUBLES_EVENT, TEAM_EVENT } from '@Constants/eventConstants';
 import { WITHDRAWN } from '@Constants/entryStatusConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 import {
@@ -16,10 +21,6 @@ import {
   MISSING_EVENT,
   MISSING_PARTICIPANTS,
 } from '@Constants/errorConditionConstants';
-import { isAny } from './isAny';
-import { isGendered } from './isGendered';
-import { isMixed } from './isMixed';
-import { coercedGender } from '@Helpers/coercedGender';
 
 type CheckValidEntriesArgs = {
   policyDefinitions?: PolicyDefinitions;
@@ -97,6 +98,9 @@ export function checkValidEntries({
 }
 
 function getMisMatch({ participant, participantType, eventType, entryStatusMap }) {
+  // HYBRID events accept both INDIVIDUAL and PAIR participants
+  if (eventType === HYBRID_EVENT && [INDIVIDUAL, PAIR].includes(participant.participantType)) return false;
+
   const entryStatus = entryStatusMap[participant.participantId];
   const ungroupedParticipant =
     eventType &&

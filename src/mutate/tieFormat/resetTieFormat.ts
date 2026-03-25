@@ -3,6 +3,7 @@ import { generateCollectionMatchUps } from '@Assemblies/generators/drawDefinitio
 import { checkRequiredParameters } from '@Helpers/parameters/checkRequiredParameters';
 import { resolveTieFormat } from '@Query/hierarchical/tieFormats/resolveTieFormat';
 import { resolveFromParameters } from '@Helpers/parameters/resolveFromParameters';
+import { removeOrphanedTieFormats } from '@Mutate/tieFormat/writeTieFormat';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getMatchUpId } from '@Functions/global/extractors';
 
@@ -51,8 +52,8 @@ export function resetTieFormat(params: ResetTieFormatArgs): ResultType & {
       stack,
     });
 
-  // if there is no tieFormat there is nothing to do
-  if (!matchUp.tieFormat) return { ...SUCCESS };
+  // if there is no tieFormat (inline or referenced) there is nothing to do
+  if (!matchUp.tieFormat && !matchUp.tieFormatId) return { ...SUCCESS };
 
   const tieFormat = resolveTieFormat({
     structure,
@@ -132,6 +133,9 @@ export function resetTieFormat(params: ResetTieFormatArgs): ResultType & {
     matchUp.tieMatchUps = tieMatchUps;
     matchUp.tieFormatId = undefined;
     matchUp.tieFormat = undefined;
+
+    // clean up orphaned entries in event.tieFormats[]
+    if (event) removeOrphanedTieFormats({ event });
 
     modifyMatchUpNotice({
       structureId: structure?.structureId,

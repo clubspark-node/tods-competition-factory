@@ -8,10 +8,12 @@ title: Draw Types
 
 ### Key Concepts
 
-**Structures**: Independent draw components (e.g., main draw, consolation, qualifying)  
-**Links**: Define participant propagation between structures  
-**Stages**: Logical groupings of structures (QUALIFYING, MAIN, CONSOLATION, PLAY_OFF)  
+**Structures**: Independent draw components (e.g., main draw, consolation, qualifying)
+**Links**: Define participant propagation between structures
+**Stages**: Logical groupings of structures (QUALIFYING, MAIN, CONSOLATION, PLAY_OFF)
 **Draw Types**: Pre-configured combinations of linked structures
+
+All draw types work uniformly regardless of participant type — the same structure and link configurations apply to INDIVIDUAL (singles), PAIR (doubles), and TEAM events. See [Participant-Agnostic Logic](./participants#participant-agnostic-logic).
 
 ## Understanding Linked Structures
 

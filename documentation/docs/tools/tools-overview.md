@@ -77,7 +77,6 @@ See [Date and Time Handling](/docs/concepts/date-time-handling) for usage patter
 
 - **generateScoreString** - Create formatted score strings
 - **parseScoreString** - Parse score strings into structured data
-- **tidyScore** - Clean and format score objects
 - **checkScoreHasValue** - Verify scores contain values
 - **matchUpSort** - Sort matchUps by various criteria
 - **dehydrateMatchUps** - Remove computed attributes from matchUps

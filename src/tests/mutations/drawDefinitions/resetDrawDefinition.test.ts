@@ -13,6 +13,7 @@ import {
   MAIN,
   QUALIFYING,
   ROUND_ROBIN,
+  VOLUNTARY_CONSOLATION,
 } from '@Constants/drawDefinitionConstants';
 
 // prettier-ignore
@@ -75,6 +76,8 @@ it('removes scheduling timeItems when removeScheduling is true', () => {
     tournamentRecord,
   } = mocksEngine.generateTournamentRecord({
     drawProfiles: [{ drawSize: 4 }],
+    startDate: '2020-01-01',
+    endDate: '2020-01-07',
   });
   tournamentEngine.setState(tournamentRecord);
 
@@ -111,6 +114,8 @@ it('filters scheduling timeItems but keeps non-scheduling timeItems when removeS
     tournamentRecord,
   } = mocksEngine.generateTournamentRecord({
     drawProfiles: [{ drawSize: 4 }],
+    startDate: '2020-01-01',
+    endDate: '2020-01-07',
   });
   tournamentEngine.setState(tournamentRecord);
 
@@ -436,4 +441,84 @@ it('lucky draw reset removes BYE assignments when removeAssignments is true', ()
   // All matchUps should be TO_BE_PLAYED
   const byeMatchUps = structure.matchUps.filter((m: any) => m.matchUpStatus === BYE);
   expect(byeMatchUps.length).toBe(0);
+});
+
+it('resets AD_HOC voluntary consolation by clearing all matchUps', () => {
+  const {
+    drawIds: [drawId],
+    tournamentRecord,
+  } = mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawSize: 8, voluntaryConsolation: {} }],
+    completeAllMatchUps: true,
+  });
+
+  // Directly inject matchUps onto the VC structure to simulate AD_HOC consolation play
+  const drawDefinition = tournamentRecord.events[0].drawDefinitions[0];
+  const vcStructure = drawDefinition.structures.find((s) => s.stage === VOLUNTARY_CONSOLATION);
+  expect(vcStructure).toBeDefined();
+
+  // AD_HOC VC structures have finishingPosition: WIN_RATIO and no roundPosition on matchUps
+  vcStructure.matchUps = [
+    { matchUpId: 'vc-m1', roundNumber: 1, matchUpStatus: 'COMPLETED', winningSide: 1 },
+    { matchUpId: 'vc-m2', roundNumber: 1, matchUpStatus: 'COMPLETED', winningSide: 2 },
+  ];
+
+  tournamentEngine.setState(tournamentRecord);
+
+  // Verify matchUps exist on the VC structure before reset
+  const { drawDefinition: beforeReset } = tournamentEngine.getEvent({ drawId });
+  const vcBefore = beforeReset.structures.find((s) => s.stage === VOLUNTARY_CONSOLATION);
+  expect(vcBefore.matchUps.length).toBe(2);
+
+  // Reset the draw
+  const result = tournamentEngine.resetDrawDefinition({ drawId });
+  expect(result.success).toBe(true);
+
+  // Verify: VC matchUps are cleared
+  const { drawDefinition: afterReset } = tournamentEngine.getEvent({ drawId });
+  const vcAfter = afterReset.structures.find((s) => s.stage === VOLUNTARY_CONSOLATION);
+  expect(vcAfter.matchUps.length).toBe(0);
+
+  // Verify: MAIN structure matchUps still exist and are reset (not cleared)
+  const mainAfter = afterReset.structures.find((s) => s.stage === MAIN && s.stageSequence === 1);
+  expect(mainAfter.matchUps.length).toBe(7); // 8-draw SE = 7 matchUps
+  const completedMain = mainAfter.matchUps.filter((m) => m.winningSide);
+  expect(completedMain.length).toBe(0); // all scores reset
+});
+
+it('resets elimination voluntary consolation by clearing scores but keeping matchUps', () => {
+  // Generate a draw with a non-AD_HOC voluntary consolation (elimination-style)
+  const eventId = 'vc-elim-event';
+
+  mocksEngine.generateTournamentRecord({
+    eventProfiles: [{ eventId, eventName: 'VC Elim', participantsProfile: { participantsCount: 8 } }],
+    setState: true,
+  });
+
+  let result: any = tournamentEngine.generateDrawDefinition({
+    voluntaryConsolation: { structureName: 'VC Elimination' },
+    eventId,
+    drawSize: 8,
+  });
+  expect(result.success).toBe(true);
+  const drawId = result.drawDefinition.drawId;
+
+  result = tournamentEngine.addDrawDefinition({
+    drawDefinition: result.drawDefinition,
+    eventId,
+  });
+  expect(result.success).toBe(true);
+
+  // Verify VC structure exists but is not AD_HOC (elimination structures have roundPosition on matchUps)
+  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
+  const vcStructure = drawDefinition.structures.find((s) => s.stage === VOLUNTARY_CONSOLATION);
+  expect(vcStructure).toBeDefined();
+
+  // Reset should NOT clear matchUps from elimination VC (only AD_HOC)
+  result = tournamentEngine.resetDrawDefinition({ drawId });
+  expect(result.success).toBe(true);
+
+  const { drawDefinition: afterReset } = tournamentEngine.getEvent({ drawId });
+  const mainAfter = afterReset.structures.find((s) => s.stage === MAIN);
+  expect(mainAfter.matchUps.length).toBe(7);
 });

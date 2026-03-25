@@ -195,6 +195,74 @@ Maximum number of candidate solutions to evaluate. Higher values may find better
 - DOUBLES events: partner ratings are summed for pairing calculations
 - Round count cannot exceed participants - 1 (everyone must have an opponent)
 
+## Pressure Score (PS#)
+
+After rounds are played, **pressure scores** provide a per-participant measure of quality of performance that accounts for opponent strength. In TMX, these appear as the **PS#** column in the Stats table.
+
+Pressure scores are calculated when `pressureRating: true` is passed to `getEventData` or `tallyParticipantResults`. They complement the standard win/loss tally by answering: _how well did each participant perform relative to the strength of their opponents?_
+
+### How Pressure Score Works
+
+For each completed SINGLES matchUp where both participants have ratings:
+
+1. **Rating conversion**: Both participants' ratings (WTN, UTR, ELO, etc.) are converted to the ELO scale.
+2. **Games weighting**: Each side's games-won count is multiplied by the opponent's converted rating, with an adjustment for rating differential:
+   - The **lower-rated** player receives a bonus proportional to the rating gap, reflecting the greater difficulty of winning games against a stronger opponent.
+   - The bonus is scaled by the higher-rated player's position within the ELO range, so it diminishes at the extremes.
+3. **Pressure score**: Each side's weighted value is divided by the combined total, producing a value between 0 and 1. A score above 0.5 means that participant won a larger share of quality-adjusted games in that matchUp.
+4. **Rating variation**: The difference between opponent and participant ratings, normalized by the ELO range maximum. Positive values indicate the opponent was stronger; negative values indicate the opponent was weaker.
+
+### What the Values Mean
+
+- **`pressureScores`** (PS#): Per-matchUp quality-of-performance values (0–1). Averaged across all matchUps in an event, this indicates how effectively a participant converted games against opponents of varying skill. Two participants with identical win records can be separated by pressure score if one beat stronger opponents or won more convincingly.
+- **`ratingVariation`**: Per-matchUp strength-of-schedule indicators. Participants who faced tougher opponents will have higher average variation.
+
+### Usage
+
+```js
+// Via getEventData (the typical path for TMX Stats table)
+const { eventData } = tournamentEngine.getEventData({
+  pressureRating: true,
+  eventId,
+});
+
+// Or via tallyParticipantResults directly
+const { participantResults } = tournamentEngine.tallyParticipantResults({
+  matchUps: structureMatchUps,
+  pressureRating: true,
+  matchUpFormat,
+});
+
+// Each participant result includes:
+// participantResults[participantId].pressureScores  → [0.52, 0.61, 0.45]
+// participantResults[participantId].ratingVariation  → [0.03, -0.01, 0.05]
+```
+
+### Requirements
+
+- Both participants in a matchUp must have SINGLES ratings. If either lacks a rating, pressure scores are not calculated for that matchUp.
+- Any supported rating type works as input — ratings are converted to ELO internally via `getConvertedRating`.
+
+## Predictive Accuracy (Profile)
+
+A related analytic is **predictive accuracy**, which measures how well participant ratings predicted actual match outcomes. In TMX, this appears as the **Profile** column on the matchUps page, classifying each matchUp as:
+
+- **COMPETITIVE** — the outcome was close relative to the rating gap
+- **ROUTINE** — the higher-rated participant won as expected
+- **DECISIVE** — the result was lopsided
+
+This is calculated via `getPredictiveAccuracy`, which compares pre-match rating differences against actual score margins. It helps tournament directors evaluate whether ratings are well-calibrated and whether matchUps are being generated at appropriate skill levels.
+
+```js
+const { accuracy } = tournamentEngine.getPredictiveAccuracy({
+  scaleName: 'WTN',
+  matchUpType: 'SINGLES',
+  eventId,
+});
+```
+
+Where pressure scores evaluate _individual performance quality_, predictive accuracy evaluates _rating system quality_ — together they give a complete picture of how well the DrawMatic pairing algorithm is working.
+
 ## Related
 
 - [Ad Hoc (Flex Rounds)](./ad-hoc) -- The draw type that DrawMatic operates on

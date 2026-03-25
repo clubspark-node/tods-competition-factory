@@ -7,6 +7,7 @@ import { generateOrGetExisting } from './generateOrGetExisting';
 import { qualifyingGeneration } from './qualifyingGeneration';
 import { hydrateRoundNames } from './hydrateRoundNames';
 import { constantToString } from '@Tools/strings';
+import { remapDrawDefinitionMatchUpIds } from '@Mutate/drawDefinitions/remapDrawDefinitionMatchUpIds';
 import {
   getFilteredEntries,
   validateAndDeriveDrawValues,
@@ -30,7 +31,7 @@ export function generateDrawDefinition(params: GenerateDrawDefinitionArgs): Resu
   error?: ErrorType;
   conflicts?: any[];
 } {
-  const { voluntaryConsolation, withPlayoffs, tournamentRecord, event } = params;
+  const { voluntaryConsolation, withPlayoffs, targetMatchUpIds, tournamentRecord, event } = params;
   const stack = 'generateDrawDefinition';
 
   // get participants both for entry validation and for automated placement
@@ -130,6 +131,10 @@ export function generateDrawDefinition(params: GenerateDrawDefinitionArgs): Resu
   if (params.hydrateRoundNames) {
     const roundNamingPolicy = appliedPolicies?.[POLICY_TYPE_ROUND_NAMING];
     if (roundNamingPolicy) hydrateRoundNames({ drawDefinition, appliedPolicies });
+  }
+
+  if (targetMatchUpIds?.length) {
+    remapDrawDefinitionMatchUpIds({ targetMatchUpIds, drawDefinition });
   }
 
   return {

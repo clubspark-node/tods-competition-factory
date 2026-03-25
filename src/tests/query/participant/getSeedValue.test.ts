@@ -18,84 +18,6 @@ describe('getSeedValue', () => {
     expect(result.seedValue).toBeUndefined();
   });
 
-  it.skip('returns seedValue from drawId scale item', () => {
-    const drawId = 'd1';
-    const participant = {
-      participantId: 'p1',
-      timeItems: [
-        {
-          itemType: SEEDING,
-          scaleValue: 5,
-          scaleName: drawId,
-        },
-      ],
-    };
-    const event = { eventId: 'e1' };
-
-    const result = getSeedValue({ participant, event, drawId });
-
-    expect(result.seedValue).toBe(5);
-  });
-
-  it.skip('prioritizes drawId over category name', () => {
-    const drawId = 'd1';
-    const participant = {
-      participantId: 'p1',
-      timeItems: [
-        { itemType: SEEDING, scaleValue: 3, scaleName: 'U18' },
-        { itemType: SEEDING, scaleValue: 5, scaleName: drawId },
-      ],
-    };
-    const event = {
-      eventId: 'e1',
-      category: { categoryName: 'U18' },
-    };
-
-    const result = getSeedValue({ participant, event, drawId });
-
-    expect(result.seedValue).toBe(5);
-  });
-
-  it.skip('uses ageCategoryCode when categoryName not available', () => {
-    const participant = {
-      participantId: 'p1',
-      timeItems: [{ itemType: SEEDING, scaleValue: 7, scaleName: 'U16' }],
-    };
-    const event = {
-      eventId: 'e1',
-      category: { ageCategoryCode: 'U16' },
-    };
-
-    const result = getSeedValue({ participant, event, drawId: 'd1' });
-
-    expect(result.seedValue).toBe(7);
-  });
-
-  it.skip('falls back to eventId when no other scale items match', () => {
-    const eventId = 'e1';
-    const participant = {
-      participantId: 'p1',
-      timeItems: [{ itemType: SEEDING, scaleValue: 9, scaleName: eventId }],
-    };
-    const event = { eventId };
-
-    const result = getSeedValue({ participant, event, drawId: 'd1' });
-
-    expect(result.seedValue).toBe(9);
-  });
-
-  it.skip('handles missing event category', () => {
-    const participant = {
-      participantId: 'p1',
-      timeItems: [{ itemType: SEEDING, scaleValue: 4, scaleName: 'e1' }],
-    };
-    const event = { eventId: 'e1' };
-
-    const result = getSeedValue({ participant, event, drawId: 'd1' });
-
-    expect(result.seedValue).toBe(4);
-  });
-
   it('errors on missing drawId', () => {
     const participant = {
       timeItems: [{ itemType: SEEDING, scaleValue: 2, scaleName: 'U18' }],
@@ -109,28 +31,6 @@ describe('getSeedValue', () => {
     const result = getSeedValue({ participant, event, drawId: undefined });
 
     expect(result.seedValue).toBeUndefined();
-  });
-
-  it.skip('returns first matching seedValue when multiple potential matches', () => {
-    const drawId = 'd1';
-    const participant = {
-      participantId: 'p1',
-      timeItems: [
-        { itemType: SEEDING, scaleValue: 1, scaleName: drawId },
-        { itemType: SEEDING, scaleValue: 2, scaleName: 'U18' },
-        { itemType: SEEDING, scaleValue: 3, scaleName: 'e1' },
-      ],
-    };
-    const event = {
-      eventId: 'e1',
-      category: { categoryName: 'U18' },
-    };
-
-    const result = getSeedValue({ participant, event, drawId });
-
-    // Should return first match (drawId has highest priority)
-    console.log('Result:', result);
-    expect(result.seedValue).toBe(1);
   });
 
   it('handles participant without timeItems', () => {

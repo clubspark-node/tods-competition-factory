@@ -7,14 +7,7 @@ import fs from 'fs-extra';
 
 // constants
 import { POSITION_ACTIONS } from '@Constants/extensionConstants';
-import {
-  COMPASS,
-  CURTIS_CONSOLATION,
-  FEED_IN_CHAMPIONSHIP,
-  FIRST_MATCH_LOSER_CONSOLATION,
-  MODIFIED_FEED_IN_CHAMPIONSHIP,
-  ROUND_ROBIN,
-} from '@Constants/drawDefinitionConstants';
+import { FEED_IN_CHAMPIONSHIP } from '@Constants/drawDefinitionConstants';
 
 it('can run stress tests when JEST_STRESS=true', () => {
   if (!process.env.JEST_STRESS) {
@@ -36,36 +29,6 @@ it('can run stress tests when JEST_STRESS=true', () => {
     expect(result.method).toEqual('logTest');
     printGlobalLog(true);
     purgeGlobalLog();
-  }
-});
-
-// skipped in normal testing, only used for stress testing
-test.skip.each([
-  [8, COMPASS, [5, 6, 3, 1]],
-  [8, ROUND_ROBIN, [5, 6, 3, 1]],
-  [8, CURTIS_CONSOLATION, [5, 6, 3, 1]],
-  [8, FEED_IN_CHAMPIONSHIP, [5, 6, 3, 1]],
-  [8, MODIFIED_FEED_IN_CHAMPIONSHIP, [5, 6, 3, 1]],
-  [8, FIRST_MATCH_LOSER_CONSOLATION, [5, 6, 3, 1]],
-])('pass specific bye replacement scenarios', (drawSize, drawType, positionsToReplaceWithBye) => {
-  pushGlobalLog(
-    {
-      color: 'brightyellow',
-      method: 'Begin replacementTest',
-    },
-    true,
-  );
-  const result = replacementTest({
-    positionsToReplaceWithBye,
-    devMode: true,
-    drawType,
-    drawSize,
-  });
-
-  if (result.success) {
-    purgeGlobalLog();
-  } else {
-    printGlobalLog(true);
   }
 });
 

@@ -3,12 +3,13 @@ import { getLuckyDrawRoundStatus } from '@Query/drawDefinition/getLuckyDrawRound
 import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getDevContext } from '@Global/state/globalState';
+import { isAdHoc } from '@Query/drawDefinition/isAdHoc';
 import { findStructure } from '@Acquire/findStructure';
 
 // constants
 import { INVALID_VALUES, MISSING_DRAW_DEFINITION, MISSING_PARTICIPANT_ID } from '@Constants/errorConditionConstants';
 import { DrawDefinition, Event, Tournament } from '@Types/tournamentTypes';
-import { LOSER } from '@Constants/drawDefinitionConstants';
+import { LOSER, WIN_RATIO } from '@Constants/drawDefinitionConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 import { ResultType } from '@Types/factoryTypes';
 
@@ -322,6 +323,13 @@ function placeDiscardedLosers({
 }): ResultType | undefined {
   const { structure: targetStructure } = findStructure({ drawDefinition, structureId: targetStructureId });
   if (!targetStructure) return { error: INVALID_VALUES };
+
+  // AD_HOC target structures (finishingPosition=WIN_RATIO) don't use matchUps
+  // or position assignments. Participants are already in drawDefinition.entries
+  // and available for ad-hoc round generation.
+  if (isAdHoc({ structure: targetStructure }) && targetStructure.finishingPosition === WIN_RATIO) {
+    return { ...SUCCESS };
+  }
 
   let targetMatchUps = (targetStructure.matchUps || [])
     .filter((m) => m.roundNumber === targetRoundNumber)

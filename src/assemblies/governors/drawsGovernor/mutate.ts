@@ -10,10 +10,11 @@ export { addLinkedConsolationStructure } from '@Mutate/drawDefinitions/addLinked
 export { setDrawPositionPreferences } from '@Mutate/drawDefinitions/draft/setDrawPositionPreferences';
 export { alternateDrawPositionAssignment } from '@Mutate/matchUps/drawPositions/positionAlternate';
 export { removeDrawPositionAssignment } from '@Mutate/drawDefinitions/removeDrawPositionAssignment';
+export { remapDrawDefinitionMatchUpIds } from '@Mutate/drawDefinitions/remapDrawDefinitionMatchUpIds';
+export { qualifierProgression } from '@Mutate/drawDefinitions/positionGovernor/qualifierProgression';
 export { automatedPlayoffPositioning } from '@Mutate/drawDefinitions/automatedPlayoffPositioning';
 export { modifySeedAssignment } from '@Mutate/drawDefinitions/entryGovernor/modifySeedAssignment';
 export { qualifierDrawPositionAssignment } from '@Mutate/matchUps/drawPositions/positionQualifier';
-export { qualifierProgression } from '@Mutate/drawDefinitions/positionGovernor/qualifierProgression';
 export { setStructureOrder } from '@Mutate/drawDefinitions/structureGovernor/setStructureOrder';
 export { attachQualifyingStructure } from '@Mutate/drawDefinitions/attachQualifyingStructure';
 export { renameStructures } from '@Mutate/drawDefinitions/structureGovernor/renameStructures';
@@ -26,6 +27,7 @@ export { removeStructure } from '@Mutate/drawDefinitions/structureGovernor/remov
 export { swapDrawPositionAssignments } from '@Mutate/matchUps/drawPositions/positionSwap';
 export { removeSeededParticipant } from '@Mutate/drawDefinitions/removeSeededParticipant';
 export { addQualifyingStructure } from '@Mutate/drawDefinitions/addQualifyingStructure';
+export { seedWithdrawalCascade } from '@Mutate/drawDefinitions/seedWithdrawalCascade';
 export { adHocPositionSwap } from '@Mutate/matchUps/drawPositions/adHocPositionSwap';
 export { luckyDrawAdvancement } from '@Mutate/drawDefinitions/luckyDrawAdvancement';
 export { addPlayoffStructures } from '@Mutate/drawDefinitions/addPlayoffStructures';

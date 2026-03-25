@@ -1,19 +1,20 @@
 // all child matchUps need to be checked for collectionAssignments which need to be removed when collectionDefinition.collectionIds are removed
 
 import { deleteMatchUpsNotice, modifyDrawNotice, modifyMatchUpNotice } from '@Mutate/notifications/drawNotifications';
+import { updateTieMatchUpScore } from '@Mutate/matchUps/score/updateTieMatchUpScore';
 import { compareTieFormats } from '@Query/hierarchical/tieFormats/compareTieFormats';
-import { tieFormatTelemetry } from '@Mutate/tieFormat/tieFormatTelemetry';
 import { getAllStructureMatchUps } from '@Query/matchUps/getAllStructureMatchUps';
 import { setMatchUpState } from '@Mutate/matchUps/matchUpStatus/setMatchUpState';
-import { updateTieMatchUpScore } from '@Mutate/matchUps/score/updateTieMatchUpScore';
 import { copyTieFormat } from '@Query/hierarchical/tieFormats/copyTieFormat';
 import { calculateWinCriteria } from '@Query/matchUp/calculateWinCriteria';
 import { getTieFormat } from '@Query/hierarchical/tieFormats/getTieFormat';
 import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
-import { validateTieFormat } from '@Validators/validateTieFormat';
+import { tieFormatTelemetry } from '@Mutate/tieFormat/tieFormatTelemetry';
 import { allEventMatchUps } from '@Query/matchUps/getAllEventMatchUps';
 import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
+import { writeTieFormat } from '@Mutate/tieFormat/writeTieFormat';
+import { validateTieFormat } from '@Validators/validateTieFormat';
 import { definedAttributes } from '@Tools/definedAttributes';
 import { findDrawMatchUp } from '@Acquire/findDrawMatchUp';
 
@@ -71,15 +72,15 @@ export function removeCollectionDefinition({
   error?: ErrorType;
 } {
   const stack = 'removeCollectionDefinition';
-  let result = !matchUp
-    ? getTieFormat({
+  let result = matchUp
+    ? undefined
+    : getTieFormat({
         drawDefinition,
         structureId,
         matchUpId,
         eventId,
         event,
-      })
-    : undefined;
+      });
 
   if (result?.error) return decorateResult({ result, stack });
 
@@ -228,7 +229,9 @@ export function removeCollectionDefinition({
       return !deleteTarget;
     });
 
-    if (matchUp.tieFormat) matchUp.tieFormat = copyTieFormat(tieFormat);
+    if (matchUp.tieFormat || matchUp.tieFormatId) {
+      writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
+    }
 
     if (updateInProgressMatchUps) {
       // recalculate score
@@ -268,14 +271,13 @@ export function removeCollectionDefinition({
   if (result.error) return decorateResult({ result, stack });
 
   if (eventId && event) {
-    event.tieFormat = prunedTieFormat;
-    // NOTE: there is not a modifyEventNotice
+    writeTieFormat({ target: event, tieFormat: prunedTieFormat, event });
   } else if (matchUpId && matchUp) {
-    matchUp.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: matchUp, tieFormat: prunedTieFormat, event });
   } else if (structure) {
-    structure.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: structure, tieFormat: prunedTieFormat, event });
   } else if (drawDefinition) {
-    drawDefinition.tieFormat = prunedTieFormat;
+    writeTieFormat({ target: drawDefinition, tieFormat: prunedTieFormat, event });
   } else if (!matchUp || !drawDefinition) {
     return { error: MISSING_DRAW_DEFINITION };
   }

@@ -39,6 +39,7 @@ type GenerateDrawMaticRoundArgs = {
   salted?: number | boolean;
   participantIds?: string[];
   dynamicRatings?: boolean;
+  convertToELO?: boolean;
   refreshDynamic?: boolean;
   minimizeDelta?: boolean;
   encounterValue?: number;
@@ -58,6 +59,7 @@ type GenerateDrawMaticRoundArgs = {
 export type DrawMaticRoundResult = {
   modifiedScaleValues?: { [key: string]: number };
   participantIdPairings?: string[][];
+  sourceRatingType?: string;
   candidatesCount?: number;
   outputScaleName?: string;
   deltaCandidate?: any;
@@ -80,6 +82,7 @@ export function generateDrawMaticRound(params: GenerateDrawMaticRoundArgs): Resu
     iterationMatchUps, // necessary when called iteratively and matchUps are not yet added to structure
     tournamentRecord,
     dynamicRatings,
+    convertToELO,
     refreshDynamic,
     participantIds,
     drawDefinition,
@@ -107,6 +110,7 @@ export function generateDrawMaticRound(params: GenerateDrawMaticRoundArgs): Resu
 
   const tournamentParticipants = tournamentRecord?.participants ?? [];
   let modifiedScaleValues: { [key: string]: number } = {};
+  let sourceRatingType: string | undefined;
 
   if (dynamicRatings) {
     const roundNumbers: number[] = unique(
@@ -123,6 +127,7 @@ export function generateDrawMaticRound(params: GenerateDrawMaticRoundArgs): Resu
         updateParticipantRatings,
         tournamentRecord,
         asDynamic: true,
+        convertToELO,
         refreshDynamic,
         drawDefinition,
         matchUpIds,
@@ -130,6 +135,7 @@ export function generateDrawMaticRound(params: GenerateDrawMaticRoundArgs): Resu
       if (result.error) return result;
 
       if (result.modifiedScaleValues) modifiedScaleValues = result.modifiedScaleValues;
+      if (result.sourceRatingType) sourceRatingType = result.sourceRatingType;
     }
   }
 
@@ -198,6 +204,7 @@ export function generateDrawMaticRound(params: GenerateDrawMaticRoundArgs): Resu
     roundNumber: generatedRoundNumber,
     participantIdPairings,
     modifiedScaleValues,
+    sourceRatingType,
     candidatesCount,
     deltaCandidate,
     ...SUCCESS,

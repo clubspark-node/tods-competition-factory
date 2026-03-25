@@ -317,9 +317,91 @@ test('schedules matches with time slots', () => {
 
 ## Testing Match Completion
 
-### Progressive Completion
+### Progressive Completion with Stage/Round Filters
 
-Test draw advancement through rounds:
+Use `completeDrawMatchUps` with `stage` and `roundNumber` filters to declaratively complete specific portions of a draw:
+
+```js
+test('completes FMLC draw stage by stage', () => {
+  const {
+    drawIds: [drawId],
+    tournamentRecord,
+  } = mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawSize: 16, drawType: 'FIRST_MATCH_LOSER_CONSOLATION' }],
+  });
+
+  const event = tournamentRecord.events[0];
+  const drawDefinition = event.drawDefinitions.find((d) => d.drawId === drawId);
+
+  // Step 1: Complete only MAIN round 1
+  mocksEngine.completeDrawMatchUps({
+    tournamentRecord,
+    drawDefinition,
+    event,
+    stage: 'MAIN',
+    roundNumber: 1,
+    completeAllMatchUps: '6-3 6-4',
+  });
+
+  // Step 2: Complete remaining MAIN rounds
+  mocksEngine.completeDrawMatchUps({
+    tournamentRecord,
+    drawDefinition,
+    event,
+    completeAllMatchUps: '6-1 6-1',
+    stage: 'MAIN',
+  });
+
+  // Step 3: Complete CONSOLATION
+  mocksEngine.completeDrawMatchUps({
+    tournamentRecord,
+    drawDefinition,
+    event,
+    completeAllMatchUps: '6-2 6-2',
+    stage: 'CONSOLATION',
+  });
+
+  tournamentEngine.setState(tournamentRecord);
+  const { matchUps } = tournamentEngine.allTournamentMatchUps();
+  const completed = matchUps.filter((m) => m.matchUpStatus === 'COMPLETED');
+  expect(completed.length).toBeGreaterThan(0);
+});
+```
+
+### Score Removal and Reversal Testing
+
+Use `removeMatchUpOutcome` to test score removal paths, consolation cleanup, and participant redirection:
+
+```js
+test('removes outcomes and tests cleanup paths', () => {
+  const {
+    drawIds: [drawId],
+    tournamentRecord,
+  } = mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawSize: 4 }],
+    completeAllMatchUps: true,
+  });
+
+  tournamentEngine.setState(tournamentRecord);
+  const { matchUps } = tournamentEngine.allTournamentMatchUps();
+
+  // Must remove from latest round backward
+  const final = matchUps.find((m) => m.roundNumber === 2);
+  mocksEngine.removeMatchUpOutcome({ tournamentRecord, drawId, matchUpId: final.matchUpId });
+
+  const semi = matchUps.find((m) => m.roundNumber === 1);
+  mocksEngine.removeMatchUpOutcome({ tournamentRecord, drawId, matchUpId: semi.matchUpId });
+
+  tournamentEngine.setState(tournamentRecord);
+  const { matchUps: updated } = tournamentEngine.allTournamentMatchUps();
+  const reset = updated.find((m) => m.matchUpId === semi.matchUpId);
+  expect(reset.matchUpStatus).toBe('TO_BE_PLAYED');
+});
+```
+
+### Progressive Completion (Manual)
+
+Test draw advancement through rounds with manual outcome application:
 
 ```js
 test('advances draw through rounds', () => {

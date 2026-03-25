@@ -30,18 +30,11 @@ import { coerceEven } from '@Tools/math';
 import { UUID } from '@Tools/UUID';
 
 // constants and types
-import {
-  AD_HOC,
-  MAIN,
-  QUALIFYING,
-  ROUND_ROBIN_WITH_PLAYOFF,
-  SINGLE_ELIMINATION,
-} from '@Constants/drawDefinitionConstants';
 import { DRAW_DEFINITION_NOT_FOUND, STRUCTURE_NOT_FOUND } from '@Constants/errorConditionConstants';
 import { INDIVIDUAL, PAIR, TEAM } from '@Constants/participantConstants';
+import { SINGLES, DOUBLES, HYBRID } from '@Constants/eventConstants';
 import { FORMAT_STANDARD } from '@Fixtures/scoring/matchUpFormats';
 import { COMPLETED } from '@Constants/matchUpStatusConstants';
-import { SINGLES, DOUBLES } from '@Constants/eventConstants';
 import { ALTERNATE } from '@Constants/entryStatusConstants';
 import { FEMALE, MALE } from '@Constants/genderConstants';
 import { COMPETITOR } from '@Constants/participantRoles';
@@ -50,6 +43,13 @@ import { OBJECT } from '@Constants/attributeConstants';
 import { Participant } from '@Types/tournamentTypes';
 import { SUCCESS } from '@Constants/resultConstants';
 import { nameMocks } from './nameMocks';
+import {
+  AD_HOC,
+  MAIN,
+  QUALIFYING,
+  ROUND_ROBIN_WITH_PLAYOFF,
+  SINGLE_ELIMINATION,
+} from '@Constants/drawDefinitionConstants';
 
 export function generateEventWithDraw(params) {
   const paramsCheck = checkRequiredParameters(params, [{ drawProfile: true, _ofType: OBJECT }]);
@@ -101,10 +101,16 @@ export function generateEventWithDraw(params) {
 
   const eventId = drawProfileCopy.eventId || UUID();
   const eventType = drawProfile.eventType || drawProfile.matchUpType || SINGLES;
+  const isHybrid = eventType === HYBRID;
   const participantType = eventType === DOUBLES ? PAIR : INDIVIDUAL;
 
   const tieFormat =
     (isObject(drawProfile.tieFormat) && drawProfile.tieFormat) ||
+    // look up tieFormatId in the event's tieFormats array if provided
+    (drawProfile.tieFormatId &&
+      tournamentRecord?.events
+        ?.find((e) => e.eventId === eventId)
+        ?.tieFormats?.find((tf) => tf.tieFormatId === drawProfile.tieFormatId)) ||
     (eventType === TEAM &&
       tieFormatDefaults({
         event: { eventId, category, gender },
@@ -158,12 +164,20 @@ export function generateEventWithDraw(params) {
     qualifyingParticipantsCount ||
     !tournamentRecord ||
     gender ||
-    category
+    category ||
+    isHybrid
   ) {
     const drawParticipantsCount = (participantsCount || 0) + alternatesCount + qualifyingParticipantsCount;
     let individualParticipantCount = drawParticipantsCount;
     const gendersCount = { [MALE]: 0, [FEMALE]: 0 };
     let teamSize, genders;
+
+    if (isHybrid) {
+      // HYBRID: half entries are INDIVIDUAL, half are PAIR
+      // Need extra individuals to form the pairs
+      const pairCount = Math.floor(drawParticipantsCount / 2);
+      individualParticipantCount = drawParticipantsCount - pairCount + pairCount * 2;
+    }
 
     if (eventType === TEAM) {
       ({ teamSize, genders } = processTieFormat({
@@ -278,10 +292,42 @@ export function generateEventWithDraw(params) {
       if (!result.success) return result;
       targetParticipants = teamParticipants;
     }
+
+    if (isHybrid) {
+      // Build PAIR participants from the second half of generated individuals
+      const individuals = unique.filter(({ participantType: pt }) => pt === INDIVIDUAL);
+      const soloCount = drawParticipantsCount - Math.floor(drawParticipantsCount / 2);
+      const pairMemberIndividuals = individuals.slice(soloCount);
+      const pairParticipants: any[] = [];
+
+      for (let i = 0; i + 1 < pairMemberIndividuals.length; i += 2) {
+        const m1 = pairMemberIndividuals[i];
+        const m2 = pairMemberIndividuals[i + 1];
+        pairParticipants.push({
+          participantName: `${m1.person?.standardGivenName ?? 'A'} / ${m2.person?.standardGivenName ?? 'B'}`,
+          individualParticipantIds: [m1.participantId, m2.participantId],
+          participantRole: COMPETITOR,
+          participantType: PAIR,
+          participantId: UUID(),
+        });
+      }
+
+      if (pairParticipants.length && tournamentRecord) {
+        const result = addParticipants({
+          participants: pairParticipants as Participant[],
+          tournamentRecord,
+        });
+        if (!result.success) return result;
+      }
+
+      // targetParticipants for entry: solo individuals + pair participants
+      targetParticipants = [...individuals.slice(0, soloCount), ...pairParticipants];
+    }
   }
 
   const isEventParticipantType = (participant) => {
     const { participantType } = participant;
+    if (isHybrid && (participantType === INDIVIDUAL || participantType === PAIR)) return true;
     if (isMatchUpEventType(SINGLES)(eventType) && participantType === INDIVIDUAL) return true;
     if (isMatchUpEventType(DOUBLES)(eventType) && participantType === PAIR) return true;
     return eventType === TEAM && participantType === TEAM;
