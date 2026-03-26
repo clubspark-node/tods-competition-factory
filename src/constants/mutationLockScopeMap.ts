@@ -173,6 +173,7 @@ export const methodScopeMap: Record<string, MutationLockScope> = {
   setEntryPositions: 'ENTRIES',
   promoteAlternate: 'ENTRIES',
   promoteAlternates: 'ENTRIES',
+  removeStageEntries: 'ENTRIES',
   removeDrawEntries: 'ENTRIES',
   modifyEntriesStatus: 'ENTRIES',
   addEventEntryPairs: 'ENTRIES',
