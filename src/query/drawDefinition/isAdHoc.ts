@@ -12,8 +12,10 @@ export function isAdHoc({ structure }: IsAdHocArgs): boolean {
   const hasDrawPosition = !!matchUps?.find((matchUp) => matchUp?.drawPositions?.length);
 
   // Voluntary consolation structures with finishingPosition=WIN_RATIO are AD_HOC
-  // BUT RR child group structures (ITEM type) with drawPositions are NOT AD_HOC
+  // BUT RR child group structures (ITEM type with drawPositions) and
+  // RR container structures (with nested child structures) are NOT AD_HOC
   if (structure?.stage === VOLUNTARY_CONSOLATION) {
+    if (structure?.structures) return false;
     if (structure?.structureType === ITEM && hasDrawPosition) return false;
     return structure?.finishingPosition === WIN_RATIO;
   }
