@@ -93,6 +93,7 @@ export function generateRoundRobin(params: GenerateRoundRobinArgs) {
       structureName,
       tieFormat,
       matchUps,
+      stage,
     });
   });
 

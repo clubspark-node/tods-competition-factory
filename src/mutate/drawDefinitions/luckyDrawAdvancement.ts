@@ -4,6 +4,7 @@ import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getDevContext } from '@Global/state/globalState';
 import { isAdHoc } from '@Query/drawDefinition/isAdHoc';
+import { isLucky } from '@Query/drawDefinition/isLucky';
 import { findStructure } from '@Acquire/findStructure';
 
 // constants
@@ -43,15 +44,16 @@ export function luckyDrawAdvancement({
   event,
 }: LuckyDrawAdvancementArgs): ResultType {
   if (!drawDefinition) return { error: MISSING_DRAW_DEFINITION };
-  if (!isLuckyBasedDraw(drawDefinition.drawType)) {
-    return decorateResult({ result: { error: INVALID_VALUES }, info: 'Not a lucky draw' });
-  }
 
   structureId = structureId || drawDefinition.structures?.[0]?.structureId;
   if (!structureId) return { error: INVALID_VALUES };
 
   const { structure } = findStructure({ drawDefinition, structureId });
   if (!structure) return { error: INVALID_VALUES };
+
+  if (!isLuckyBasedDraw(drawDefinition.drawType) && !isLucky({ drawDefinition, structure })) {
+    return decorateResult({ result: { error: INVALID_VALUES }, info: 'Not a lucky draw' });
+  }
 
   // Get round status with participant info
   const statusResult = getLuckyDrawRoundStatus({ tournamentRecord, drawDefinition, structureId });

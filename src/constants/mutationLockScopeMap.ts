@@ -92,7 +92,7 @@ export const methodScopeMap: Record<string, MutationLockScope> = {
   generateDrawTypeAndModifyDrawDefinition: 'DRAWS',
   generateAndPopulatePlayoffStructures: 'DRAWS',
   generateDrawMaticRound: 'DRAWS',
-  generateVoluntaryConsolation: 'DRAWS',
+
   generateDrawDefinition: 'DRAWS',
   generateQualifyingStructure: 'DRAWS',
   generateDrawStructuresAndLinks: 'DRAWS',
@@ -173,6 +173,7 @@ export const methodScopeMap: Record<string, MutationLockScope> = {
   setEntryPositions: 'ENTRIES',
   promoteAlternate: 'ENTRIES',
   promoteAlternates: 'ENTRIES',
+  removeStageEntries: 'ENTRIES',
   removeDrawEntries: 'ENTRIES',
   modifyEntriesStatus: 'ENTRIES',
   addEventEntryPairs: 'ENTRIES',

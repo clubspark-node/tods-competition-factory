@@ -60,8 +60,10 @@ export function resetDrawDefinition({ tournamentRecord, removeScheduling, remove
 
     const isMainOrQualifyingFirst = stageSequence === 1 && [QUALIFYING, MAIN].includes(stage);
 
-    // Lucky draws: always remove virtual positions created by luckyDrawAdvancement
-    // regardless of isMainOrQualifyingFirst, since they're not part of the initial draw.
+    // Lucky draws: remove virtual positions created by luckyDrawAdvancement.
+    // For MAIN/QUALIFYING stageSequence 1: keep R1 positions (with participants
+    // and BYEs) unless removeAssignments is set. For playoff structures: clear
+    // all assignments since participants arrived via link propagation.
     if (isLuckyDraw && positionAssignments) {
       const initialDrawPositions = new Set(
         (structure.matchUps || [])
@@ -69,16 +71,24 @@ export function resetDrawDefinition({ tournamentRecord, removeScheduling, remove
           .flatMap((m: any) => m.drawPositions || [])
           .filter(Boolean),
       );
-      structure.positionAssignments = positionAssignments
-        .filter((a) => initialDrawPositions.has(a.drawPosition))
-        .map((a) => {
-          if (removeAssignments) {
-            delete a.bye;
-            delete a.participantId;
-          }
-          return a;
-        });
-      if (removeAssignments) {
+
+      if (isMainOrQualifyingFirst) {
+        // Keep R1 position slots; clear participants/byes only if removeAssignments
+        structure.positionAssignments = positionAssignments
+          .filter((a) => initialDrawPositions.has(a.drawPosition))
+          .map((a) => {
+            if (removeAssignments) {
+              delete a.bye;
+              delete a.participantId;
+            }
+            return a;
+          });
+        if (removeAssignments) {
+          structure.seedAssignments = [];
+        }
+      } else {
+        // Playoff structures: clear all assignments
+        structure.positionAssignments = [];
         structure.seedAssignments = [];
       }
     }

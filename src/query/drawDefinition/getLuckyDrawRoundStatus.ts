@@ -1,6 +1,7 @@
 import { calculateMatchUpMargin } from '@Query/matchUp/calculateMatchUpMargin';
 import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
 import { getRoundMatchUps } from '@Query/matchUps/getRoundMatchUps';
+import { isLucky } from '@Query/drawDefinition/isLucky';
 import { findStructure } from '@Acquire/findStructure';
 
 // constants
@@ -69,14 +70,19 @@ export function getLuckyDrawRoundStatus({
 }: GetLuckyDrawRoundStatusArgs): GetLuckyDrawRoundStatusResult {
   if (!drawDefinition) return { error: MISSING_DRAW_DEFINITION };
 
-  const isLuckyDraw = isLuckyBasedDraw(drawDefinition.drawType);
-  if (!isLuckyDraw) return { ...SUCCESS, isLuckyDraw: false, rounds: [] };
+  const isLuckyDrawType = isLuckyBasedDraw(drawDefinition.drawType);
 
   structureId = structureId || drawDefinition.structures?.[0]?.structureId;
-  if (!structureId) return { error: INVALID_VALUES };
+  if (!structureId) {
+    return isLuckyDrawType ? { error: INVALID_VALUES } : { ...SUCCESS, isLuckyDraw: false, rounds: [] };
+  }
 
   const { structure } = findStructure({ drawDefinition, structureId });
   if (!structure) return { error: INVALID_VALUES };
+
+  // Detect lucky draw from either the draw type or the structure's matchUp layout
+  const isLuckyDraw = isLuckyDrawType || isLucky({ drawDefinition, structure });
+  if (!isLuckyDraw) return { ...SUCCESS, isLuckyDraw: false, rounds: [] };
 
   const matchUps = structure.matchUps || [];
   const { roundProfile, roundNumbers } = getRoundMatchUps({ matchUps });
