@@ -13,6 +13,7 @@ import { constantToString } from '@Tools/strings';
 import { nextPowerOf2 } from '@Tools/math';
 
 // Constants and Types
+import { EQUIVALENT_ACCEPTANCE_STATUSES } from '@Constants/entryStatusConstants';
 import { PlayoffAttributes, SeedingProfile } from '@Types/factoryTypes';
 import { SUCCESS } from '@Constants/resultConstants';
 import {
@@ -93,6 +94,7 @@ export function generateVoluntaryConsolation(params: GenerateVoluntaryConsolatio
 
   const stage = VOLUNTARY_CONSOLATION;
   const entries = getStageEntries({
+    entryStatuses: EQUIVALENT_ACCEPTANCE_STATUSES,
     stageSequence: 1,
     drawDefinition,
     stage,
