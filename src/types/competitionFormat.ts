@@ -26,6 +26,7 @@ export interface competitionFormat {
   substitutionRules?: SubstitutionRules;
   playerRules?: PlayerRules;
   penaltyProfile?: PenaltyProfile;
+  penaltyBoxProfile?: PenaltyBoxProfile;
   pointProfile?: PointProfile;
   pointMultipliers?: PointMultiplier[];
   /** Server determination rule: 'ALTERNATE_GAMES' (default) or 'WINNER_SERVES' */
@@ -79,6 +80,7 @@ export interface TimeoutRules {
   count: number;
   per: TimeoutScope;
   durationSeconds?: number;
+  maxPerSide?: number; // Max timeouts per competitor/team side. Omit = count is total shared.
 }
 
 // ============================================================================
@@ -125,6 +127,14 @@ export interface PenaltyTypeDefinition {
 export interface PenaltyEscalation {
   step: number;
   consequence: 'warning' | 'point' | 'game' | 'default';
+}
+
+// ============================================================================
+// Penalty Box Profile
+// ============================================================================
+
+export interface PenaltyBoxProfile {
+  durationSeconds: number; // Time in penalty box before player can return (e.g., 120 for INTENNSE)
 }
 
 // ============================================================================

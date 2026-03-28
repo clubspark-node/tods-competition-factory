@@ -17,7 +17,8 @@
   "timeoutRules": {
     "count": 5,
     "per": "MATCHUP",
-    "durationSeconds": 60
+    "durationSeconds": 60,
+    "maxPerSide": 5
   },
   "substitutionRules": {
     "allowed": true,
@@ -27,6 +28,9 @@
   "playerRules": {
     "maxMinutesPerSegment": 6,
     "matchUpTypes": ["SINGLES"]
+  },
+  "penaltyBoxProfile": {
+    "durationSeconds": 120
   },
   "penaltyProfile": {
     "sport": "INTENNSE",
