@@ -3,3 +3,4 @@ export * from './factoryTypes';
 export * from './hydrated';
 export * from './rankingTypes';
 export * from './tournamentTypes';
+export * from './sanctioningTypes';
