@@ -55,7 +55,8 @@ export function getOfficialEligibility({
   }
 
   if (matchingCerts.length === 0) {
-    reasons.push(`No active ${certificationFamily}${certificationLevel ? ` ${certificationLevel}` : ''} certification`);
+    const levelSuffix = certificationLevel ? ` ${certificationLevel}` : '';
+    reasons.push(`No active ${certificationFamily}${levelSuffix} certification`);
   }
 
   // Check expiry on matching certs

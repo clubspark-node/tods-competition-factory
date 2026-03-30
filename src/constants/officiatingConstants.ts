@@ -68,6 +68,18 @@ export const ASSIGNMENT_TERMINAL: AssignmentStatus[] = [ASSIGN_DECLINED, ASSIGN_
 export const EVALUATION_EDITABLE: EvaluationStatus[] = [EVAL_DRAFT, EVAL_REJECTED];
 
 // ---------------------------------------------------------------------------
+// Evaluation Scale Options
+// ---------------------------------------------------------------------------
+
+export const EVALUATION_SCALE_OPTIONS = [
+  { value: 1, label: 'Unsatisfactory' },
+  { value: 2, label: 'Below Average' },
+  { value: 3, label: 'Average' },
+  { value: 4, label: 'Good' },
+  { value: 5, label: 'Excellent' },
+] as const;
+
+// ---------------------------------------------------------------------------
 // Error Constants
 // ---------------------------------------------------------------------------
 
@@ -185,4 +197,5 @@ export const officiatingConstants = {
   EVALUATION_TERMINAL,
   ASSIGNMENT_TERMINAL,
   EVALUATION_EDITABLE,
+  EVALUATION_SCALE_OPTIONS,
 } as const;
