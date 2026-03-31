@@ -36,8 +36,8 @@ importers:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
       tods-competition-factory:
-        specifier: 2.4.6-beta.36
-        version: 2.4.6-beta.36
+        specifier: 2.4.6-beta.37
+        version: 2.4.6-beta.37
 
 packages:
 
@@ -5038,8 +5038,8 @@ packages:
     resolution: {integrity: sha512-W5KVmB+LasiK3+XW/BS1aomNxpxG02PxdnJ6yAEcN/P5y/yT1bdzwHZe48G4WRyQODYBMg/lUNfpalaFciNLlA==}
     engines: {node: '>=20'}
 
-  tods-competition-factory@2.4.6-beta.36:
-    resolution: {integrity: sha512-2P6hY5NzXlkQaXckj9tApCISaJK8Am5JGm8ZVsTwAUi/0J58qLxZGXqmKhQbcG4u5CeJL6qY3TY9rJahWBvJ6w==}
+  tods-competition-factory@2.4.6-beta.37:
+    resolution: {integrity: sha512-0w9KRWD81eBNx7jC8xl4UpPmmpofk9lrSqs/tmfXty3Ezghi7GVAoLhFwVIXZb902G4SCgFTz/Dzxk7goaUYfg==}
     engines: {node: '>=20'}
 
   toidentifier@1.0.1:
@@ -9633,7 +9633,7 @@ snapshots:
 
   history@4.10.1:
     dependencies:
-      '@babel/runtime': 7.28.6
+      '@babel/runtime': 7.29.2
       loose-envify: 1.4.0
       resolve-pathname: 3.0.0
       tiny-invariant: 1.3.3
@@ -11965,7 +11965,7 @@ snapshots:
 
   tods-competition-factory@2.4.6-beta.34: {}
 
-  tods-competition-factory@2.4.6-beta.36: {}
+  tods-competition-factory@2.4.6-beta.37: {}
 
   toidentifier@1.0.1: {}
 
