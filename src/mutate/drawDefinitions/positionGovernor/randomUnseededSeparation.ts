@@ -40,6 +40,7 @@ type RandomUnseededDistribution = {
   avoidance?: any;
   entries?: any;
   event?: Event;
+  random?: () => number;
 };
 export function randomUnseededSeparation({
   provisionalPositioning,
@@ -56,6 +57,7 @@ export function randomUnseededSeparation({
   drawSize,
   // entries, // entries for the specific stage of drawDefinition
   event,
+  random,
 }: RandomUnseededDistribution) {
   if (!avoidance) return { error: MISSING_AVOIDANCE_POLICY };
   const { candidatesCount = 1, policyAttributes, targetDivisions } = avoidance;
@@ -161,6 +163,7 @@ export function randomUnseededSeparation({
       idCollections,
       allGroups,
       drawSize,
+      random,
     }),
   );
 
@@ -185,6 +188,7 @@ export function randomUnseededSeparation({
         idCollections,
         allGroups,
         drawSize,
+        random,
         // entries,
       }),
     );
@@ -198,12 +202,14 @@ export function randomUnseededSeparation({
 
   if (!candidate) return { error: NO_CANDIDATES };
 
-  const alreadyAssignedParticipantIds = (getPositionAssignments({ structure })?.positionAssignments ?? [])
-    .filter((assignment) => assignment.participantId)
-    .map((assignment) => assignment.participantId);
+  const alreadyAssignedParticipantIds = new Set(
+    (getPositionAssignments({ structure })?.positionAssignments ?? [])
+      .filter((assignment) => assignment.participantId)
+      .map((assignment) => assignment.participantId),
+  );
 
   const filteredAssignments = candidate.positionAssignments.filter(
-    (assignment) => !alreadyAssignedParticipantIds.includes(assignment.participantId),
+    (assignment) => !alreadyAssignedParticipantIds.has(assignment.participantId),
   );
 
   for (const assignment of filteredAssignments) {
