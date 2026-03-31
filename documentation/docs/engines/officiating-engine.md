@@ -133,9 +133,9 @@ Creates a new `OfficialRecord`, sets it in state, and makes it the active record
 
 ```js
 const { officialRecord } = officiatingEngine.createOfficialRecord({
-  personId: 'person-001',       // required
-  organisationId: 'ITF',        // optional
-  officialRecordId: 'rec-001',  // optional — auto-generated if absent
+  personId: 'person-001', // required
+  organisationId: 'ITF', // optional
+  officialRecordId: 'rec-001', // optional — auto-generated if absent
 });
 ```
 
@@ -147,14 +147,14 @@ const { officialRecord } = officiatingEngine.createOfficialRecord({
 
 ```js
 const { certification } = officiatingEngine.addCertification({
-  organisationId: 'ITF',              // required
-  certificationFamily: 'UMPIRE',      // required
-  certificationLevel: 'GOLD_BADGE',   // optional
-  status: 'ACTIVE',                   // optional — defaults to ACTIVE
-  validFrom: '2025-01-01',            // optional
-  validUntil: '2028-12-31',           // optional
-  documentReferences: [],             // optional
-  notes: '',                          // optional
+  organisationId: 'ITF', // required
+  certificationFamily: 'UMPIRE', // required
+  certificationLevel: 'GOLD_BADGE', // optional
+  status: 'ACTIVE', // optional — defaults to ACTIVE
+  validFrom: '2025-01-01', // optional
+  validUntil: '2028-12-31', // optional
+  documentReferences: [], // optional
+  notes: '', // optional
 });
 ```
 
@@ -181,7 +181,7 @@ Validates the transition against `VALID_CERTIFICATION_TRANSITIONS` before applyi
 officiatingEngine.transitionCertificationStatus({
   certificationId: 'cert-001',
   toStatus: 'SUSPENDED',
-  transitionedBy: 'admin-001',  // optional
+  transitionedBy: 'admin-001', // optional
   reason: 'Pending investigation', // optional
 });
 ```
@@ -194,14 +194,15 @@ officiatingEngine.transitionCertificationStatus({
 
 ```js
 const { evaluation } = officiatingEngine.addEvaluation({
-  evaluatorPersonId: 'person-002',  // required — who is evaluating
-  overallRating: 4.2,               // required
-  subjectPersonId: 'person-001',    // optional
-  tournamentId: 'tourn-001',        // optional
-  matchUpId: 'matchup-001',         // optional
-  evaluationDate: '2026-03-15',     // optional — defaults to now
+  evaluatorPersonId: 'person-002', // required — who is evaluating
+  overallRating: 4.2, // required
+  subjectPersonId: 'person-001', // optional
+  tournamentId: 'tourn-001', // optional
+  matchUpId: 'matchup-001', // optional
+  evaluationDate: '2026-03-15', // optional — defaults to now
   policyName: 'ITF_CHAIR_UMPIRE_EVALUATION', // optional — links to evaluation policy
-  scores: [                         // optional — criterion-level scores
+  scores: [
+    // optional — criterion-level scores
     { criterionId: 'rules_knowledge', sectionId: 'pre_match', value: 4 },
   ],
   comments: 'Strong match management', // optional
@@ -233,8 +234,8 @@ When transitioning to `SUBMITTED`, validates that all required criteria scores a
 officiatingEngine.transitionEvaluationStatus({
   evaluationId: 'eval-001',
   toStatus: 'SUBMITTED',
-  transitionedBy: 'eval-002',  // optional
-  reason: '',                  // optional
+  transitionedBy: 'eval-002', // optional
+  reason: '', // optional
 });
 ```
 
@@ -246,13 +247,13 @@ officiatingEngine.transitionEvaluationStatus({
 
 ```js
 const { assignment } = officiatingEngine.assignOfficial({
-  tournamentId: 'tourn-001',     // required
-  roleSubtype: 'CHAIR_UMPIRE',  // required
-  assignedDate: '2026-03-10',   // optional
-  startDate: '2026-04-01',      // optional
-  endDate: '2026-04-07',        // optional
-  assignedBy: 'admin-001',      // optional
-  notes: '',                    // optional
+  tournamentId: 'tourn-001', // required
+  roleSubtype: 'CHAIR_UMPIRE', // required
+  assignedDate: '2026-03-10', // optional
+  startDate: '2026-04-01', // optional
+  endDate: '2026-04-07', // optional
+  assignedBy: 'admin-001', // optional
+  notes: '', // optional
 });
 ```
 
@@ -268,8 +269,8 @@ officiatingEngine.removeOfficialAssignment({ assignmentId: 'assign-001' });
 officiatingEngine.transitionAssignmentStatus({
   assignmentId: 'assign-001',
   toStatus: 'CONFIRMED',
-  transitionedBy: 'admin-001',  // optional
-  reason: '',                   // optional
+  transitionedBy: 'admin-001', // optional
+  reason: '', // optional
 });
 ```
 
@@ -281,11 +282,11 @@ officiatingEngine.transitionAssignmentStatus({
 
 ```js
 const { suspension } = officiatingEngine.addSuspension({
-  organisationId: 'ITF',            // optional
-  suspensionType: 'MISCONDUCT',     // optional
-  suspensionNotes: 'Under review',  // optional
-  suspendedFrom: '2026-03-01',      // optional
-  suspendedUntil: '2026-06-01',     // optional
+  organisationId: 'ITF', // optional
+  suspensionType: 'MISCONDUCT', // optional
+  suspensionNotes: 'Under review', // optional
+  suspendedFrom: '2026-03-01', // optional
+  suspendedUntil: '2026-06-01', // optional
 });
 ```
 
@@ -310,10 +311,10 @@ officiatingEngine.addCertificationRequirement({
   organisationId: 'ITF',
   description: 'Requirements for ITF Gold Badge',
   requirements: ['Complete advanced course', 'Pass written exam'],
-  prerequisiteLevels: ['SILVER_BADGE'],   // optional
-  minimumAssignments: 50,                 // optional
-  minimumEvaluationScore: 4.0,            // optional
-  validityPeriodMonths: 48,               // optional
+  prerequisiteLevels: ['SILVER_BADGE'], // optional
+  minimumAssignments: 50, // optional
+  minimumEvaluationScore: 4.0, // optional
+  validityPeriodMonths: 48, // optional
 });
 ```
 
@@ -382,10 +383,10 @@ Returns certifications with optional filtering.
 
 ```js
 const { certifications } = officiatingEngine.getOfficialCertifications({
-  certificationFamily: 'UMPIRE',    // optional
+  certificationFamily: 'UMPIRE', // optional
   certificationLevel: 'GOLD_BADGE', // optional
-  organisationId: 'ITF',            // optional
-  activeOnly: true,                 // optional — filters to ACTIVE status
+  organisationId: 'ITF', // optional
+  activeOnly: true, // optional — filters to ACTIVE status
 });
 ```
 
@@ -398,7 +399,7 @@ Checks whether a specific certification is currently valid (status, date range).
 ```js
 const { valid, reasons, certification } = officiatingEngine.validateCertification({
   certificationId: 'cert-001',
-  asOfDate: '2026-06-15',  // optional — defaults to today
+  asOfDate: '2026-06-15', // optional — defaults to today
 });
 // valid: boolean
 // reasons: string[] — empty when valid, populated with failure reasons otherwise
@@ -451,9 +452,9 @@ Checks whether an official meets all requirements for a given certification.
 ```js
 const { eligible, reasons } = officiatingEngine.getOfficialEligibility({
   certificationFamily: 'UMPIRE',
-  certificationLevel: 'GOLD_BADGE',  // optional
-  organisationId: 'ITF',             // optional
-  asOfDate: '2026-06-15',            // optional
+  certificationLevel: 'GOLD_BADGE', // optional
+  organisationId: 'ITF', // optional
+  asOfDate: '2026-06-15', // optional
 });
 // eligible: boolean
 // reasons: string[] — e.g., ['Official has active suspension(s)', 'Insufficient completed assignments: 12/50']
@@ -467,9 +468,9 @@ Returns assignments with optional filtering.
 
 ```js
 const { assignments } = officiatingEngine.getOfficialAssignments({
-  tournamentId: 'tourn-001',       // optional
-  roleSubtype: 'CHAIR_UMPIRE',    // optional
-  status: 'CONFIRMED',            // optional
+  tournamentId: 'tourn-001', // optional
+  roleSubtype: 'CHAIR_UMPIRE', // optional
+  status: 'CONFIRMED', // optional
 });
 ```
 
@@ -480,22 +481,25 @@ const { assignments } = officiatingEngine.getOfficialAssignments({
 Batch-execute multiple directives with optional rollback on error and result piping between steps.
 
 ```js
-const result = officiatingEngine.executionQueue([
-  {
-    method: 'createOfficialRecord',
-    params: { personId: 'person-001', organisationId: 'ITF' },
-  },
-  {
-    method: 'addCertification',
-    params: { organisationId: 'ITF', certificationFamily: 'UMPIRE' },
-    pipe: { officialRecordId: true },  // pipes officialRecordId from previous result
-  },
-  {
-    method: 'assignOfficial',
-    params: { tournamentId: 'tourn-001', roleSubtype: 'CHAIR_UMPIRE' },
-    pipe: { officialRecordId: true },
-  },
-], true); // rollbackOnError = true
+const result = officiatingEngine.executionQueue(
+  [
+    {
+      method: 'createOfficialRecord',
+      params: { personId: 'person-001', organisationId: 'ITF' },
+    },
+    {
+      method: 'addCertification',
+      params: { organisationId: 'ITF', certificationFamily: 'UMPIRE' },
+      pipe: { officialRecordId: true }, // pipes officialRecordId from previous result
+    },
+    {
+      method: 'assignOfficial',
+      params: { tournamentId: 'tourn-001', roleSubtype: 'CHAIR_UMPIRE' },
+      pipe: { officialRecordId: true },
+    },
+  ],
+  true,
+); // rollbackOnError = true
 
 // result: { success, results: [{ success, methodName, ... }, ...] }
 // On error: { error, rolledBack: true }
@@ -516,15 +520,32 @@ import { officiatingConstants } from 'tods-competition-factory';
 
 const {
   // Certification status
-  CERT_ACTIVE, CERT_EXPIRED, CERT_SUSPENDED, CERT_REVOKED, CERT_PENDING_RENEWAL,
+  CERT_ACTIVE,
+  CERT_EXPIRED,
+  CERT_SUSPENDED,
+  CERT_REVOKED,
+  CERT_PENDING_RENEWAL,
   // Evaluation status
-  EVAL_DRAFT, EVAL_SUBMITTED, EVAL_REVIEWED, EVAL_APPROVED, EVAL_REJECTED,
+  EVAL_DRAFT,
+  EVAL_SUBMITTED,
+  EVAL_REVIEWED,
+  EVAL_APPROVED,
+  EVAL_REJECTED,
   // Assignment status
-  ASSIGN_PROPOSED, ASSIGN_CONFIRMED, ASSIGN_DECLINED, ASSIGN_CANCELLED, ASSIGN_COMPLETED,
+  ASSIGN_PROPOSED,
+  ASSIGN_CONFIRMED,
+  ASSIGN_DECLINED,
+  ASSIGN_CANCELLED,
+  ASSIGN_COMPLETED,
   // Transition maps
-  VALID_CERTIFICATION_TRANSITIONS, VALID_EVALUATION_TRANSITIONS, VALID_ASSIGNMENT_TRANSITIONS,
+  VALID_CERTIFICATION_TRANSITIONS,
+  VALID_EVALUATION_TRANSITIONS,
+  VALID_ASSIGNMENT_TRANSITIONS,
   // Terminal / editable states
-  CERTIFICATION_TERMINAL, EVALUATION_TERMINAL, ASSIGNMENT_TERMINAL, EVALUATION_EDITABLE,
+  CERTIFICATION_TERMINAL,
+  EVALUATION_TERMINAL,
+  ASSIGNMENT_TERMINAL,
+  EVALUATION_EDITABLE,
   // Evaluation scale
   EVALUATION_SCALE_OPTIONS,
 } = officiatingConstants;
@@ -563,10 +584,10 @@ import type {
 
 ### Key Type Enums
 
-| Type | Values |
-|------|--------|
+| Type                  | Values                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `OfficialRoleSubtype` | `CHAIR_UMPIRE`, `LINE_UMPIRE`, `REFEREE`, `CHIEF_UMPIRE`, `DEPUTY_REFEREE`, `REVIEW_OFFICIAL`, `COURT_SUPERVISOR` |
-| `CertificationFamily` | `UMPIRE`, `REFEREE`, `CHIEF_UMPIRE`, `REVIEW_OFFICIAL` |
-| `CertificationLevel` | `WHITE_BADGE`, `BRONZE_BADGE`, `SILVER_BADGE`, `GOLD_BADGE` |
-| `ScoringType` | `NUMERIC`, `SCALE`, `CHECKLIST`, `TEXT` |
-| `ScoringMethod` | `WEIGHTED_AVERAGE`, `SIMPLE_AVERAGE`, `SUM` |
+| `CertificationFamily` | `UMPIRE`, `REFEREE`, `CHIEF_UMPIRE`, `REVIEW_OFFICIAL`                                                            |
+| `CertificationLevel`  | `WHITE_BADGE`, `BRONZE_BADGE`, `SILVER_BADGE`, `GOLD_BADGE`                                                       |
+| `ScoringType`         | `NUMERIC`, `SCALE`, `CHECKLIST`, `TEXT`                                                                           |
+| `ScoringMethod`       | `WEIGHTED_AVERAGE`, `SIMPLE_AVERAGE`, `SUM`                                                                       |
