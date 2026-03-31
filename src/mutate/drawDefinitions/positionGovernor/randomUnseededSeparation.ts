@@ -79,10 +79,7 @@ export function randomUnseededSeparation({
 
   if (targetDivisions && isPowerOf2(targetDivisions) && !roundsToSeparate) {
     const exponent: number = deriveExponent(targetDivisions) || 0;
-    const roundsCount = matchUps.reduce(
-      (count, matchUp) => (matchUp.roundNumber > count ? matchUp.roundNumber : count),
-      0,
-    );
+    const roundsCount = matchUps.reduce((count, matchUp) => Math.max(Number(matchUp.roundNumber), count), 0);
     roundsToSeparate = roundsCount < exponent ? 1 : roundsCount - exponent + 1;
   }
 
