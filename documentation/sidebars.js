@@ -195,6 +195,11 @@ module.exports = {
           label: 'Sanctioning Engine',
           items: ['engines/sanctioning-engine'],
         },
+        {
+          type: 'category',
+          label: 'Officiating Engine',
+          items: ['engines/officiating-engine'],
+        },
       ],
     },
     {
@@ -232,6 +237,7 @@ module.exports = {
         'governors/schedule-governor',
         'governors/score-governor',
         'governors/tie-format-governor',
+        'governors/officiating-governor',
         'governors/sanctioning-governor',
         'governors/tournament-governor',
         'governors/venue-governor',
