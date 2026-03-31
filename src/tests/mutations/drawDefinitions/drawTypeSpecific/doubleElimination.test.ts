@@ -57,20 +57,18 @@ it('mocksEngine can complete DOUBLE_ELIMINATION matchUps', () => {
 
   tournamentEngine.setState(result.tournamentRecord);
   const { matchUps } = tournamentEngine.allTournamentMatchUps();
-  const matchUpsCount = matchUps.length;
-  const completedMatchUps = matchUps.filter(({ matchUpStatus }) => matchUpStatus === COMPLETED);
   const toPlayMatchUps = matchUps.filter(({ matchUpStatus }) => matchUpStatus === TO_BE_PLAYED);
 
   // Multi-pass completion handles cross-structure advancement.
   // At most 1 matchUp may remain: the Decider, which only plays
   // when the undefeated finalist loses the championship match.
   // If the undefeated player won, the decider is unnecessary (TBD opponent).
-  expect(toPlayMatchUps.length).toBeLessThanOrEqual(1);
+  expect(toPlayMatchUps.length).toEqual(0);
   if (toPlayMatchUps.length === 1) {
     expect(toPlayMatchUps[0].roundName).toEqual('P-Final');
   }
 
   // The main Final should always be completed
-  const mainFinal = matchUps.find((m) => (m as any).structureName === 'Main' && (m as any).abbreviatedRoundName === 'F');
+  const mainFinal = matchUps.find((m) => m.structureName === 'Main' && m.abbreviatedRoundName === 'F');
   expect(mainFinal?.matchUpStatus).toEqual(COMPLETED);
 });
