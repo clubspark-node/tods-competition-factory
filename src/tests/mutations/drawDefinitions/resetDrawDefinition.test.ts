@@ -486,6 +486,66 @@ it('resets AD_HOC voluntary consolation by clearing all matchUps', () => {
   expect(completedMain.length).toBe(0); // all scores reset
 });
 
+it('removes VOLUNTARY_CONSOLATION entries on reset', () => {
+  const {
+    drawIds: [drawId],
+  } = mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawSize: 8, voluntaryConsolation: {} }],
+    completeAllMatchUps: true,
+    setState: true,
+  });
+
+  // Get eligible participants and add them as VC entries with mixed statuses
+  let result: any = tournamentEngine.getEligibleVoluntaryConsolationParticipants({ drawId });
+  const eligibleIds = result.eligibleParticipants.map((p: any) => p.participantId);
+  expect(eligibleIds.length).toBeGreaterThanOrEqual(4);
+
+  const acceptedIds = eligibleIds.slice(0, 3);
+  const alternateIds = eligibleIds.slice(3, 5);
+
+  result = tournamentEngine.addDrawEntries({
+    entryStage: VOLUNTARY_CONSOLATION,
+    entryStatus: 'DIRECT_ACCEPTANCE',
+    participantIds: acceptedIds,
+    ignoreStageSpace: true,
+    drawId,
+  });
+  expect(result.success).toBe(true);
+
+  if (alternateIds.length) {
+    result = tournamentEngine.addDrawEntries({
+      entryStage: VOLUNTARY_CONSOLATION,
+      entryStatus: 'ALTERNATE',
+      participantIds: alternateIds,
+      ignoreStageSpace: true,
+      drawId,
+    });
+    expect(result.success).toBe(true);
+  }
+
+  // Verify VC entries exist before reset
+  const { drawDefinition: beforeReset } = tournamentEngine.getEvent({ drawId });
+  const vcEntriesBefore = beforeReset.entries.filter((e: any) => e.entryStage === VOLUNTARY_CONSOLATION);
+  expect(vcEntriesBefore.length).toBe(acceptedIds.length + alternateIds.length);
+
+  // MAIN entries should also exist
+  const mainEntriesBefore = beforeReset.entries.filter((e: any) => e.entryStage !== VOLUNTARY_CONSOLATION);
+  expect(mainEntriesBefore.length).toBeGreaterThan(0);
+
+  // Reset the draw
+  result = tournamentEngine.resetDrawDefinition({ drawId });
+  expect(result.success).toBe(true);
+
+  // Verify: ALL VC entries removed
+  const { drawDefinition: afterReset } = tournamentEngine.getEvent({ drawId });
+  const vcEntriesAfter = afterReset.entries.filter((e: any) => e.entryStage === VOLUNTARY_CONSOLATION);
+  expect(vcEntriesAfter.length).toBe(0);
+
+  // Verify: MAIN entries are preserved
+  const mainEntriesAfter = afterReset.entries.filter((e: any) => e.entryStage !== VOLUNTARY_CONSOLATION);
+  expect(mainEntriesAfter.length).toBe(mainEntriesBefore.length);
+});
+
 it('resets elimination voluntary consolation by clearing scores but keeping matchUps', () => {
   // Generate a draw with a non-AD_HOC voluntary consolation (elimination-style)
   const eventId = 'vc-elim-event';

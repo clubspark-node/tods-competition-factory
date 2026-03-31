@@ -56,6 +56,10 @@ export interface TimeoutRules {
   count: number;
   per: string; // 'MATCHUP' | 'SET' | 'HALF' | 'SEGMENT'
   durationSeconds?: number;
+  maxPerSide?: number;
+}
+export interface PenaltyBoxProfile {
+  durationSeconds: number;
 }
 export interface SubstitutionRules {
   allowed: boolean;
@@ -94,6 +98,7 @@ export interface CompetitionFormat {
   substitutionRules?: SubstitutionRules;
   playerRules?: PlayerRules;
   penaltyProfile?: PenaltyProfile;
+  penaltyBoxProfile?: PenaltyBoxProfile;
   pointProfile?: PointProfile;
   pointMultipliers?: PointMultiplier[];
   /** Server determination rule: 'ALTERNATE_GAMES' (default) or 'WINNER_SERVES' */
@@ -938,6 +943,10 @@ export class ScoringEngine {
 
   getTimeoutRules(): TimeoutRules | undefined {
     return this.competitionFormat?.timeoutRules;
+  }
+
+  getPenaltyBoxProfile(): PenaltyBoxProfile | undefined {
+    return this.competitionFormat?.penaltyBoxProfile;
   }
 
   getSubstitutionRules(): SubstitutionRules | undefined {

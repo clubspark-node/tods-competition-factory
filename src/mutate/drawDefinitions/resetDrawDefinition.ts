@@ -171,6 +171,13 @@ export function resetDrawDefinition({ tournamentRecord, removeScheduling, remove
     }
   }
 
+  // Remove all VOLUNTARY_CONSOLATION entries
+  if (drawDefinition.entries?.length) {
+    drawDefinition.entries = drawDefinition.entries.filter(
+      (entry) => entry.entryStage !== VOLUNTARY_CONSOLATION,
+    );
+  }
+
   drawDefinition.extensions = drawDefinition.extensions.filter(
     (extension) => extension.name !== POSITION_ACTIONS && extension.name !== DRAFT_STATE,
   );
