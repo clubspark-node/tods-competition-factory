@@ -1,46 +1,88 @@
 <p align="center">
   <a href="http://courthive.com/" target="blank"><img src="./src/fixtures/images/red-ch-logo.png" width="220" alt="CourtHive Logo" /></a>
 </p>
-<p align="center">Competition Business Rules and Policy Management.</p>
-<p align="center"><a href='https://courthive.github.io/competition-factory/'>Onilne Documentation and Examples.</a></p>
+<p align="center">Configurable Tournament Operations for Competition Management.</p>
+<p align="center"><a href='https://courthive.github.io/competition-factory/'>Documentation and Examples</a></p>
 <p align="center">
 <a href="https://www.npmjs.com/~tods-competition-factory" target="_blank"><img src="https://img.shields.io/npm/v/tods-competition-factory" alt="NPM Version" /></a>
 <a href="https://www.npmjs.com/~tods-competition-factory" target="_blank"><img src="https://img.shields.io/npm/l/tods-competition-factory" alt="Package License" /></a>
 <a href="https://www.npmjs.com/~tods-competition-factory" target="_blank"><img src="https://img.shields.io/npm/dm/tods-competition-factory" alt="NPM Downloads" /></a>
 </p>
-<div align="center">
 
-![Statements](https://img.shields.io/badge/statements-92.33%25-brightgreen.svg?style=flat) ![Branches](https://img.shields.io/badge/branches-82.97%25-yellow.svg?style=flat) ![Functions](https://img.shields.io/badge/functions-95.77%25-brightgreen.svg?style=flat) ![Lines](https://img.shields.io/badge/lines-95%25-brightgreen.svg?style=flat) |
+## Overview
 
-</div>
+The **Competition Factory** is a collection of functions for transforming and mutating tournament records. Core engines capture the types of state transitions fundamental to running tournaments — draw generation, participant assignments, matchUp scheduling, score recording, and outcome determination.
 
-## Competittion Business Rules
+Rather than hardcoding tournament structures or embedding business rules in database stored procedures, the factory is configured through **JSON policy definitions** and **JSON-described tournament structures**. This provides:
 
-The **Competition Factory** is a collection of functions for transforming/mutating tournament records and is intended to ensure the integrity of Competitions by managing all state transformations. Factory functions embody the "business rules" required by Competition Management Solutions, and enable an entirely new way of constructing software to manage tournaments.
+- **Deployment Flexibility** — Operations can execute on standalone clients, servers, or both
+- **Platform Independence** — An entire tournament management solution [can run in a browser](https://courthive.github.io/TMX), communicate with a server, or operate entirely offline
+- **Scalable Architectures** — Server deployments support highly scalable asynchronous processing in **Node.js**
+- **Configurable Behavior** — Reasonable defaults for all operations, with extensive configuration through policy definitions
+- **Consistent Results** — The same configuration produces identical tournament structures regardless of where operations execute
+- **Zero Dependencies** — No runtime dependencies; every utility is built on platform APIs (`Intl.DateTimeFormat`, `Date`), eliminating supply-chain risk and version conflicts
 
-The rules governing the creation of draws, seeding, and participant movement can be present on a standalone client, on a server, or both.
-An entire tournament management solution [can run in a browser](https://courthive.github.io/TMX/), or a client can communicate with a server which utilizes a database, or simply the file system.
+## Cross-Sport Applicability
 
-Server deployments support highly scaleable asynchronous processing models in **Node.js**.
-
-## Data => Standards
-
-The Competition Factory generates and processes / mutates JSON objects, and was built during the development of the **[Tennis Open Data Standards](https://itftennis.atlassian.net/wiki/spaces/TODS/overview)**, **(TODS)**, a document-based representation of all of the elements of a tournament or a league including participants, events, draws, matchUps, contacts, and references to online resources. Although the data standard began to emerge in the sport of Tennis, **_the data structures apply to competitions in many sports_**, and the factory continues to evolve to support competition more broadly.
-
-## Time Capsule
-
-After a tournament has been completed, a **TODS** file can be considered a "time capsule" of all the information related to the constructrion and management of a tournament or a league. This means that complete historical data is available in one cross-platform, database-independent JSON file, removing all concerns about keeping software maintenance contracts active in order to retain access to data, as well as any reliance on applications which interpret database schemas.
+While originally inspired by the **[Tennis Open Data Standards (TODS)](https://itftennis.atlassian.net/wiki/spaces/TODS/overview)**, the data structures and configurable operations apply to tournaments across many sports. The factory has been successfully deployed across **five racquet sports**, and this cross-sport reality is reflected in **[CODES](https://courthive.github.io/competition-factory/docs/data-standards#codes)** (Competition Open Data Exchange Standards), the factory's expanded data model.
 
 ## State Engines
 
-The **Competition Factory** includes synchronous and asynchronous "state engines" which provide services for managing the state of a tournament record as well as subscriptions, notifications and logging.
+The factory includes synchronous and asynchronous **state engines** that provide services for managing tournament record state, publishing subscriptions for real-time data synchronization, notifications and logging for audit trails, and middleware integration for custom business logic.
 
-## Mocks Engine
+## Draw Type Innovations
 
-The `mocksEngine` generates complete tournament objects, or tournamentRecords, as well as mock persons, participants and matchUp outcomes. It is used extensively in the 3600+ tests that are run against the factory methods before every package release.
+Beyond pre-defined draw types, the factory's linked structure architecture enables tournament topologies of arbitrary complexity:
+
+- **[DrawMatic](https://courthive.github.io/competition-factory/docs/concepts/draw-types/drawmatic)** — Probabilistic pairing for flexible-round events with skill-based matching and team boundary awareness
+- **[Lucky Draw](https://courthive.github.io/competition-factory/docs/concepts/draw-types/lucky-draw)** — Any participant count without power-of-2 constraints, with automatic lucky loser advancement
+- **[Draft Draws](https://courthive.github.io/competition-factory/docs/concepts/draft-draws)** — Participant agency over positioning through tiered preference systems with full transparency
+
+## Scheduling
+
+Two complementary scheduling approaches: **Garman scheduling** for automated multi-day distribution respecting recovery periods, daily limits, and court availability; and **Pro scheduling** for grid-based control with fixed time slots, follow-on support, and comprehensive conflict detection.
+
+The **Temporal Engine** extends this by modelling court availability as continuous capacity streams, enabling "what-if" scenario simulation before committing to the tournament record.
+
+## Publishing and Embargo
+
+Precise control over public visibility at every level — tournament, event, draw, stage, structure, and individual rounds. **Embargo** provides time-based visibility gates with explicit timezone context, enabling workflows like finalizing the order of play in the evening and setting it to go live automatically at a specific hour.
+
+## Ranking Points and Scale Engine
+
+The **Scale Engine** computes ranking points in real time from tournament results using configurable ranking policies. Points are calculated from finishing positions, per-win bonuses, and quality win bonuses for defeating ranked opponents. Built-in policies cover ATP, WTA, ITF, and national federation systems, with support for custom point tables as JSON policies.
+
+## Scoring Engine
+
+The **Scoring Engine** provides point-by-point match scoring across multiple sports and formats — standard tennis, tiebreak-only (pickleball, squash, badminton), timed sets, aggregate scoring, and rally scoring. It supports undo/redo, server tracking, substitutions, and mixed-mode entry (point-by-point combined with manual set/game entry).
+
+## Officiating Engine
+
+The **Officiating Engine** manages official assignments, certifications, evaluations, and suspension tracking. It supports policy-driven eligibility checks against certification requirements and evaluation score thresholds, enabling governing bodies to define and enforce officiating standards across tournaments.
+
+## Sanctioning Engine
+
+The **Sanctioning Engine** provides a state machine for governing body tournament sanctioning workflows. It manages the sanctioning lifecycle from application through approval, with policy-driven validation of tournament parameters against tier-specific constraints — allowed formats, draw types, categories, prize money ranges, court requirements, and calendar conflict detection.
 
 ## Installation
 
 ```bash
-pnpm i tods-competition-factory
+pnpm add tods-competition-factory
+```
+
+```js
+import { tournamentEngine } from 'tods-competition-factory';
+```
+
+## Documentation
+
+Full documentation with interactive examples: **[courthive.github.io/competition-factory](https://courthive.github.io/competition-factory/)**
+
+## Testing
+
+8,200+ tests covering draws, scheduling, scoring, participants, publishing, and ranking points.
+
+```bash
+npm test          # run all tests
+npm run coverage  # coverage report (thresholds: 95/95/83/95%)
 ```
