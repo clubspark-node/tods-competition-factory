@@ -1,5 +1,5 @@
 import { tallyParticipantResults } from '@Query/matchUps/roundRobinTally/tallyParticipantResults';
-import { generateMatchUpOutcome } from 'src/tests/helpers/generateMatchUpOutcome';
+import { generateMatchUpOutcome } from '@Tests/helpers/generateMatchUpOutcome';
 import { allPlayoffPositionsFilled } from '@Query/drawDefinition/structureActions';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';

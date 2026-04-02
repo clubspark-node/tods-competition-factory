@@ -142,9 +142,7 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
     stageSpecificPolicies?.requireAllPositionsAssigned ||
     sequenceSpecificPolicies?.requireAllPositionsAssigned;
 
-  if (!matchUpsMap) {
-    matchUpsMap = getMatchUpsMap({ drawDefinition, structure });
-  }
+  matchUpsMap ??= getMatchUpsMap({ drawDefinition, structure });
 
   const { positionAssignments, allPositionsAssigned } = structureAssignedDrawPositions({ structure });
   const scoringActive = !requireAllPositionsAssigned || allPositionsAssigned;
@@ -165,8 +163,8 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
     exitProfile?.length &&
     (exitProfile[0]
       .split('-')
-      .map((x) => parseInt(x))
-      .reduce((a, b) => a + b) ||
+      .map((x) => Number.parseInt(x))
+      .reduce((a, b) => a + b, 0) ||
       0);
 
   const isRoundRobin = !!structure.structures;
@@ -190,9 +188,7 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
   // must make a pass before hydration and addition of tieMatchUps
   // preserve matchUps with tieMatchUps so their children can be extracted and filtered independently
   if (matchUpFilters) {
-    const tieMatchUpIds = new Set(
-      matchUps.filter((m) => Array.isArray(m.tieMatchUps)).map((m) => m.matchUpId),
-    );
+    const tieMatchUpIds = new Set(matchUps.filter((m) => Array.isArray(m.tieMatchUps)).map((m) => m.matchUpId));
     matchUps = filterMatchUps({
       matchUps: tieMatchUpIds.size ? matchUps.filter((m) => !tieMatchUpIds.has(m.matchUpId)) : matchUps,
       ...matchUpFilters,
@@ -202,84 +198,30 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
   }
 
   if (inContext) {
-    const { sourceDrawPositionRanges } = getSourceDrawPositionRanges({
+    matchUps = hydrateMatchUpsInContext({
+      positionAssignments,
+      initialRoundOfPlay,
+      roundNamingProfile,
+      tournamentRecord,
+      appliedPolicies,
+      seedAssignments,
+      contextContent,
+      contextProfile,
       drawDefinition,
+      contextFilters,
+      scoringActive,
+      isRoundRobin,
+      roundProfile,
       matchUpsMap,
       structureId,
+      structure,
+      context,
+      params,
+      event,
+      matchUps,
     });
-    const drawPositionsRanges = drawDefinition
-      ? getDrawPositionsRanges({
-          drawDefinition,
-          roundProfile,
-          matchUpsMap,
-          structureId,
-        }).drawPositionsRanges
-      : undefined;
-
-    let tournamentParticipants = params.tournamentParticipants;
-    let participantMap = params.participantMap;
-
-    if (!tournamentParticipants?.length && !participantMap && tournamentRecord) {
-      ({ participants: tournamentParticipants = [], participantMap } = hydrateParticipants({
-        participantsProfile: params.participantsProfile,
-        useParticipantMap: params.useParticipantMap,
-        policyDefinitions: params.policyDefinitions,
-        tournamentRecord,
-        contextProfile,
-        inContext,
-      }));
-    }
-
-    matchUps = matchUps.map((matchUp) => {
-      return addMatchUpContext({
-        scheduleVisibilityFilters: params.scheduleVisibilityFilters,
-        hydrateParticipants: params.hydrateParticipants,
-        afterRecoveryTimes: params.afterRecoveryTimes,
-        usePublishState: params.usePublishState,
-        scheduleTiming: params.scheduleTiming,
-        publishStatus: params.publishStatus,
-        sourceDrawPositionRanges,
-        tournamentParticipants,
-        positionAssignments,
-        drawPositionsRanges,
-        initialRoundOfPlay,
-        roundNamingProfile,
-        tournamentRecord,
-        appliedPolicies,
-        seedAssignments,
-        contextContent,
-        participantMap,
-        contextProfile,
-        drawDefinition,
-        scoringActive,
-        isRoundRobin,
-        roundProfile,
-        structure,
-        context,
-        matchUp,
-        event,
-      });
-    });
-
-    const matchUpTies = matchUps?.filter((matchUp) => Array.isArray(matchUp.tieMatchUps));
-    matchUpTies.forEach((matchUpTie) => {
-      const tieMatchUps = matchUpTie.tieMatchUps;
-      matchUps = matchUps.concat(...tieMatchUps);
-    });
-
-    if (contextFilters) {
-      matchUps = filterMatchUps({
-        processContext: true,
-        ...contextFilters,
-        matchUps,
-      });
-    }
   } else {
-    const matchUpTies = matchUps?.filter((matchUp) => Array.isArray(matchUp.tieMatchUps));
-    matchUpTies.forEach((matchUpTie) => {
-      const tieMatchUps = matchUpTie.tieMatchUps;
-      matchUps = matchUps.concat(...tieMatchUps);
-    });
+    matchUps = appendTieMatchUps(matchUps);
   }
 
   // must make a pass after tieMatchUps have been added
@@ -318,4 +260,107 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
     matchUpsMap,
     matchUps,
   };
+}
+
+function appendTieMatchUps(matchUps) {
+  const matchUpTies = matchUps?.filter((matchUp) => Array.isArray(matchUp.tieMatchUps));
+  let result = matchUps;
+  matchUpTies.forEach((matchUpTie) => {
+    result = result.concat(...matchUpTie.tieMatchUps);
+  });
+  return result;
+}
+
+function hydrateMatchUpsInContext({
+  positionAssignments,
+  initialRoundOfPlay,
+  roundNamingProfile,
+  tournamentRecord,
+  appliedPolicies,
+  seedAssignments,
+  contextContent,
+  contextProfile,
+  drawDefinition,
+  contextFilters,
+  scoringActive,
+  isRoundRobin,
+  roundProfile,
+  matchUpsMap,
+  structureId,
+  structure,
+  context,
+  params,
+  event,
+  matchUps,
+}) {
+  const { sourceDrawPositionRanges } = getSourceDrawPositionRanges({
+    drawDefinition,
+    matchUpsMap,
+    structureId,
+  });
+  const drawPositionsRanges = drawDefinition
+    ? getDrawPositionsRanges({
+        drawDefinition,
+        roundProfile,
+        matchUpsMap,
+        structureId,
+      }).drawPositionsRanges
+    : undefined;
+
+  let tournamentParticipants = params.tournamentParticipants;
+  let participantMap = params.participantMap;
+
+  if (!tournamentParticipants?.length && !participantMap && tournamentRecord) {
+    ({ participants: tournamentParticipants = [], participantMap } = hydrateParticipants({
+      participantsProfile: params.participantsProfile,
+      useParticipantMap: params.useParticipantMap,
+      policyDefinitions: params.policyDefinitions,
+      tournamentRecord,
+      contextProfile,
+      inContext: true,
+    }));
+  }
+
+  let result = matchUps.map((matchUp) => {
+    return addMatchUpContext({
+      scheduleVisibilityFilters: params.scheduleVisibilityFilters,
+      hydrateParticipants: params.hydrateParticipants,
+      afterRecoveryTimes: params.afterRecoveryTimes,
+      usePublishState: params.usePublishState,
+      scheduleTiming: params.scheduleTiming,
+      publishStatus: params.publishStatus,
+      sourceDrawPositionRanges,
+      tournamentParticipants,
+      positionAssignments,
+      drawPositionsRanges,
+      initialRoundOfPlay,
+      roundNamingProfile,
+      tournamentRecord,
+      appliedPolicies,
+      seedAssignments,
+      contextContent,
+      participantMap,
+      contextProfile,
+      drawDefinition,
+      scoringActive,
+      isRoundRobin,
+      roundProfile,
+      structure,
+      context,
+      matchUp,
+      event,
+    });
+  });
+
+  result = appendTieMatchUps(result);
+
+  if (contextFilters) {
+    result = filterMatchUps({
+      processContext: true,
+      ...contextFilters,
+      matchUps: result,
+    });
+  }
+
+  return result;
 }

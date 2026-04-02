@@ -111,7 +111,7 @@ The `FormatStructure` type has been expanded with:
 - `isValidMatchUpFormat` correctly distinguishes timed basis `G` (as in `T10G`) from section key `-G:` via lookahead regex
 - Round-trip guarantee: `stringify(parse(code)) === code` for all valid codes
 
-#### Test Coverage
+#### matchUpFormat Test Coverage
 
 - `crossSportFormats.test.ts` — 67 tests covering all match roots and sport formats
 - `outs-scoring-engine.test.ts` — 140+ tests for innings/outs-based scoring
