@@ -90,46 +90,14 @@ export function luckyDrawAdvancement({
   const advancingParticipantIds = winners.map((w) => w.participantId);
 
   if (roundStatus.isPreFeedRound && participantId) {
-    // Place the lucky loser in the opposite half of the next round from
-    // the winner who defeated them, so they cannot meet until the final.
-    const luckyLoserInfo = roundStatus.eligibleLosers?.find((l) => l.participantId === participantId);
-    const defeatingWinnerIdx = luckyLoserInfo ? winners.findIndex((w) => w.matchUpId === luckyLoserInfo.matchUpId) : -1;
-
-    const numMatchUps = nextRoundMatchUps.length;
-    const halfSplit = Math.ceil(numMatchUps / 2);
-
-    if (defeatingWinnerIdx >= 0 && numMatchUps > 1) {
-      // Find insertion positions that place the lucky loser in the opposite
-      // half from the defeating winner. When inserting at position p, the
-      // lucky loser lands in matchUp floor(p/2) and the defeating winner
-      // (originally at index d) shifts right by 1 if p <= d.
-      const totalSlots = numMatchUps * 2;
-      const validPositions: number[] = [];
-
-      for (let p = 0; p < totalSlots; p++) {
-        const luckyMatchUp = Math.floor(p / 2);
-        const shiftedIdx = defeatingWinnerIdx + (p <= defeatingWinnerIdx ? 1 : 0);
-        const winnerMatchUp = Math.floor(shiftedIdx / 2);
-
-        const luckyInTopHalf = luckyMatchUp < halfSplit;
-        const winnerInTopHalf = winnerMatchUp < halfSplit;
-
-        if (luckyInTopHalf !== winnerInTopHalf) {
-          validPositions.push(p);
-        }
-      }
-
-      if (validPositions.length) {
-        const randomIdx = Math.floor((random ?? Math.random)() * validPositions.length);
-        advancingParticipantIds.splice(validPositions[randomIdx], 0, participantId);
-      } else {
-        // Fallback: no valid opposite-half position found (e.g., 1 matchUp)
-        advancingParticipantIds.push(participantId);
-      }
-    } else {
-      // No defeating winner info or only 1 matchUp — append as before
-      advancingParticipantIds.push(participantId);
-    }
+    insertLuckyLoser({
+      advancingParticipantIds,
+      nextRoundMatchUps,
+      roundStatus,
+      participantId,
+      winners,
+      random,
+    });
   }
 
   if (!nextRoundMatchUps.length) {
@@ -144,124 +112,32 @@ export function luckyDrawAdvancement({
     });
   }
 
-  // Collect all drawPositions referenced by next-round matchUps so we can
-  // clean up stale positionAssignment entries left behind by prior removals.
   let positionAssignments = structure.positionAssignments || [];
-  const nextRoundDrawPositions = new Set(nextRoundMatchUps.flatMap((m) => (m.drawPositions || []).filter(Boolean)));
-
-  // Clean up stale positionAssignment entries and next-round matchUp state
-  // left behind by prior (possibly failed) advancement attempts.
-  // A positionAssignment is "stale" if it: appears in a next-round matchUp AND
-  // has duplicates or empty entries, OR has no participantId and no bye flag
-  // (orphaned from a failed advancement).
-  if (nextRoundDrawPositions.size) {
-    const stalePositions: number[] = [];
-    for (const dp of nextRoundDrawPositions) {
-      const entries = positionAssignments.filter((a) => a.drawPosition === dp);
-      const hasEmpty = entries.some((a) => !a.participantId && !a.bye);
-      if (entries.length > 1 || hasEmpty) {
-        stalePositions.push(dp);
-      }
-    }
-
-    if (stalePositions.length) {
-      const staleSet = new Set(stalePositions);
-      positionAssignments = positionAssignments.filter((a) => !staleSet.has(a.drawPosition));
-      structure.positionAssignments = positionAssignments;
-    }
-  }
-
-  // Also remove orphaned positionAssignment entries from prior failed advancements
-  // (entries with no participantId and no bye, for positions beyond completed rounds)
-  const completedRoundPositions = new Set(
-    (structure.matchUps || [])
-      .filter((m) => m.roundNumber && m.roundNumber <= roundNumber)
-      .flatMap((m) => m.drawPositions || [])
-      .filter(Boolean),
-  );
-  positionAssignments = positionAssignments.filter((a) => {
-    if (a.participantId || a.bye) return true;
-    // Keep entries that belong to completed rounds
-    return completedRoundPositions.has(a.drawPosition);
+  positionAssignments = cleanupStalePositionAssignments({
+    positionAssignments,
+    nextRoundMatchUps,
+    structure,
+    roundNumber,
   });
   structure.positionAssignments = positionAssignments;
 
-  // Check that next-round matchUps don't already have participants assigned.
-  for (const matchUp of nextRoundMatchUps) {
-    const dps = matchUp.drawPositions;
-    if (!dps?.length) continue;
+  const prepError = prepareNextRoundMatchUps({ nextRoundMatchUps, positionAssignments });
+  if (prepError) return prepError;
 
-    const assignedPositions = dps.filter((dp) => {
-      if (!dp) return false;
-      return positionAssignments.some((a) => a.drawPosition === dp && a.participantId);
-    });
-
-    if (assignedPositions.length) {
-      return decorateResult({
-        result: { error: INVALID_VALUES },
-        info: 'Next round already has participants assigned',
-      });
-    }
-
-    // Clear stale drawPositions and matchUp state so positions are computed cleanly
-    if (dps.some(Boolean)) {
-      matchUp.drawPositions = [];
-    }
-    // Reset any stale matchUpStatus (e.g. BYE from old auto-propagation)
-    if (matchUp.matchUpStatus && matchUp.matchUpStatus !== 'TO_BE_PLAYED') {
-      matchUp.matchUpStatus = undefined;
-      matchUp.winningSide = undefined;
-      matchUp.score = undefined;
-    }
-  }
-
-  // Compute new drawPositions starting after the max existing position.
-  // Include ALL positions (participants AND byes) to avoid collisions.
-  const allAssignedPositions = new Set(positionAssignments.map((a) => a.drawPosition));
-
-  const allMatchUpPositions = (structure.matchUps || []).flatMap((m) => m.drawPositions || []).filter(Boolean);
-
-  const allPositions = [...allAssignedPositions, ...allMatchUpPositions];
-  const maxPosition = allPositions.length ? Math.max(...allPositions) : 0;
-  let nextPosition = maxPosition + 1;
-
-  // Assign drawPositions to next-round matchUps and create positionAssignments
   const tournamentId = tournamentRecord?.tournamentId;
 
-  for (let i = 0; i < nextRoundMatchUps.length; i++) {
-    const matchUp = nextRoundMatchUps[i];
-    const pos1 = nextPosition++;
-    const pos2 = nextPosition++;
-    const pid1 = advancingParticipantIds[i * 2];
-    const pid2 = advancingParticipantIds[i * 2 + 1];
-
-    matchUp.drawPositions = [pos1, pos2];
-
-    const assignment1: any = { drawPosition: pos1, participantId: pid1 };
-    const assignment2: any = { drawPosition: pos2, participantId: pid2 };
-
-    // Mark the lucky loser's position assignment so addMatchUpContext can distinguish
-    // lucky advancement from qualifying lucky losers
-    if (roundStatus.isPreFeedRound && participantId) {
-      if (pid1 === participantId) {
-        assignment1.extensions = [{ name: 'luckyAdvancement', value: { fromRoundNumber: roundNumber } }];
-      } else if (pid2 === participantId) {
-        assignment2.extensions = [{ name: 'luckyAdvancement', value: { fromRoundNumber: roundNumber } }];
-      }
-    }
-
-    positionAssignments.push(assignment1, assignment2);
-
-    modifyMatchUpNotice({
-      context: stack,
-      drawDefinition,
-      tournamentId,
-      structureId,
-      matchUp,
-    });
-  }
-
-  structure.positionAssignments = positionAssignments;
+  assignNextRoundPositions({
+    advancingParticipantIds,
+    positionAssignments,
+    nextRoundMatchUps,
+    drawDefinition,
+    roundNumber,
+    roundStatus,
+    participantId,
+    tournamentId,
+    structureId,
+    structure,
+  });
 
   modifyPositionAssignmentsNotice({
     drawDefinition,
@@ -270,35 +146,16 @@ export function luckyDrawAdvancement({
     event,
   });
 
-  // Place discarded losers into linked consolidation/playoff structures
   if (roundStatus.isPreFeedRound && participantId) {
-    const discardedLosers = (roundStatus.eligibleLosers || [])
-      .filter((l) => l.participantId !== participantId)
-      .map((l) => l.participantId);
-
-    if (discardedLosers.length) {
-      const loserLinks = (drawDefinition.links || []).filter(
-        (link) =>
-          link.linkType === LOSER &&
-          link.source.structureId === structureId &&
-          (link.source.roundNumber || 1) === roundNumber,
-      );
-
-      for (const link of loserLinks) {
-        const result = placeDiscardedLosers({
-          drawDefinition,
-          tournamentRecord,
-          targetStructureId: link.target.structureId,
-          targetRoundNumber: link.target.roundNumber,
-          feedProfile: link.target.feedProfile,
-          participantIds: discardedLosers,
-          event,
-        });
-        if (result?.error && getDevContext()) {
-          console.warn('Failed to place discarded losers in consolidation structure:', result.error);
-        }
-      }
-    }
+    handleDiscardedLosers({
+      drawDefinition,
+      tournamentRecord,
+      roundStatus,
+      participantId,
+      structureId,
+      roundNumber,
+      event,
+    });
   }
 
   return { ...SUCCESS };
@@ -344,61 +201,24 @@ function placeDiscardedLosers({
 
   targetStructure.matchUps ??= [];
   if (targetMatchUps.length === 0) {
-    // Target structure has no matchUps (e.g. generated by addPlayoffStructures for
-    // non-power-of-2 drawSize). Create virtual matchUps to hold the discarded losers.
-    const matchUpCount = Math.ceil(participantIds.length / 2);
-    let nextPosition = 1;
-
-    for (let i = 0; i < matchUpCount; i++) {
-      const pos1 = nextPosition++;
-      const pos2 = nextPosition++;
-      const matchUp: any = {
-        matchUpId: `${targetStructureId}-mu-${i + 1}`,
-        roundNumber: targetRoundNumber,
-        roundPosition: i + 1,
-        drawPositions: [pos1, pos2],
-        matchUpStatus: 'TO_BE_PLAYED',
-      };
-      targetStructure.matchUps.push(matchUp);
-      unfilledPositions.push(pos1, pos2);
-    }
+    createVirtualMatchUps({
+      targetStructure,
+      targetStructureId,
+      targetRoundNumber,
+      participantIds,
+      unfilledPositions,
+    });
 
     targetMatchUps = targetStructure.matchUps
       .filter((m) => m.roundNumber === targetRoundNumber)
       .sort((a, b) => (a.roundPosition || 0) - (b.roundPosition || 0));
   } else {
-    // Find unfilled draw positions in existing target round matchUps
-    for (const matchUp of targetMatchUps) {
-      for (const dp of matchUp.drawPositions || []) {
-        if (!dp) continue;
-        const assignment = targetPositionAssignments.find((a) => a.drawPosition === dp);
-        if (!assignment?.participantId && !assignment?.bye) {
-          unfilledPositions.push(dp);
-        }
-      }
-    }
-
-    if (!unfilledPositions.length) {
-      // If no existing draw positions, create virtual ones (same pattern as main lucky draw)
-      const assignedDrawPositions = new Set(
-        targetPositionAssignments.filter((a) => a.participantId).map((a) => a.drawPosition),
-      );
-      const livePositions = (targetStructure.matchUps || [])
-        .flatMap((m) => m.drawPositions || [])
-        .filter((dp) => dp && assignedDrawPositions.has(dp));
-      const allLive = [...assignedDrawPositions, ...livePositions];
-      let nextPosition = allLive.length ? Math.max(...allLive) + 1 : 1;
-
-      // Assign positions to target round matchUps that don't have them
-      for (const matchUp of targetMatchUps) {
-        if (!matchUp.drawPositions?.length || !matchUp.drawPositions.some(Boolean)) {
-          const pos1 = nextPosition++;
-          const pos2 = nextPosition++;
-          matchUp.drawPositions = [pos1, pos2];
-          unfilledPositions.push(pos1, pos2);
-        }
-      }
-    }
+    findUnfilledPositions({
+      targetMatchUps,
+      targetPositionAssignments,
+      targetStructure,
+      unfilledPositions,
+    });
   }
 
   // Order positions based on feedProfile
@@ -448,4 +268,250 @@ function placeDiscardedLosers({
   });
 
   return { ...SUCCESS };
+}
+
+function handleDiscardedLosers({
+  drawDefinition,
+  tournamentRecord,
+  roundStatus,
+  participantId,
+  structureId,
+  roundNumber,
+  event,
+}) {
+  const discardedLosers = (roundStatus.eligibleLosers || [])
+    .filter((l) => l.participantId !== participantId)
+    .map((l) => l.participantId);
+
+  if (!discardedLosers.length) return;
+
+  const loserLinks = (drawDefinition.links || []).filter(
+    (link) =>
+      link.linkType === LOSER &&
+      link.source.structureId === structureId &&
+      (link.source.roundNumber || 1) === roundNumber,
+  );
+
+  for (const link of loserLinks) {
+    const result = placeDiscardedLosers({
+      drawDefinition,
+      tournamentRecord,
+      targetStructureId: link.target.structureId,
+      targetRoundNumber: link.target.roundNumber,
+      feedProfile: link.target.feedProfile,
+      participantIds: discardedLosers,
+      event,
+    });
+    if (result?.error && getDevContext()) {
+      console.warn('Failed to place discarded losers in consolidation structure:', result.error);
+    }
+  }
+}
+
+function prepareNextRoundMatchUps({ nextRoundMatchUps, positionAssignments }): ResultType | undefined {
+  for (const matchUp of nextRoundMatchUps) {
+    const dps = matchUp.drawPositions;
+    if (!dps?.length) continue;
+
+    const assignedPositions = dps.filter((dp) => {
+      if (!dp) return false;
+      return positionAssignments.some((a) => a.drawPosition === dp && a.participantId);
+    });
+
+    if (assignedPositions.length) {
+      return decorateResult({
+        result: { error: INVALID_VALUES },
+        info: 'Next round already has participants assigned',
+      });
+    }
+
+    if (dps.some(Boolean)) {
+      matchUp.drawPositions = [];
+    }
+    if (matchUp.matchUpStatus && matchUp.matchUpStatus !== 'TO_BE_PLAYED') {
+      matchUp.matchUpStatus = undefined;
+      matchUp.winningSide = undefined;
+      matchUp.score = undefined;
+    }
+  }
+
+  return undefined;
+}
+
+function insertLuckyLoser({ advancingParticipantIds, nextRoundMatchUps, roundStatus, participantId, winners, random }) {
+  const luckyLoserInfo = roundStatus.eligibleLosers?.find((l) => l.participantId === participantId);
+  const defeatingWinnerIdx = luckyLoserInfo ? winners.findIndex((w) => w.matchUpId === luckyLoserInfo.matchUpId) : -1;
+
+  const numMatchUps = nextRoundMatchUps.length;
+  const halfSplit = Math.ceil(numMatchUps / 2);
+
+  if (defeatingWinnerIdx < 0 || numMatchUps <= 1) {
+    advancingParticipantIds.push(participantId);
+    return;
+  }
+
+  const totalSlots = numMatchUps * 2;
+  const validPositions: number[] = [];
+
+  for (let p = 0; p < totalSlots; p++) {
+    const luckyMatchUp = Math.floor(p / 2);
+    const shiftedIdx = defeatingWinnerIdx + (p <= defeatingWinnerIdx ? 1 : 0);
+    const winnerMatchUp = Math.floor(shiftedIdx / 2);
+
+    const luckyInTopHalf = luckyMatchUp < halfSplit;
+    const winnerInTopHalf = winnerMatchUp < halfSplit;
+
+    if (luckyInTopHalf !== winnerInTopHalf) {
+      validPositions.push(p);
+    }
+  }
+
+  if (validPositions.length) {
+    const randomIdx = Math.floor((random ?? Math.random)() * validPositions.length);
+    advancingParticipantIds.splice(validPositions[randomIdx], 0, participantId);
+  } else {
+    advancingParticipantIds.push(participantId);
+  }
+}
+
+function cleanupStalePositionAssignments({ positionAssignments, nextRoundMatchUps, structure, roundNumber }) {
+  const nextRoundDrawPositions = new Set(nextRoundMatchUps.flatMap((m) => (m.drawPositions || []).filter(Boolean)));
+
+  if (nextRoundDrawPositions.size) {
+    const stalePositions: number[] = [];
+    for (const dp of nextRoundDrawPositions) {
+      const entries = positionAssignments.filter((a) => a.drawPosition === dp);
+      const hasEmpty = entries.some((a) => !a.participantId && !a.bye);
+      if (entries.length > 1 || hasEmpty) {
+        stalePositions.push(dp as any);
+      }
+    }
+
+    if (stalePositions.length) {
+      const staleSet = new Set(stalePositions);
+      positionAssignments = positionAssignments.filter((a) => !staleSet.has(a.drawPosition));
+    }
+  }
+
+  const completedRoundPositions = new Set(
+    (structure.matchUps || [])
+      .filter((m) => m.roundNumber && m.roundNumber <= roundNumber)
+      .flatMap((m) => m.drawPositions || [])
+      .filter(Boolean),
+  );
+  positionAssignments = positionAssignments.filter((a) => {
+    if (a.participantId || a.bye) return true;
+    return completedRoundPositions.has(a.drawPosition);
+  });
+
+  return positionAssignments;
+}
+
+function assignNextRoundPositions({
+  advancingParticipantIds,
+  positionAssignments,
+  nextRoundMatchUps,
+  drawDefinition,
+  roundNumber,
+  roundStatus,
+  participantId,
+  tournamentId,
+  structureId,
+  structure,
+}) {
+  const allAssignedPositions = new Set(positionAssignments.map((a) => a.drawPosition));
+  const allMatchUpPositions = (structure.matchUps || []).flatMap((m) => m.drawPositions || []).filter(Boolean);
+  const allPositions = [...allAssignedPositions, ...allMatchUpPositions];
+  const maxPosition = allPositions.length ? Math.max(...allPositions) : 0;
+  let nextPosition = maxPosition + 1;
+
+  for (let i = 0; i < nextRoundMatchUps.length; i++) {
+    const matchUp = nextRoundMatchUps[i];
+    const pos1 = nextPosition++;
+    const pos2 = nextPosition++;
+    const pid1 = advancingParticipantIds[i * 2];
+    const pid2 = advancingParticipantIds[i * 2 + 1];
+
+    matchUp.drawPositions = [pos1, pos2];
+
+    const assignment1: any = { drawPosition: pos1, participantId: pid1 };
+    const assignment2: any = { drawPosition: pos2, participantId: pid2 };
+
+    if (roundStatus.isPreFeedRound && participantId) {
+      if (pid1 === participantId) {
+        assignment1.extensions = [{ name: 'luckyAdvancement', value: { fromRoundNumber: roundNumber } }];
+      } else if (pid2 === participantId) {
+        assignment2.extensions = [{ name: 'luckyAdvancement', value: { fromRoundNumber: roundNumber } }];
+      }
+    }
+
+    positionAssignments.push(assignment1, assignment2);
+
+    modifyMatchUpNotice({
+      context: stack,
+      drawDefinition,
+      tournamentId,
+      structureId,
+      matchUp,
+    });
+  }
+
+  structure.positionAssignments = positionAssignments;
+}
+
+function createVirtualMatchUps({
+  targetStructure,
+  targetStructureId,
+  targetRoundNumber,
+  participantIds,
+  unfilledPositions,
+}) {
+  const matchUpCount = Math.ceil(participantIds.length / 2);
+  let nextPosition = 1;
+
+  for (let i = 0; i < matchUpCount; i++) {
+    const pos1 = nextPosition++;
+    const pos2 = nextPosition++;
+    const matchUp: any = {
+      matchUpId: `${targetStructureId}-mu-${i + 1}`,
+      roundNumber: targetRoundNumber,
+      roundPosition: i + 1,
+      drawPositions: [pos1, pos2],
+      matchUpStatus: 'TO_BE_PLAYED',
+    };
+    targetStructure.matchUps.push(matchUp);
+    unfilledPositions.push(pos1, pos2);
+  }
+}
+
+function findUnfilledPositions({ targetMatchUps, targetPositionAssignments, targetStructure, unfilledPositions }) {
+  for (const matchUp of targetMatchUps) {
+    for (const dp of matchUp.drawPositions || []) {
+      if (!dp) continue;
+      const assignment = targetPositionAssignments.find((a) => a.drawPosition === dp);
+      if (!assignment?.participantId && !assignment?.bye) {
+        unfilledPositions.push(dp);
+      }
+    }
+  }
+
+  if (!unfilledPositions.length) {
+    const assignedDrawPositions = new Set(
+      targetPositionAssignments.filter((a) => a.participantId).map((a) => a.drawPosition),
+    );
+    const livePositions = (targetStructure.matchUps || [])
+      .flatMap((m) => m.drawPositions || [])
+      .filter((dp) => dp && assignedDrawPositions.has(dp));
+    const allLive = [...assignedDrawPositions, ...livePositions];
+    let nextPosition = allLive.length ? Math.max(...allLive) + 1 : 1;
+
+    for (const matchUp of targetMatchUps) {
+      if (!matchUp.drawPositions?.length || !matchUp.drawPositions.some(Boolean)) {
+        const pos1 = nextPosition++;
+        const pos2 = nextPosition++;
+        matchUp.drawPositions = [pos1, pos2];
+        unfilledPositions.push(pos1, pos2);
+      }
+    }
+  }
 }

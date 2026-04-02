@@ -76,6 +76,33 @@ type AddMatchUpContextArgs = {
   event?: Event;
 };
 
+function applyEmbargoFilter({ publishStatus, drawDefinition, structure, matchUp, schedule }) {
+  if (!publishStatus || !drawDefinition?.drawId || !structure?.structureId) return schedule;
+
+  const structDetail =
+    publishStatus?.drawDetails?.[drawDefinition.drawId]?.structureDetails?.[structure.structureId];
+  if (!structDetail) return schedule;
+
+  const rn = matchUp.roundNumber;
+  if (!isConvertableInteger(rn)) return schedule;
+
+  const roundDetail = structDetail.scheduledRounds?.[rn!];
+  if (roundDetail && isEmbargoed(roundDetail)) return undefined;
+
+  return schedule;
+}
+
+function resolveProcessCodes({ matchUp, collectionDefinition, structure, drawDefinition, event, tournamentRecord }) {
+  return (
+    (matchUp.processCodes?.length && matchUp.processCodes) ||
+    (collectionDefinition?.processCodes?.length && collectionDefinition?.processCodes) ||
+    (structure?.processCodes?.length && structure?.processCodes) ||
+    (drawDefinition?.processCodes?.length && drawDefinition?.processCodes) ||
+    (event?.processCodes?.length && event?.processCodes) ||
+    tournamentRecord?.processCodes
+  );
+}
+
 export function addMatchUpContext({
   scheduleVisibilityFilters,
   sourceDrawPositionRanges,
@@ -150,19 +177,14 @@ export function addMatchUpContext({
     event,
   });
 
-  // Strip schedule for rounds with active embargo (mirrors competitionScheduleMatchUps)
-  if (usePublishState && schedule && publishStatus && drawDefinition?.drawId && structure?.structureId) {
-    const structDetail =
-      publishStatus?.drawDetails?.[drawDefinition.drawId]?.structureDetails?.[structure.structureId];
-    if (structDetail) {
-      const rn = matchUp.roundNumber;
-      if (isConvertableInteger(rn)) {
-        const roundDetail = structDetail.scheduledRounds?.[rn!];
-        if (roundDetail && isEmbargoed(roundDetail)) {
-          schedule = undefined;
-        }
-      }
-    }
+  if (usePublishState && schedule) {
+    schedule = applyEmbargoFilter({
+      publishStatus,
+      drawDefinition,
+      structure,
+      matchUp,
+      schedule,
+    });
   }
 
   const drawPositions: number[] = tieDrawPositions ?? matchUp.drawPositions ?? [];
@@ -202,13 +224,14 @@ export function addMatchUpContext({
       }
     : (context?.category ?? event?.category);
 
-  const processCodes =
-    (matchUp.processCodes?.length && matchUp.processCodes) ||
-    (collectionDefinition?.processCodes?.length && collectionDefinition?.processCodes) ||
-    (structure?.processCodes?.length && structure?.processCodes) ||
-    (drawDefinition?.processCodes?.length && drawDefinition?.processCodes) ||
-    (event?.processCodes?.length && event?.processCodes) ||
-    tournamentRecord?.processCodes;
+  const processCodes = resolveProcessCodes({
+    matchUp,
+    collectionDefinition,
+    structure,
+    drawDefinition,
+    event,
+    tournamentRecord,
+  });
 
   const competitiveProfile =
     contextProfile?.withCompetitiveness && getMatchUpCompetitiveProfile({ ...contextContent, matchUp });
@@ -261,167 +284,37 @@ export function addMatchUpContext({
   };
 
   if (matchUpFormat && matchUp.score?.scoreStringSide1) {
-    const parsedFormat = parse(matchUpFormat);
-    const { bestOf, finalSetFormat, setFormat } = parsedFormat ?? {};
-    if (finalSetFormat?.tiebreakSet || setFormat?.tiebreakSet || setFormat?.timed) {
-      matchUpWithContext.score.sets = matchUpWithContext.score.sets
-        .sort((a, b) => a.setNumber - b.setNumber)
-        .map((set, i) => {
-          const setNumber = i + 1;
-          const isDecidingSet = setNumber === bestOf;
-          const currentSetFormat = isDecidingSet && finalSetFormat ? finalSetFormat : setFormat;
-
-          // Check if this set is tiebreak-only (not timed)
-          const isTiebreakOnly = currentSetFormat?.tiebreakSet && !currentSetFormat?.timed;
-          const isTimed = currentSetFormat?.timed;
-
-          if (isTiebreakOnly) {
-            // Only mark as tiebreakSet for actual tiebreak-only sets (TB10, TB1, etc.)
-            set.tiebreakSet = true;
-            // For tiebreak-only sets, normalize scores to 1-0 or 0-1
-            if ([1, 2].includes(set.winningSide)) {
-              set.side1Score = set.winningSide === 1 ? 1 : 0;
-              set.side2Score = set.winningSide === 2 ? 1 : 0;
-            }
-          } else if (isTimed) {
-            // For timed sets, mark as tiebreakSet for backwards compatibility
-            // but DO NOT modify the scores - they are actual point totals
-            set.timed = true;
-          }
-
-          return set;
-        });
-    }
+    annotateScoreSets(matchUpWithContext, matchUpFormat);
   }
 
   if (Array.isArray(drawPositions)) {
-    const { orderedDrawPositions, displayOrder } = getOrderedDrawPositions({
+    const sides = buildMatchUpSides({
+      sourceDrawPositionRoundRanges,
+      collectionAssignmentDetail,
+      positionAssignments,
+      seedAssignments,
       drawPositions,
+      roundPosition,
       roundProfile,
       roundNumber,
-    });
-
-    const isFeedRound = roundProfile?.[roundNumber]?.feedRound;
-    const reversedDisplayOrder = displayOrder[0] !== orderedDrawPositions[0];
-
-    // ensure there are two sides generated
-    const sideDrawPositions = orderedDrawPositions.concat(undefined, undefined).slice(0, 2);
-
-    const sides = sideDrawPositions.map((drawPosition, index) => {
-      const sideNumber = index + 1;
-      const displaySideNumber = reversedDisplayOrder ? 3 - sideNumber : sideNumber;
-
-      const side = getSide({
-        ...collectionAssignmentDetail,
-        positionAssignments,
-        displaySideNumber,
-        seedAssignments,
-        drawPosition,
-        isFeedRound,
-        sideNumber,
-      });
-
-      const existingSide = matchUp.sides?.find((existing) => existing.sideNumber === sideNumber);
-
-      // drawPositions for consolation structures are offset by the number of fed positions in subsequent rounds
-      // columnPosition gives an ordered position value relative to a single column
-      const columnPosition = roundPosition ? (roundPosition - 1) * 2 + index + 1 : undefined;
-      const sourceDrawPositionRange = columnPosition ? sourceDrawPositionRoundRanges?.[columnPosition] : undefined;
-
-      return onlyDefined({
-        sourceDrawPositionRange,
-        ...existingSide,
-        ...side,
-      });
+      onlyDefined,
+      matchUp,
     });
 
     Object.assign(matchUpWithContext, makeDeepCopy({ sides }, true, true));
   }
 
   if (tournamentParticipants && matchUpWithContext.sides) {
-    const participantAttributes = appliedPolicies?.[POLICY_TYPE_PARTICIPANT];
-    const getMappedParticipant = (participantId) => {
-      const participant = participantMap?.[participantId]?.participant;
-      return (
-        participant &&
-        attributeFilter({
-          template: participantAttributes?.participant,
-          source: participant,
-        })
-      );
-    };
-
-    matchUpWithContext.sides.filter(Boolean).forEach((side) => {
-      if (side.participantId) {
-        const participant = makeDeepCopy(
-          getMappedParticipant(side.participantId) ||
-            (tournamentParticipants
-              ? findParticipant({
-                  policyDefinitions: appliedPolicies,
-                  participantId: side.participantId,
-                  tournamentParticipants,
-                  internalUse: true,
-                  contextProfile,
-                })
-              : undefined),
-          undefined,
-          true,
-        );
-
-        if (participant) {
-          let entryStatus, entryStage;
-
-          if (drawDefinition?.entries) {
-            const entry = drawDefinition.entries.find((entry) => entry.participantId === side.participantId);
-            // even.entries are used as a fallback for entryStatus when entries missing from drawDefinition
-            const eEntry = event?.entries?.find((entry) => entry.participantId === side.participantId);
-            entryStatus = entry?.entryStatus || eEntry?.entryStatus;
-            participant.entryStatus = entryStatus;
-            if (entry?.entryStage) {
-              entryStage = entry.entryStage;
-              participant.entryStage = entryStage;
-            }
-          }
-
-          // Check if participant's position assignment has a luckyAdvancement extension
-          // This distinguishes lucky draw advancement (re-entered after losing) from
-          // qualifying lucky losers who entered the draw with LUCKY_LOSER status
-          let luckyAdvancement: boolean | undefined;
-          if (side.drawPosition && positionAssignments) {
-            const assignment = positionAssignments.find((a) => a.drawPosition === side.drawPosition);
-            if (assignment?.extensions?.some((ext) => ext.name === 'luckyAdvancement')) {
-              luckyAdvancement = true;
-              participant.luckyAdvancement = true;
-            }
-          }
-
-          if (hydrateParticipants === false) {
-            // when hydrateParticipants is false, only add entryStatus and entryStage to side.participant, because unique to this context
-            // it is expected that receiving client will have access to participant data and can hydrate as needed
-            Object.assign(side, { participant: { entryStage, entryStatus, luckyAdvancement } });
-          } else {
-            Object.assign(side, { participant });
-          }
-        }
-      }
-
-      if (side?.participant?.individualParticipantIds?.length && !side.participant.individualParticipants?.length) {
-        const individualParticipants = side.participant.individualParticipantIds.map((participantId) => {
-          return (
-            getMappedParticipant(participantId) ||
-            (tournamentParticipants
-              ? findParticipant({
-                  policyDefinitions: appliedPolicies,
-                  tournamentParticipants,
-                  internalUse: true,
-                  contextProfile,
-                  participantId,
-                })
-              : undefined)
-          );
-        });
-        if (hydrateParticipants !== false) Object.assign(side.participant, { individualParticipants });
-      }
+    hydrateSides({
+      tournamentParticipants,
+      hydrateParticipants,
+      positionAssignments,
+      appliedPolicies,
+      drawDefinition,
+      participantMap,
+      contextProfile,
+      matchUpWithContext,
+      event,
     });
 
     if (!matchUpWithContext.matchUpType) {
@@ -429,96 +322,39 @@ export function addMatchUpContext({
       if (matchUpType) Object.assign(matchUpWithContext, { matchUpType });
     }
 
-    const inferGender =
-      contextProfile?.inferGender &&
-      (!matchUpWithContext.gender || matchUpWithContext.gender === MIXED) &&
-      matchUpWithContext.sides?.length === 2 &&
-      matchUpWithContext.matchUpType !== TEAM;
-
-    if (inferGender) {
-      const sideGenders = matchUpWithContext.sides.map((side) => {
-        if (isMatchUpEventType(SINGLES)(matchUpWithContext.matchUpType)) return side.participant?.person?.sex;
-
-        if (side.participant?.individualParticipants?.length === 2) {
-          const pairGenders = unique(
-            side.participant.individualParticipants.map((participant) => participant.person?.sex),
-          ).filter(Boolean);
-          if (pairGenders.length === 1) return pairGenders[0];
-        }
-
-        return undefined;
-      });
-      if (sideGenders.filter(Boolean).length === 2 && unique(sideGenders).length === 1) {
-        const inferredGender = sideGenders[0];
-        matchUpWithContext.inferredGender = inferredGender;
-      }
-    }
+    inferMatchUpGender({ contextProfile, matchUpWithContext });
   }
 
   if (matchUpWithContext.tieMatchUps) {
-    const isCollectionBye = matchUpWithContext.matchUpStatus === BYE;
-    const lineUps = matchUpWithContext.sides?.map(({ participant, drawPosition, sideNumber, lineUp }) => {
-      const teamParticipant = participant?.participantType === TEAM && participant;
-      const teamParticipantValues =
-        teamParticipant &&
-        definedAttributes({
-          participantRoleResponsibilities: teamParticipant.participantRoleResponsibilities,
-          participantOtherName: teamParticipant.participanOthertName,
-          participantName: teamParticipant.participantName,
-          participantId: teamParticipant.participantId,
-          teamId: teamParticipant.teamId,
-        });
-
-      return {
-        teamParticipant: teamParticipantValues,
-        drawPosition,
-        sideNumber,
-        lineUp,
-      };
-    });
-
-    matchUpWithContext.tieMatchUps = matchUpWithContext.tieMatchUps.map((matchUp) => {
-      const matchUpTieId = matchUpWithContext.matchUpId;
-      const finishingPositionRange = matchUpWithContext.finishingPositionRange;
-      const additionalContext = {
-        finishingPositionRange,
-        abbreviatedRoundName,
-        roundNumber,
-        roundName,
-      };
-
-      return addMatchUpContext({
-        tieDrawPositions: drawPositions,
-        scheduleVisibilityFilters,
-        sourceDrawPositionRanges,
-        sideLineUps: lineUps,
-        drawPositionsRanges,
-        initialRoundOfPlay,
-        roundNamingProfile,
-        additionalContext,
-        appliedPolicies,
-        isCollectionBye,
-        usePublishState,
-        publishStatus,
-        matchUpTieId,
-        isRoundRobin,
-        roundProfile,
-        matchUp,
-        event,
-
-        tournamentParticipants,
-        positionAssignments,
-        tournamentRecord,
-        seedAssignments,
-        participantMap,
-        contextContent,
-        scheduleTiming,
-        contextProfile,
-        drawDefinition,
-        scoringActive,
-        structure,
-        context,
-      });
+    processTieMatchUps({
+      matchUpWithContext,
+      abbreviatedRoundName,
+      roundNumber,
+      roundName,
+      drawPositions,
+      scheduleVisibilityFilters,
+      sourceDrawPositionRanges,
+      drawPositionsRanges,
+      initialRoundOfPlay,
+      roundNamingProfile,
+      appliedPolicies,
+      usePublishState,
+      publishStatus,
+      isRoundRobin,
+      roundProfile,
+      event,
+      tournamentParticipants,
+      positionAssignments,
+      tournamentRecord,
+      seedAssignments,
+      participantMap,
+      contextContent,
+      scheduleTiming,
+      contextProfile,
+      drawDefinition,
+      scoringActive,
+      structure,
+      context,
     });
   }
 
@@ -544,4 +380,270 @@ export function addMatchUpContext({
   }
 
   return matchUpWithContext;
+}
+
+function annotateScoreSets(matchUpWithContext, matchUpFormat) {
+  const parsedFormat = parse(matchUpFormat);
+  const { bestOf, finalSetFormat, setFormat } = parsedFormat ?? {};
+  if (!finalSetFormat?.tiebreakSet && !setFormat?.tiebreakSet && !setFormat?.timed) return;
+
+  matchUpWithContext.score.sets = matchUpWithContext.score.sets
+    .sort((a, b) => a.setNumber - b.setNumber)
+    .map((set, i) => {
+      const setNumber = i + 1;
+      const isDecidingSet = setNumber === bestOf;
+      const currentSetFormat = isDecidingSet && finalSetFormat ? finalSetFormat : setFormat;
+      const isTiebreakOnly = currentSetFormat?.tiebreakSet && !currentSetFormat?.timed;
+      const isTimed = currentSetFormat?.timed;
+
+      if (isTiebreakOnly) {
+        set.tiebreakSet = true;
+        if ([1, 2].includes(set.winningSide)) {
+          set.side1Score = set.winningSide === 1 ? 1 : 0;
+          set.side2Score = set.winningSide === 2 ? 1 : 0;
+        }
+      } else if (isTimed) {
+        set.timed = true;
+      }
+
+      return set;
+    });
+}
+
+function buildMatchUpSides({
+  sourceDrawPositionRoundRanges,
+  collectionAssignmentDetail,
+  positionAssignments,
+  seedAssignments,
+  drawPositions,
+  roundPosition,
+  roundProfile,
+  roundNumber,
+  onlyDefined,
+  matchUp,
+}) {
+  const { orderedDrawPositions, displayOrder } = getOrderedDrawPositions({
+    drawPositions,
+    roundProfile,
+    roundNumber,
+  });
+
+  const isFeedRound = roundProfile?.[roundNumber]?.feedRound;
+  const reversedDisplayOrder = displayOrder[0] !== orderedDrawPositions[0];
+
+  const sideDrawPositions = orderedDrawPositions.concat(undefined, undefined).slice(0, 2);
+
+  return sideDrawPositions.map((drawPosition, index) => {
+    const sideNumber = index + 1;
+    const displaySideNumber = reversedDisplayOrder ? 3 - sideNumber : sideNumber;
+
+    const side = getSide({
+      ...collectionAssignmentDetail,
+      positionAssignments,
+      displaySideNumber,
+      seedAssignments,
+      drawPosition,
+      isFeedRound,
+      sideNumber,
+    });
+
+    const existingSide = matchUp.sides?.find((existing) => existing.sideNumber === sideNumber);
+    const columnPosition = roundPosition ? (roundPosition - 1) * 2 + index + 1 : undefined;
+    const sourceDrawPositionRange = columnPosition ? sourceDrawPositionRoundRanges?.[columnPosition] : undefined;
+
+    return onlyDefined({
+      sourceDrawPositionRange,
+      ...existingSide,
+      ...side,
+    });
+  });
+}
+
+function hydrateSides({ tournamentParticipants, hydrateParticipants, positionAssignments, appliedPolicies, drawDefinition, participantMap, contextProfile, matchUpWithContext, event }) {
+  const participantAttributes = appliedPolicies?.[POLICY_TYPE_PARTICIPANT];
+  const getMappedParticipant = (participantId) => {
+    const participant = participantMap?.[participantId]?.participant;
+    return (
+      participant &&
+      attributeFilter({
+        template: participantAttributes?.participant,
+        source: participant,
+      })
+    );
+  };
+
+  matchUpWithContext.sides.filter(Boolean).forEach((side) => {
+    hydrateSideParticipant({
+      side,
+      getMappedParticipant,
+      tournamentParticipants,
+      hydrateParticipants,
+      positionAssignments,
+      appliedPolicies,
+      drawDefinition,
+      contextProfile,
+      event,
+    });
+
+    if (side?.participant?.individualParticipantIds?.length && !side.participant.individualParticipants?.length) {
+      const individualParticipants = side.participant.individualParticipantIds.map((participantId) => {
+        return (
+          getMappedParticipant(participantId) ||
+          (tournamentParticipants
+            ? findParticipant({
+                policyDefinitions: appliedPolicies,
+                tournamentParticipants,
+                internalUse: true,
+                contextProfile,
+                participantId,
+              })
+            : undefined)
+        );
+      });
+      if (hydrateParticipants !== false) Object.assign(side.participant, { individualParticipants });
+    }
+  });
+}
+
+function hydrateSideParticipant({ side, getMappedParticipant, tournamentParticipants, hydrateParticipants, positionAssignments, appliedPolicies, drawDefinition, contextProfile, event }) {
+  if (!side.participantId) return;
+
+  const participant = makeDeepCopy(
+    getMappedParticipant(side.participantId) ||
+      (tournamentParticipants
+        ? findParticipant({
+            policyDefinitions: appliedPolicies,
+            participantId: side.participantId,
+            tournamentParticipants,
+            internalUse: true,
+            contextProfile,
+          })
+        : undefined),
+    undefined,
+    true,
+  );
+
+  if (!participant) return;
+
+  let entryStatus, entryStage;
+
+  if (drawDefinition?.entries) {
+    const entry = drawDefinition.entries.find((entry) => entry.participantId === side.participantId);
+    const eEntry = event?.entries?.find((entry) => entry.participantId === side.participantId);
+    entryStatus = entry?.entryStatus || eEntry?.entryStatus;
+    participant.entryStatus = entryStatus;
+    if (entry?.entryStage) {
+      entryStage = entry.entryStage;
+      participant.entryStage = entryStage;
+    }
+  }
+
+  let luckyAdvancement: boolean | undefined;
+  if (side.drawPosition && positionAssignments) {
+    const assignment = positionAssignments.find((a) => a.drawPosition === side.drawPosition);
+    if (assignment?.extensions?.some((ext) => ext.name === 'luckyAdvancement')) {
+      luckyAdvancement = true;
+      participant.luckyAdvancement = true;
+    }
+  }
+
+  if (hydrateParticipants === false) {
+    Object.assign(side, { participant: { entryStage, entryStatus, luckyAdvancement } });
+  } else {
+    Object.assign(side, { participant });
+  }
+}
+
+function inferMatchUpGender({ contextProfile, matchUpWithContext }) {
+  const inferGender =
+    contextProfile?.inferGender &&
+    (!matchUpWithContext.gender || matchUpWithContext.gender === MIXED) &&
+    matchUpWithContext.sides?.length === 2 &&
+    matchUpWithContext.matchUpType !== TEAM;
+
+  if (!inferGender) return;
+
+  const sideGenders = matchUpWithContext.sides.map((side) => {
+    if (isMatchUpEventType(SINGLES)(matchUpWithContext.matchUpType)) return side.participant?.person?.sex;
+
+    if (side.participant?.individualParticipants?.length === 2) {
+      const pairGenders = unique(
+        side.participant.individualParticipants.map((participant) => participant.person?.sex),
+      ).filter(Boolean);
+      if (pairGenders.length === 1) return pairGenders[0];
+    }
+
+    return undefined;
+  });
+  if (sideGenders.filter(Boolean).length === 2 && unique(sideGenders).length === 1) {
+    matchUpWithContext.inferredGender = sideGenders[0];
+  }
+}
+
+function processTieMatchUps(params) {
+  const { matchUpWithContext } = params;
+  const isCollectionBye = matchUpWithContext.matchUpStatus === BYE;
+  const lineUps = matchUpWithContext.sides?.map(({ participant, drawPosition, sideNumber, lineUp }) => {
+    const teamParticipant = participant?.participantType === TEAM && participant;
+    const teamParticipantValues =
+      teamParticipant &&
+      definedAttributes({
+        participantRoleResponsibilities: teamParticipant.participantRoleResponsibilities,
+        participantOtherName: teamParticipant.participanOthertName,
+        participantName: teamParticipant.participantName,
+        participantId: teamParticipant.participantId,
+        teamId: teamParticipant.teamId,
+      });
+
+    return {
+      teamParticipant: teamParticipantValues,
+      drawPosition,
+      sideNumber,
+      lineUp,
+    };
+  });
+
+  matchUpWithContext.tieMatchUps = matchUpWithContext.tieMatchUps.map((matchUp) => {
+    const matchUpTieId = matchUpWithContext.matchUpId;
+    const finishingPositionRange = matchUpWithContext.finishingPositionRange;
+    const additionalContext = {
+      finishingPositionRange,
+      abbreviatedRoundName: params.abbreviatedRoundName,
+      roundNumber: params.roundNumber,
+      roundName: params.roundName,
+    };
+
+    return addMatchUpContext({
+      tieDrawPositions: params.drawPositions,
+      scheduleVisibilityFilters: params.scheduleVisibilityFilters,
+      sourceDrawPositionRanges: params.sourceDrawPositionRanges,
+      sideLineUps: lineUps,
+      drawPositionsRanges: params.drawPositionsRanges,
+      initialRoundOfPlay: params.initialRoundOfPlay,
+      roundNamingProfile: params.roundNamingProfile,
+      additionalContext,
+      appliedPolicies: params.appliedPolicies,
+      isCollectionBye,
+      usePublishState: params.usePublishState,
+      publishStatus: params.publishStatus,
+      matchUpTieId,
+      isRoundRobin: params.isRoundRobin,
+      roundProfile: params.roundProfile,
+      matchUp,
+      event: params.event,
+
+      tournamentParticipants: params.tournamentParticipants,
+      positionAssignments: params.positionAssignments,
+      tournamentRecord: params.tournamentRecord,
+      seedAssignments: params.seedAssignments,
+      participantMap: params.participantMap,
+      contextContent: params.contextContent,
+      scheduleTiming: params.scheduleTiming,
+      contextProfile: params.contextProfile,
+      drawDefinition: params.drawDefinition,
+      scoringActive: params.scoringActive,
+      structure: params.structure,
+      context: params.context,
+    });
+  });
 }

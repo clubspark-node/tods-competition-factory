@@ -132,52 +132,14 @@ export function removeCollectionDefinition({
     }
   }
 
-  // check all scoped lineUps in the drawDefinition to identify collectionAssignments
-  let matchUps: MatchUp[] = [];
+  const matchUps = getScopedMatchUps({ matchUpId, matchUp, structureId, structure, drawDefinition, event });
 
-  if (matchUpId && matchUp) {
-    matchUps = [matchUp];
-  } else if (structureId && structure) {
-    matchUps =
-      getAllStructureMatchUps({
-        matchUpFilters: { matchUpTypes: [TEAM] },
-        structure,
-      })?.matchUps ?? [];
-  } else if (drawDefinition) {
-    matchUps =
-      allDrawMatchUps({
-        matchUpFilters: { matchUpTypes: [TEAM] },
-        drawDefinition,
-      })?.matchUps ?? [];
-  } else if (event) {
-    matchUps =
-      allEventMatchUps({
-        matchUpFilters: { matchUpTypes: [TEAM] },
-        drawDefinition,
-      })?.matchUps ?? [];
-  }
-
-  // all team matchUps in scope which are completed or which have a score should not be modified
-  // UNLESS all collectionMatchUps have no score
-  const targetMatchUps = (matchUps || []).filter((matchUp) => {
-    const collectionMatchUps = matchUp.tieMatchUps?.filter((tieMatchUp) => tieMatchUp.collectionId === collectionId);
-    const collectionScore = collectionMatchUps?.some(checkScoreHasValue);
-
-    const tieFormatDifference =
-      tieFormatComparison && matchUp.tieFormat
-        ? compareTieFormats({
-            descendant: matchUp.tieFormat,
-            ancestor: tieFormat,
-          })?.different
-        : false;
-
-    return (
-      (updateInProgressMatchUps && !collectionScore) ||
-      (!matchUp.winningSide &&
-        matchUp.matchUpStatus !== COMPLETED &&
-        (updateInProgressMatchUps ||
-          (matchUp.matchUpStatus !== IN_PROGRESS && !checkScoreHasValue(matchUp) && !tieFormatDifference)))
-    );
+  const targetMatchUps = filterTargetMatchUps({
+    updateInProgressMatchUps,
+    tieFormatComparison,
+    collectionId,
+    tieFormat,
+    matchUps,
   });
 
   if (!targetMatchUps.length) {
@@ -187,72 +149,40 @@ export function removeCollectionDefinition({
   const { appliedPolicies } = getAppliedPolicies({ tournamentRecord });
 
   if (matchUpId && matchUp && updateInProgressMatchUps) {
-    const collectionMatchUps = matchUp.tieMatchUps?.filter((tieMatchUp) => tieMatchUp.collectionId === collectionId);
-    for (const collectionMatchUp of collectionMatchUps ?? []) {
-      let result: any = setMatchUpState({
-        matchUpId: collectionMatchUp.matchUpId,
-        tieMatchUpId: matchUp?.matchUpId,
-        winningSide: undefined,
-        removeScore: true,
-        tournamentRecord,
-        appliedPolicies,
-        drawDefinition,
-        event,
-      });
-      if (result.error) return result;
-
-      result = findDrawMatchUp({
-        drawDefinition,
-        matchUpId,
-      });
-      if (result.error) return result;
-      matchUp = result?.matchUp;
-    }
+    const clearResult: any = clearCollectionScores({
+      tournamentRecord,
+      appliedPolicies,
+      drawDefinition,
+      collectionId,
+      matchUpId,
+      matchUp,
+      event,
+    });
+    if (clearResult.error) return clearResult;
+    matchUp = clearResult.matchUp;
   }
 
   const deletedMatchUpIds: string[] = [];
-  for (const matchUp of targetMatchUps) {
-    // remove any collectionAssignments from LineUps that include collectionId
-    for (const side of matchUp?.sides ?? []) {
-      side.lineUp = (side.lineUp ?? []).map((assignment) => ({
-        participantId: assignment.participantId,
-        collectionAssignments: (assignment?.collectionAssignments ?? []).filter(
-          (collectionAssignment) => collectionAssignment.collectionId !== collectionId,
-        ),
-      }));
-    }
-
-    // delete any tieMatchUps that contain collectionId
-    matchUp.tieMatchUps = (matchUp.tieMatchUps ?? []).filter((matchUp) => {
-      const deleteTarget = matchUp.collectionId === collectionId;
-      if (deleteTarget) deletedMatchUpIds.push(matchUp.matchUpId);
-      return !deleteTarget;
-    });
-
-    if (matchUp.tieFormat || matchUp.tieFormatId) {
-      writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
-    }
-
-    if (updateInProgressMatchUps) {
-      // recalculate score
-      const result = updateTieMatchUpScore({
-        matchUpId: matchUp.matchUpId,
-        exitWhenNoValues: true,
-        tournamentRecord,
-        appliedPolicies,
-        drawDefinition,
-        event,
-      });
-      if (result.error) return result;
-    }
-
-    modifyMatchUpNotice({
-      tournamentId: tournamentRecord?.tournamentId,
-      eventId: event?.eventId,
+  for (const targetMatchUp of targetMatchUps) {
+    processTargetMatchUp({
+      deletedMatchUpIds,
+      tournamentRecord,
       drawDefinition,
-      context: stack,
-      matchUp,
+      collectionId,
+      tieFormat,
+      stack,
+      event,
+      matchUp: targetMatchUp,
     });
+    const scoreResult = updateTargetMatchUpScore({
+      updateInProgressMatchUps,
+      tournamentRecord,
+      appliedPolicies,
+      drawDefinition,
+      matchUp: targetMatchUp,
+      event,
+    });
+    if (scoreResult?.error) return scoreResult;
   }
 
   // remove any matchUps which contain collectionId
@@ -300,4 +230,158 @@ export function removeCollectionDefinition({
     targetMatchUps,
     ...SUCCESS,
   };
+}
+
+function getScopedMatchUps({ matchUpId, matchUp, structureId, structure, drawDefinition, event }): MatchUp[] {
+  if (matchUpId && matchUp) return [matchUp];
+
+  if (structureId && structure) {
+    return (
+      getAllStructureMatchUps({
+        matchUpFilters: { matchUpTypes: [TEAM] },
+        structure,
+      })?.matchUps ?? []
+    );
+  }
+
+  if (drawDefinition) {
+    return (
+      allDrawMatchUps({
+        matchUpFilters: { matchUpTypes: [TEAM] },
+        drawDefinition,
+      })?.matchUps ?? []
+    );
+  }
+
+  if (event) {
+    return (
+      allEventMatchUps({
+        matchUpFilters: { matchUpTypes: [TEAM] },
+        drawDefinition,
+      })?.matchUps ?? []
+    );
+  }
+
+  return [];
+}
+
+function clearCollectionScores({
+  tournamentRecord,
+  appliedPolicies,
+  drawDefinition,
+  collectionId,
+  matchUpId,
+  matchUp,
+  event,
+}) {
+  const collectionMatchUps = matchUp.tieMatchUps?.filter((tieMatchUp) => tieMatchUp.collectionId === collectionId);
+  let currentMatchUp = matchUp;
+  for (const collectionMatchUp of collectionMatchUps ?? []) {
+    let result: any = setMatchUpState({
+      matchUpId: collectionMatchUp.matchUpId,
+      tieMatchUpId: currentMatchUp?.matchUpId,
+      winningSide: undefined,
+      removeScore: true,
+      tournamentRecord,
+      appliedPolicies,
+      drawDefinition,
+      event,
+    });
+    if (result.error) return result;
+
+    result = findDrawMatchUp({
+      drawDefinition,
+      matchUpId,
+    });
+    if (result.error) return result;
+    currentMatchUp = result?.matchUp;
+  }
+  return { matchUp: currentMatchUp };
+}
+
+function processTargetMatchUp({
+  deletedMatchUpIds,
+  collectionId,
+  tieFormat,
+  stack,
+  event,
+  matchUp,
+  tournamentRecord,
+  drawDefinition,
+}) {
+  for (const side of matchUp?.sides ?? []) {
+    side.lineUp = (side.lineUp ?? []).map((assignment) => ({
+      participantId: assignment.participantId,
+      collectionAssignments: (assignment?.collectionAssignments ?? []).filter(
+        (collectionAssignment) => collectionAssignment.collectionId !== collectionId,
+      ),
+    }));
+  }
+
+  matchUp.tieMatchUps = (matchUp.tieMatchUps ?? []).filter((tieMatchUp) => {
+    const deleteTarget = tieMatchUp.collectionId === collectionId;
+    if (deleteTarget) deletedMatchUpIds.push(tieMatchUp.matchUpId);
+    return !deleteTarget;
+  });
+
+  if (matchUp.tieFormat || matchUp.tieFormatId) {
+    writeTieFormat({ target: matchUp, tieFormat: copyTieFormat(tieFormat), event });
+  }
+
+  modifyMatchUpNotice({
+    tournamentId: tournamentRecord?.tournamentId,
+    eventId: event?.eventId,
+    drawDefinition,
+    context: stack,
+    matchUp,
+  });
+}
+
+function updateTargetMatchUpScore({
+  updateInProgressMatchUps,
+  tournamentRecord,
+  appliedPolicies,
+  drawDefinition,
+  matchUp,
+  event,
+}) {
+  if (!updateInProgressMatchUps) return undefined;
+
+  return updateTieMatchUpScore({
+    matchUpId: matchUp.matchUpId,
+    exitWhenNoValues: true,
+    tournamentRecord,
+    appliedPolicies,
+    drawDefinition,
+    event,
+  });
+}
+
+function filterTargetMatchUps({
+  updateInProgressMatchUps,
+  tieFormatComparison,
+  collectionId,
+  tieFormat,
+  matchUps,
+}): MatchUp[] {
+  return (matchUps || []).filter((matchUp) => {
+    const collectionMatchUps = matchUp.tieMatchUps?.filter((tieMatchUp) => tieMatchUp.collectionId === collectionId);
+    const collectionScore = collectionMatchUps?.some(checkScoreHasValue);
+
+    if (updateInProgressMatchUps && !collectionScore) return true;
+    if (matchUp.winningSide || matchUp.matchUpStatus === COMPLETED) return false;
+
+    const tieFormatDifference =
+      tieFormatComparison && matchUp.tieFormat
+        ? compareTieFormats({
+            descendant: matchUp.tieFormat,
+            ancestor: tieFormat,
+          })?.different
+        : false;
+
+    return (
+      updateInProgressMatchUps ||
+      (matchUp.matchUpStatus !== IN_PROGRESS && !checkScoreHasValue(matchUp) && !tieFormatDifference)
+    );
+  });
 }
