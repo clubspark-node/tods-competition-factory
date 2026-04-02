@@ -15,6 +15,102 @@ import { ADAPTIVE } from '@Constants/drawDefinitionConstants';
 
 const DRAW_SIZE = 14;
 
+function attemptLuckyAdvancement(drawId: string, structures: any[]): boolean {
+  for (const structure of structures) {
+    const luckyStatus = tournamentEngine.getLuckyDrawRoundStatus({
+      structureId: structure.structureId,
+      drawId,
+    });
+
+    if (!luckyStatus?.isLuckyDraw) continue;
+
+    for (const round of luckyStatus.rounds || []) {
+      if (round.needsLuckySelection && round.eligibleLosers?.length) {
+        let result: any = tournamentEngine.luckyDrawAdvancement({
+          participantId: round.eligibleLosers[0].participantId,
+          structureId: structure.structureId,
+          roundNumber: round.roundNumber,
+          drawId,
+        });
+        if (result.success) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function completeReadyMatchUps(readyMatchUps: any[], drawId: string): number {
+  let completed = 0;
+  for (const matchUp of readyMatchUps) {
+    const matchUpFormat = matchUp.matchUpFormat || 'SET3-S:6/TB7';
+    const { outcome } = generateOutcomeFromScoreString({
+      matchUpStatus: COMPLETED,
+      scoreString: '6-1 6-1',
+      winningSide: 1,
+      matchUpFormat,
+    });
+    let result: any = tournamentEngine.setMatchUpStatus({
+      matchUpId: matchUp.matchUpId,
+      outcome,
+      drawId,
+    });
+    if (result.success) {
+      completed++;
+    } else {
+      console.log('setMatchUpStatus error:', result.error, matchUp.matchUpId);
+      break;
+    }
+  }
+  return completed;
+}
+
+function verifyStructureCompletion(allMatchUps: any[], structures: any[]) {
+  for (const structure of structures) {
+    const structureMatchUps = allMatchUps.filter((m: any) => m.structureId === structure.structureId);
+    if (structureMatchUps.length === 0) continue;
+
+    const hasWinner = structureMatchUps.some((m: any) => m.winningSide);
+    if (structureMatchUps.length > 0) {
+      console.log(
+        `${structure.structureName}: ${structureMatchUps.length} matchUps, ` +
+          `${structureMatchUps.filter((m: any) => m.winningSide).length} completed`,
+      );
+    }
+    expect(hasWinner).toBe(true);
+  }
+}
+
+function verifyResetState(resetDD: any) {
+  for (const structure of resetDD.structures) {
+    const assignments = structure.positionAssignments || [];
+    const isMainFirst = structure.stage === 'MAIN' && structure.stageSequence === 1;
+
+    if (isMainFirst) {
+      const r1Positions = new Set(
+        (structure.matchUps || [])
+          .filter((m) => m.roundNumber === 1)
+          .flatMap((m) => m.drawPositions || [])
+          .filter(Boolean),
+      );
+      for (const a of assignments) {
+        expect(r1Positions.has(a.drawPosition)).toBe(true);
+      }
+      const scoredR1 = (structure.matchUps || []).filter((m) => m.roundNumber === 1 && m.winningSide);
+      expect(scoredR1.length).toBe(0);
+    } else {
+      const hasParticipants = assignments.some((a) => a.participantId);
+      expect(hasParticipants).toBe(false);
+      expect(assignments.length).toBe(0);
+    }
+
+    for (const child of structure.structures || []) {
+      const childAssignments = child.positionAssignments || [];
+      const childHasParticipants = childAssignments.some((a) => a.participantId);
+      expect(childHasParticipants).toBe(false);
+    }
+  }
+}
+
 describe('Adaptive draw completion and reset', () => {
   it('completes all structures and resets draw positions', () => {
     const drawId = 'adaptive-draw';
@@ -52,7 +148,6 @@ describe('Adaptive draw completion and reset', () => {
     let totalCompleted = 0;
 
     while (maxIterations-- > 0) {
-      // Find incomplete matchUps that are ready to score
       const { matchUps } = tournamentEngine.allDrawMatchUps({
         drawId,
         inContext: true,
@@ -69,58 +164,11 @@ describe('Adaptive draw completion and reset', () => {
           readyMatchUps[0].structureName,
         );
       if (!readyMatchUps.length) {
-        // Check if any structure needs lucky advancement
-        let advanced = false;
-        for (const structure of structures) {
-          const luckyStatus = tournamentEngine.getLuckyDrawRoundStatus({
-            drawId,
-            structureId: structure.structureId,
-          });
-
-          if (luckyStatus?.isLuckyDraw) {
-            for (const round of luckyStatus.rounds || []) {
-              if (round.needsLuckySelection && round.eligibleLosers?.length) {
-                // Advance the first eligible loser
-                let result: any = tournamentEngine.luckyDrawAdvancement({
-                  participantId: round.eligibleLosers[0].participantId,
-                  structureId: structure.structureId,
-                  roundNumber: round.roundNumber,
-                  drawId,
-                });
-                if (result.success) {
-                  advanced = true;
-                  break;
-                }
-              }
-            }
-          }
-          if (advanced) break;
-        }
-        if (!advanced) break; // nothing more to do
-        continue; // re-check for ready matchUps after advancement
+        if (!attemptLuckyAdvancement(drawId, structures)) break;
+        continue;
       }
 
-      // Complete all ready matchUps
-      for (const matchUp of readyMatchUps) {
-        const matchUpFormat = matchUp.matchUpFormat || 'SET3-S:6/TB7';
-        const { outcome } = generateOutcomeFromScoreString({
-          matchUpStatus: COMPLETED,
-          scoreString: '6-1 6-1',
-          winningSide: 1,
-          matchUpFormat,
-        });
-        let result: any = tournamentEngine.setMatchUpStatus({
-          matchUpId: matchUp.matchUpId,
-          outcome,
-          drawId,
-        });
-        if (result.success) {
-          totalCompleted++;
-        } else {
-          console.log('setMatchUpStatus error:', result.error, matchUp.matchUpId);
-          break;
-        }
-      }
+      totalCompleted += completeReadyMatchUps(readyMatchUps, drawId);
     }
 
     console.log('total completed:', totalCompleted);
@@ -133,20 +181,7 @@ describe('Adaptive draw completion and reset', () => {
 
     console.log('completed:', completedMatchUps.length, 'incomplete:', incompleteMatchUps.length);
 
-    // Check each structure has participants in final positions
-    for (const structure of structures) {
-      const structureMatchUps = allMatchUps.filter((m: any) => m.structureId === structure.structureId);
-      if (structureMatchUps.length === 0) continue; // skip empty structures
-
-      const hasWinner = structureMatchUps.some((m: any) => m.winningSide);
-      if (structureMatchUps.length > 0) {
-        console.log(
-          `${structure.structureName}: ${structureMatchUps.length} matchUps, ` +
-            `${structureMatchUps.filter((m: any) => m.winningSide).length} completed`,
-        );
-      }
-      expect(hasWinner).toBe(true);
-    }
+    verifyStructureCompletion(allMatchUps, structures);
 
     // All matchUps should be complete (no incomplete non-BYE matchUps)
     expect(incompleteMatchUps.length).toBe(0);
@@ -157,38 +192,7 @@ describe('Adaptive draw completion and reset', () => {
 
     // Verify reset state across all structures
     const { drawDefinition: resetDD } = tournamentEngine.getEvent({ drawId });
-    for (const structure of resetDD.structures) {
-      const assignments = structure.positionAssignments || [];
-      const isMainFirst = structure.stage === 'MAIN' && structure.stageSequence === 1;
-
-      if (isMainFirst) {
-        // MAIN stageSequence 1: R1 positions preserved with participants (like LUCKY_DRAW)
-        const r1Positions = new Set(
-          (structure.matchUps || [])
-            .filter((m) => m.roundNumber === 1)
-            .flatMap((m) => m.drawPositions || [])
-            .filter(Boolean),
-        );
-        for (const a of assignments) {
-          expect(r1Positions.has(a.drawPosition)).toBe(true);
-        }
-        // Scored matchUps should be reset
-        const scoredR1 = (structure.matchUps || []).filter((m) => m.roundNumber === 1 && m.winningSide);
-        expect(scoredR1.length).toBe(0);
-      } else {
-        // Playoff structures: all assignments cleared
-        const hasParticipants = assignments.some((a) => a.participantId);
-        expect(hasParticipants).toBe(false);
-        expect(assignments.length).toBe(0);
-      }
-
-      // Check nested structures (RR groups)
-      for (const child of structure.structures || []) {
-        const childAssignments = child.positionAssignments || [];
-        const childHasParticipants = childAssignments.some((a) => a.participantId);
-        expect(childHasParticipants).toBe(false);
-      }
-    }
+    verifyResetState(resetDD);
 
     // ── Reset with removeAssignments clears everything ──
     result = tournamentEngine.resetDrawDefinition({ drawId, removeAssignments: true });
