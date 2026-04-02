@@ -271,6 +271,7 @@ module.exports = {
             'testing/mocks-engine-tournament-generation',
             'testing/mocks-engine-participants',
             'testing/mocks-engine-outcomes',
+            'testing/mocks-engine-league-profiles',
             'testing/mocks-engine-patterns',
           ],
         },

@@ -131,6 +131,27 @@ function checkCompassByes({ drawDefinition, stages, expectedCompassByes }) {
 function pendingWithOneParticipant(matchUp) {
   return matchUp.roundNumber === 2 && matchUp.drawPositions.filter(Boolean).length === 1;
 }
+function checkAdvancedExpectations(expected, filteredMatchUps, pendingMatchUps) {
+  const expectedFiltered = expected.advancedFiltered;
+  if (expectedFiltered) {
+    expect(filteredMatchUps?.length).toEqual(expectedFiltered[0]);
+    if (filteredMatchUps?.length) {
+      if (expectedFiltered[1]) expect(filteredMatchUps[0].roundPosition).toEqual(expectedFiltered[1]);
+      if (expectedFiltered[2]) expect(filteredMatchUps[1].roundPosition).toEqual(expectedFiltered[2]);
+    }
+  }
+  const pendingLength = expected.pendingAdvancedLength;
+  if (pendingLength) expect(pendingMatchUps?.length).toEqual(pendingLength);
+  if (pendingMatchUps?.length) {
+    const pendingRoundPosition = expected.pendingAdvancedRoundPosition;
+    if (pendingRoundPosition) expect(pendingMatchUps[0].roundPosition).toEqual(pendingRoundPosition);
+    const pendingDrawPositions = expected.pendingAdvancedDrawPositions;
+    if (pendingDrawPositions) {
+      expect(pendingMatchUps[0].drawPositions).toMatchObject(pendingDrawPositions);
+    }
+  }
+}
+
 function checkByeAdvancedDrawPositions({ expectedByeDrawPositions, drawDefinition, advanced, stages }) {
   const { structures } = getDrawStructures({ drawDefinition, stages });
 
@@ -143,24 +164,7 @@ function checkByeAdvancedDrawPositions({ expectedByeDrawPositions, drawDefinitio
     const filteredMatchUps = pendingMatchUps?.filter(pendingWithOneParticipant);
 
     if (advanced) {
-      const expectedFiltered = expectedByeDrawPositions[direction].advancedFiltered;
-      if (expectedFiltered) {
-        expect(filteredMatchUps?.length).toEqual(expectedFiltered[0]);
-        if (filteredMatchUps?.length) {
-          if (expectedFiltered[1]) expect(filteredMatchUps[0].roundPosition).toEqual(expectedFiltered[1]);
-          if (expectedFiltered[2]) expect(filteredMatchUps[1].roundPosition).toEqual(expectedFiltered[2]);
-        }
-      }
-      const pendingLength = expectedByeDrawPositions[direction].pendingAdvancedLength;
-      if (pendingLength) expect(pendingMatchUps?.length).toEqual(pendingLength);
-      if (pendingMatchUps?.length) {
-        const pendingRoundPosition = expectedByeDrawPositions[direction].pendingAdvancedRoundPosition;
-        if (pendingRoundPosition) expect(pendingMatchUps[0].roundPosition).toEqual(pendingRoundPosition);
-        const pendingDrawPositions = expectedByeDrawPositions[direction].pendingAdvancedDrawPositions;
-        if (pendingDrawPositions) {
-          expect(pendingMatchUps[0].drawPositions).toMatchObject(pendingDrawPositions);
-        }
-      }
+      checkAdvancedExpectations(expectedByeDrawPositions[direction], filteredMatchUps, pendingMatchUps);
     } else {
       const unadvancedFiltered = expectedByeDrawPositions[direction].unadvancedFiltered;
       if (unadvancedFiltered) expect(filteredMatchUps?.length).toEqual(unadvancedFiltered);
