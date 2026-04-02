@@ -476,13 +476,13 @@ Beyond the new ScoringEngine and matchUpFormat expansion (see their dedicated se
 
 A comprehensive refactoring effort reduced cognitive complexity across the entire codebase. Every function in the factory now scores below 30 on the SonarQube cognitive complexity metric — down from a starting point where 93 functions exceeded that threshold, with some reaching 184.
 
-| Metric | Before | After | Reduction |
-| --- | ---: | ---: | --- |
-| Functions above complexity 50 | 36 | 0 | -100% |
-| Functions above complexity 40 | 62 | 0 | -100% |
-| Functions above complexity 30 | 93 | 0 | -100% |
-| Helper functions extracted | — | ~200 | — |
-| Source files refactored | — | ~60 | — |
+| Metric                        | Before | After | Reduction |
+| ----------------------------- | -----: | ----: | --------- |
+| Functions above complexity 50 |     36 |     0 | -100%     |
+| Functions above complexity 40 |     62 |     0 | -100%     |
+| Functions above complexity 30 |     93 |     0 | -100%     |
+| Helper functions extracted    |      — |  ~200 | —         |
+| Source files refactored       |      — |   ~60 | —         |
 
 Monolithic functions were decomposed into focused, testable helpers — for example, `getParticipantEntries` (718 lines, one function) was split into 8 helpers across 4 refactoring passes. The same treatment was applied to scoring, scheduling, draw positioning, publishing, ranking, tie format management, and mock generation code.
 
@@ -506,11 +506,11 @@ Test files (`*.test.ts`) are now included in the ESLint configuration. Previousl
 
 ### Summary
 
-| Metric | v2.4.5 | v3.0 | Change |
-| --- | --- | --- | --- |
-| Test files | 659 | 843 | +184 (+28%) |
+| Metric        | v2.4.5 | v3.0  | Change         |
+| ------------- | ------ | ----- | -------------- |
+| Test files    | 659    | 843   | +184 (+28%)    |
 | Tests passing | ~6,500 | 8,284 | ~+1,800 (+27%) |
-| Tests skipped | — | 5 | — |
+| Tests skipped | —      | 5     | —              |
 
 ### New Test Suites by Area
 
