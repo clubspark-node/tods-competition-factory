@@ -1,5 +1,13 @@
 {
   "files.associations": {
     "*.jsonc": "jsonc"
+  },
+  "sonarlint.rules": {
+    "typescript:S3776": {
+      "level": "on",
+      "parameters": {
+        "threshold": "30"
+      }
+    }
   }
 }

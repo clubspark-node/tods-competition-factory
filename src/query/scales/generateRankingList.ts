@@ -227,9 +227,7 @@ function sortAndRankEntries(entries: RankingListEntry[], tiebreakCriteria: strin
   let currentRank = 1;
   for (let i = 0; i < entries.length; i++) {
     if (i > 0 && entries[i].totalPoints === entries[i - 1].totalPoints) {
-      const tieResolved =
-        tiebreakCriteria.length > 0 &&
-        tiebreakCriteria.some((c) => applyTiebreaker(c, entries[i - 1], entries[i]) !== 0);
+      const tieResolved = tiebreakCriteria.some((c) => applyTiebreaker(c, entries[i - 1], entries[i]) !== 0);
 
       entries[i].rank = tieResolved ? currentRank : entries[i - 1].rank;
     } else {

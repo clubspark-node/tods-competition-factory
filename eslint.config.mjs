@@ -50,7 +50,7 @@ export default [
       'no-unused-vars': 'off',
       'no-unassigned-vars': 'warn',
       'no-useless-assignment': 'warn',
-      'sonarjs/cognitive-complexity': ['off', 100],
+      'sonarjs/cognitive-complexity': ['warn', 30],
       'sonarjs/no-all-duplicated-branches': 'warn',
       'sonarjs/no-collapsible-if': 'warn',
       'sonarjs/no-collection-size-mischeck': 'warn',

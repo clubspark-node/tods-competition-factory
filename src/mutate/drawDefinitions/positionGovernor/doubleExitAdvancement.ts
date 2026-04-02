@@ -617,7 +617,7 @@ function advanceByeAdvancedDrawPosition({
   });
 
   if (nextWinnerMatchUpHasDrawPosition) {
-    const nextDrawPositionToAdvance = nextWinnerMatchUpDrawPositions.filter(Boolean)[0];
+    const nextDrawPositionToAdvance = nextWinnerMatchUpDrawPositions.find(Boolean);
 
     // if the next targetMatchUp already has a drawPosition
     const winningSide = getExitWinningSide({

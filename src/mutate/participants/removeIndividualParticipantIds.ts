@@ -80,10 +80,10 @@ export function removeIndividualParticipantIds({
 
   if (addIndividualParticipantsToEvents) {
     for (const event of tournamentRecord.events ?? []) {
-      const enteredIds = (event.entries ?? []).map(({ participantId }) => participantId).filter(Boolean);
+      const enteredIds = new Set((event.entries ?? []).map(({ participantId }) => participantId).filter(Boolean));
 
-      if (enteredIds.includes(groupingParticipantId)) {
-        const participantIdsToEnter = removed?.filter((participantId) => !enteredIds.includes(participantId));
+      if (enteredIds.has(groupingParticipantId)) {
+        const participantIdsToEnter = removed?.filter((participantId) => !enteredIds.has(participantId));
         addEventEntries({
           participantIds: participantIdsToEnter,
           entryStatus: UNGROUPED,
@@ -199,7 +199,6 @@ function removeParticipantIdsFromGroupingParticipant({
   );
 }
 
-
 function participantHasScoredGroupingMatchUps({
   groupingParticipantEventIds,
   mappedMatchUps,
@@ -230,9 +229,7 @@ function purgeFromDrawLineUp({ drawDefinition, groupingParticipantId, participan
   });
   const lineUp = extension?.value[groupingParticipantId];
   if (extension && lineUp) {
-    extension.value[groupingParticipantId] = lineUp.filter(
-      (assignment) => assignment.participantId !== participantId,
-    );
+    extension.value[groupingParticipantId] = lineUp.filter((assignment) => assignment.participantId !== participantId);
     addExtension({ element: drawDefinition, extension });
     addDrawNotice({ drawDefinition });
   }

@@ -75,8 +75,8 @@ export function getEpisodes(matchUp: MatchUp): Episode[] {
 }
 
 function detectBoundaries({ nextPoint, isLastPoint, isCompleted, pointSet, pointGame }) {
-  const nextSet = nextPoint ? ((nextPoint as any).set ?? 0) : undefined;
-  const nextGame = nextPoint ? ((nextPoint as any).game ?? 0) : undefined;
+  const nextSet = nextPoint ? (nextPoint.set ?? 0) : undefined;
+  const nextGame = nextPoint ? (nextPoint.game ?? 0) : undefined;
 
   const gameComplete = isLastPoint
     ? isCompleted || (nextSet === undefined && nextGame === undefined)
@@ -111,9 +111,8 @@ function detectTiebreak(matchUp: MatchUp, pointSet: number, pointGame: number): 
   return !!(
     currentSetObj?.isTiebreakOnly ||
     (pointGame > 0 &&
-      currentSetObj &&
-      currentSetObj.side1Score !== undefined &&
-      currentSetObj.side2Score !== undefined &&
-      !currentSetObj.isTiebreakOnly)
+      currentSetObj?.side1Score !== undefined &&
+      currentSetObj?.side2Score !== undefined &&
+      !currentSetObj?.isTiebreakOnly)
   );
 }

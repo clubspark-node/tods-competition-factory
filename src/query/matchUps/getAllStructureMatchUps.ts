@@ -142,9 +142,7 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
     stageSpecificPolicies?.requireAllPositionsAssigned ||
     sequenceSpecificPolicies?.requireAllPositionsAssigned;
 
-  if (!matchUpsMap) {
-    matchUpsMap = getMatchUpsMap({ drawDefinition, structure });
-  }
+  matchUpsMap ??= getMatchUpsMap({ drawDefinition, structure });
 
   const { positionAssignments, allPositionsAssigned } = structureAssignedDrawPositions({ structure });
   const scoringActive = !requireAllPositionsAssigned || allPositionsAssigned;
@@ -166,7 +164,7 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
     (exitProfile[0]
       .split('-')
       .map((x) => Number.parseInt(x))
-      .reduce((a, b) => a + b) ||
+      .reduce((a, b) => a + b, 0) ||
       0);
 
   const isRoundRobin = !!structure.structures;
@@ -190,9 +188,7 @@ export function getAllStructureMatchUps(params: GetAllStructureMatchUps) {
   // must make a pass before hydration and addition of tieMatchUps
   // preserve matchUps with tieMatchUps so their children can be extracted and filtered independently
   if (matchUpFilters) {
-    const tieMatchUpIds = new Set(
-      matchUps.filter((m) => Array.isArray(m.tieMatchUps)).map((m) => m.matchUpId),
-    );
+    const tieMatchUpIds = new Set(matchUps.filter((m) => Array.isArray(m.tieMatchUps)).map((m) => m.matchUpId));
     matchUps = filterMatchUps({
       matchUps: tieMatchUpIds.size ? matchUps.filter((m) => !tieMatchUpIds.has(m.matchUpId)) : matchUps,
       ...matchUpFilters,
