@@ -44,7 +44,7 @@ export function getDrawPositionsRanges({
   const roundNumbers = Object.keys(roundProfile);
   const drawPositionsRanges = Object.assign(
     {},
-    ...(roundNumbers || []).map((roundNumber) => {
+    ...(roundNumbers ?? []).map((roundNumber) => {
       const matchUpsCount = roundProfile?.[roundNumber]?.matchUpsCount;
       const firstRoundDrawPositions = roundProfile?.[1]?.drawPositions ?? [];
       const firstRoundDrawPositionsChunks = chunkArray(

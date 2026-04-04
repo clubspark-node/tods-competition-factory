@@ -8,8 +8,8 @@ export function getEventProperties({ tournamentRecord, event }) {
   const paramsCheck = requireParams({ tournamentRecord, event }, [TOURNAMENT_RECORD, EVENT]);
   if (paramsCheck.error) return paramsCheck;
 
-  const eventEntries = event.entries || [];
-  const tournamentParticipants = tournamentRecord.participants || [];
+  const eventEntries = event.entries ?? [];
+  const tournamentParticipants = tournamentRecord.participants ?? [];
 
   const scaleName = event.category?.categoryName || event.category?.ageCategoryCode;
   const { eventType } = event;

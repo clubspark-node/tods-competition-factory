@@ -19,7 +19,7 @@ export function getSourceDrawPositionRanges({ drawDefinition, structureId, match
   if (structure?.stage !== CONSOLATION) return { error: INVALID_STAGE, info: 'Structure is not CONSOLATION stage' };
 
   const { links } = drawDefinition;
-  const relevantLinks = links?.filter((link) => link.target.structureId === structureId) || [];
+  const relevantLinks = links?.filter((link) => link.target.structureId === structureId) ?? [];
 
   const sourceStructureIds =
     relevantLinks?.reduce((sourceStructureIds, link) => {
@@ -27,7 +27,7 @@ export function getSourceDrawPositionRanges({ drawDefinition, structureId, match
       return sourceStructureIds.includes(sourceStructureId)
         ? sourceStructureIds
         : sourceStructureIds.concat(sourceStructureId);
-    }, []) || [];
+    }, []) ?? [];
 
   const sourceStructureProfiles = Object.assign(
     {},

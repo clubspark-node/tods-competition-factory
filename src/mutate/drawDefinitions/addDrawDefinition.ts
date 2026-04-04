@@ -112,7 +112,7 @@ export function addDrawDefinition(
   const flightNumbers =
     flightProfile?.flights
       ?.map(({ flightNumber }) => !isNaN(flightNumber) && ensureInt(flightNumber))
-      ?.filter(Boolean) || [];
+      ?.filter(Boolean) ?? [];
 
   const drawOrders =
     (event.drawDefinitions.map(({ drawOrder }) => drawOrder && ensureInt(drawOrder))?.filter(Boolean) as number[]) ||
@@ -142,7 +142,7 @@ export function addDrawDefinition(
       flight.flightNumber = drawOrder;
     }
   } else {
-    const flights = flightProfile?.flights || [];
+    const flights = flightProfile?.flights ?? [];
     flights.push({
       manuallyAdded: true, // this drawDefinition was not part of automated split
       flightNumber: drawOrder,
