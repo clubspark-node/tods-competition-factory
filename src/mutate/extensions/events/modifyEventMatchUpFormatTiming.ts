@@ -33,10 +33,10 @@ export function modifyEventMatchUpFormatTiming(params: ModifyEventMatchUpFormatT
   const { averageTimes = [], recoveryTimes = [] } = getModifiedMatchUpFormatTiming({
     tournamentRecord,
     matchUpFormat,
-    event,
+    event: event!,
   });
 
-  const category = event.category;
+  const category = event!.category;
   const categoryName = category?.categoryName || category?.ageCategoryCode || event?.eventId;
 
   let currentAverageTime = { categoryNames: [categoryName], minutes: {} };

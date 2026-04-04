@@ -22,7 +22,7 @@ export function getDrawPositionsRanges({
   roundProfile,
   structureId,
   matchUpsMap,
-}: GetDrawPositionRangesArgs) {
+}: GetDrawPositionRangesArgs): any {
   const paramsCheck = requireParams({ drawDefinition, structureId }, [DRAW_DEFINITION, STRUCTURE_ID]);
   if (paramsCheck.error) return paramsCheck;
 

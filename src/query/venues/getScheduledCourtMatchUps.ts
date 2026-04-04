@@ -63,7 +63,7 @@ export function getScheduledVenueMatchUps({
   tournamentRecord,
   matchUpFilters,
   venueId,
-}: GetScheduledVenueMatchUpsArgs) {
+}: GetScheduledVenueMatchUpsArgs): any {
   const paramsCheck = requireParams({ tournamentRecord, venueId }, [TOURNAMENT_RECORD, VENUE_ID]);
   if (paramsCheck.error) return paramsCheck;
 

@@ -24,7 +24,6 @@ import { TournamentRecords } from '@Types/factoryTypes';
 import { SUCCESS } from '@Constants/resultConstants';
 import {
   COURT_NOT_FOUND,
-  ErrorType,
   INVALID_OBJECT,
   INVALID_VALUES,
   MISSING_TOURNAMENT_RECORDS,
@@ -162,29 +161,27 @@ function handleCourtModifications({
   return { success: true };
 }
 
-export function venueModify({ tournamentRecord, modifications, venueId, force }: ModifyVenueArgs): {
-  error?: ErrorType;
-  success?: boolean;
-  venue?: Venue;
-  info?: string;
-} {
+export function venueModify({ tournamentRecord, modifications, venueId, force }: ModifyVenueArgs): any {
   const paramsCheck = requireParams({ tournamentRecord, venueId }, [TOURNAMENT_RECORD, VENUE_ID]);
   if (paramsCheck.error) return paramsCheck;
   if (!modifications || typeof modifications !== 'object') return { error: INVALID_OBJECT };
 
+  // TS can't narrow after requireParams guard; safe to assert after validation
+  const record = tournamentRecord as Tournament;
+
   const appliedPolicies = getAppliedPolicies({
-    tournamentRecord,
+    tournamentRecord: record,
   })?.appliedPolicies;
 
   const allowModificationWhenMatchUpsScheduled =
     force ?? appliedPolicies?.[POLICY_TYPE_SCHEDULING]?.allowDeletionWithScoresPresent?.venues;
 
   const { matchUps: venueMatchUps } = getScheduledVenueMatchUps({
-    tournamentRecord,
+    tournamentRecord: record,
     venueId,
   });
 
-  const result = findVenue({ tournamentRecord, venueId });
+  const result = findVenue({ tournamentRecord: record, venueId });
   if (result.error) return result;
   const venue = result.venue;
 
@@ -222,7 +219,7 @@ export function venueModify({ tournamentRecord, modifications, venueId, force }:
   // Handle isPrimary modifications
   if ('isPrimary' in modifications) {
     if (modifications.isPrimary) {
-      clearPrimaryVenue({ tournamentRecord });
+      clearPrimaryVenue({ tournamentRecord: record });
       venue.isPrimary = true;
     } else {
       delete venue.isPrimary;
@@ -242,7 +239,7 @@ export function venueModify({ tournamentRecord, modifications, venueId, force }:
   const deletionResult = handleCourtDeletions({
     venue,
     modifications,
-    tournamentRecord,
+    tournamentRecord: record,
     venueMatchUps,
     allowModificationWhenMatchUpsScheduled,
   });
@@ -251,18 +248,18 @@ export function venueModify({ tournamentRecord, modifications, venueId, force }:
   // Handle court modifications/additions
   const modificationResult = handleCourtModifications({
     modifications,
-    tournamentRecord,
+    tournamentRecord: record,
     venueMatchUps,
     venueId,
     force,
   });
   if (modificationResult?.error) return modificationResult;
 
-  checkAndUpdateSchedulingProfile({ tournamentRecord });
+  checkAndUpdateSchedulingProfile({ tournamentRecord: record });
 
   if (venue) {
     addNotice({
-      payload: { venue, tournamentId: tournamentRecord.tournamentId },
+      payload: { venue, tournamentId: record.tournamentId },
       topic: MODIFY_VENUE,
       key: venue?.venueId,
     });

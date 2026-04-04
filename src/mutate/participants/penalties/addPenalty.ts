@@ -108,7 +108,7 @@ function penaltyAdd({
   addNotice({
     topic: MODIFY_PARTICIPANTS,
     payload: {
-      tournamentId: tournamentRecord.tournamentId,
+      tournamentId: tournamentRecord!.tournamentId,
       participants: relevantParticipants,
     },
   });

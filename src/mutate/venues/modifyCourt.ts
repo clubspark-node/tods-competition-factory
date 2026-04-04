@@ -85,7 +85,7 @@ export function courtModification({
   if (modifications.dateAvailability) {
     const result = modifyCourtAvailability({
       dateAvailability: modifications.dateAvailability,
-      tournamentRecord,
+      tournamentRecord: tournamentRecord!,
       venueMatchUps,
       disableNotice,
       courtId,
@@ -96,7 +96,7 @@ export function courtModification({
 
   if (!disableNotice) {
     addNotice({
-      payload: { venue, tournamentId: tournamentRecord.tournamentId },
+      payload: { venue, tournamentId: tournamentRecord!.tournamentId },
       topic: MODIFY_VENUE,
       key: venue?.venueId,
     });

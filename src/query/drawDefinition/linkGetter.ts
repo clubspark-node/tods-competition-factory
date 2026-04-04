@@ -18,7 +18,7 @@ export function getRoundLinks({
   drawDefinition, // passed automatically by drawEngine
   roundNumber, // optional - filter for only links that apply to roundNumber
   structureId, // structureId within which matchUp occurs
-}: GetRoundLinksArgs) {
+}: GetRoundLinksArgs): any {
   const paramsCheck = requireParams({ drawDefinition, structureId }, [DRAW_DEFINITION, STRUCTURE_ID]);
   if (paramsCheck.error) return paramsCheck;
 
@@ -71,10 +71,10 @@ export function getStructureLinks({
   drawDefinition, //passed automatically by drawEngine
   structureId, // id of structure for which links are desired
   roundNumber, // optional - filter for links to or from specific rounds
-}: GetStructureLinksArgs) {
+}: GetStructureLinksArgs): any {
   const paramsCheck = requireParams({ drawDefinition, structureId }, [DRAW_DEFINITION, STRUCTURE_ID]);
   if (paramsCheck.error) return paramsCheck;
-  const links = drawDefinition.links || [];
+  const links = drawDefinition.links ?? [];
   const structureLinks = links.filter(Boolean).reduce(
     (structureLinks, link) => {
       if (link.source?.structureId === structureId && (!roundNumber || link.source.roundNumber === roundNumber))

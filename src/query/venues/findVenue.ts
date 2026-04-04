@@ -24,7 +24,7 @@ export function findVenue({ tournamentRecords, tournamentRecord, venueId }: Find
   const paramsCheck = requireParams({ tournamentRecord, venueId }, [TOURNAMENT_RECORD, VENUE_ID]);
   if (paramsCheck.error) return paramsCheck;
 
-  const venues = tournamentRecord.venues ?? [];
+  const venues = tournamentRecord!.venues ?? [];
   const venue = venues.reduce((venue: any, venueRecord) => {
     return venueRecord.venueId === venueId ? venueRecord : venue;
   }, undefined);
@@ -35,7 +35,7 @@ export function findVenue({ tournamentRecords, tournamentRecord, venueId }: Find
         tournamentRecords,
       }).linkedTournamentIds ?? [];
 
-    const relevantIds = linkedTournamentIds[tournamentRecord.tournamentId];
+    const relevantIds = linkedTournamentIds[tournamentRecord!.tournamentId];
 
     // if there are linked tournaments search for court in all linked tournaments
     for (const tournamentId of relevantIds) {

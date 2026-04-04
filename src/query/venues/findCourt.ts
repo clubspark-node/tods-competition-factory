@@ -28,7 +28,7 @@ export function findCourt({ tournamentRecords, tournamentRecord, courtId }: Find
 
   let court, venue;
 
-  (tournamentRecord.venues ?? []).forEach((venueRecord) => {
+  (tournamentRecord!.venues ?? []).forEach((venueRecord) => {
     (venueRecord.courts ?? []).forEach((courtRecord) => {
       if (courtRecord.courtId === courtId) {
         court = courtRecord;
@@ -46,7 +46,7 @@ export function findCourt({ tournamentRecords, tournamentRecord, courtId }: Find
         tournamentRecords,
       }).linkedTournamentIds ?? [];
 
-    const relevantIds = linkedTournamentIds[tournamentRecord.tournamentId];
+    const relevantIds = linkedTournamentIds[tournamentRecord!.tournamentId];
 
     // if there are linked tournaments search for court in all linked tournaments
     for (const tournamentId of relevantIds) {

@@ -11,7 +11,7 @@ import { DRAW_DEFINITION, STRUCTURE_ID } from '@Constants/attributeConstants';
 import { BOTTOM_UP, CONSOLATION } from '@Constants/drawDefinitionConstants';
 import { INVALID_STAGE } from '@Constants/errorConditionConstants';
 
-export function getSourceDrawPositionRanges({ drawDefinition, structureId, matchUpsMap }) {
+export function getSourceDrawPositionRanges({ drawDefinition, structureId, matchUpsMap }): any {
   const paramsCheck = requireParams({ drawDefinition, structureId }, [DRAW_DEFINITION, STRUCTURE_ID]);
   if (paramsCheck.error) return paramsCheck;
 
