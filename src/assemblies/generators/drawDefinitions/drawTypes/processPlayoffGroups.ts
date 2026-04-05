@@ -1,4 +1,5 @@
 import { generatePlayoffStructures } from '@Generators/drawDefinitions/drawTypes/playoffStructures';
+import { generatePagePlayoff } from '@Generators/drawDefinitions/drawTypes/pagePlayoff';
 import { getPositionRangeMap } from '@Query/drawDefinition/getPositionRangeMap';
 import { validatePlayoffGroups } from '@Validators/validatePlayoffGroups';
 import { firstRoundLoserConsolation } from './firstRoundLoserConsolation';
@@ -23,6 +24,7 @@ import {
   AD_HOC,
   COMPASS,
   COMPASS_ATTRIBUTES,
+  PAGE_PLAYOFF,
   CURTIS_CONSOLATION,
   DRAW,
   FEED_IN_CHAMPIONSHIP,
@@ -290,21 +292,24 @@ export function processPlayoffGroups({
     } else if (playoffDrawType === CURTIS_CONSOLATION) {
       const { structures: playoffStructures, links: playoffLinks } = generateCurtisConsolation(params);
       updateStructureAndLinks({ playoffStructures, playoffLinks });
-    } else if (playoffDrawType === AD_HOC) {
-      if (!finishingPositions.length && groupSize) {
-        finishingPositions.push(...Array.from({ length: groupSize }, (_, i) => i + 1));
-      }
-      const structure = structureTemplate({
-        structureId: playoffGroup.structureId ?? uuids?.pop(),
-        structureName: playoffGroup.structureName || structureName || 'Playoff',
-        finishingPosition: WIN_RATIO,
-        stage: PLAY_OFF,
-        stageSequence,
-        matchUps: [],
+    } else if (playoffDrawType === PAGE_PLAYOFF) {
+      const earlyReturn = processPagePlayoff({
+        participantsInDraw,
+        playoffGroup,
+        params,
+        stack,
+        updateStructureAndLinks,
       });
-      updateStructureAndLinks({
-        playoffStructures: [structure],
-        playoffLinks: [],
+      if (earlyReturn) return earlyReturn;
+    } else if (playoffDrawType === AD_HOC) {
+      processAdHocPlayoff({
+        finishingPositions,
+        stageSequence,
+        structureName,
+        playoffGroup,
+        groupSize,
+        uuids,
+        updateStructureAndLinks,
       });
     }
   }
@@ -558,6 +563,52 @@ function processFeedInPlayoff({
   });
 }
 
+
+function processPagePlayoff({ participantsInDraw, playoffGroup, params, stack, updateStructureAndLinks }) {
+  if (participantsInDraw !== 4) {
+    return decorateResult({
+      result: { error: INVALID_CONFIGURATION },
+      context: { info: 'PAGE_PLAYOFF requires exactly 4 participants' },
+      stack,
+    });
+  }
+  const pagePlayoffResult = generatePagePlayoff({
+    ...params,
+    structureName: playoffGroup.structureName,
+  });
+  if (pagePlayoffResult.error) return decorateResult({ result: pagePlayoffResult, stack });
+  updateStructureAndLinks({
+    playoffStructures: pagePlayoffResult.structures,
+    playoffLinks: pagePlayoffResult.links,
+  });
+  return undefined;
+}
+
+function processAdHocPlayoff({
+  finishingPositions,
+  stageSequence,
+  structureName,
+  playoffGroup,
+  groupSize,
+  uuids,
+  updateStructureAndLinks,
+}) {
+  if (!finishingPositions.length && groupSize) {
+    finishingPositions.push(...Array.from({ length: groupSize }, (_, i) => i + 1));
+  }
+  const structure = structureTemplate({
+    structureId: playoffGroup.structureId ?? uuids?.pop(),
+    structureName: playoffGroup.structureName || structureName || 'Playoff',
+    finishingPosition: WIN_RATIO,
+    stage: PLAY_OFF,
+    stageSequence,
+    matchUps: [],
+  });
+  updateStructureAndLinks({
+    playoffStructures: [structure],
+    playoffLinks: [],
+  });
+}
 
 function resolveStructureName({ positionsPlayedOff, playoffGroup }) {
   const finishingPositionRange =
