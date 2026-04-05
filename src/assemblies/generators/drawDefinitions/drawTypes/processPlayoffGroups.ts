@@ -70,7 +70,7 @@ export function processPlayoffGroups({
   idPrefix,
   isMock,
   uuids,
-}): ResultType & {
+}: any = {}): ResultType & {
   finishingPositionTargets?: any;
   structures?: Structure[];
   positionRangeMap?: any;
@@ -294,11 +294,15 @@ export function processPlayoffGroups({
       updateStructureAndLinks({ playoffStructures, playoffLinks });
     } else if (playoffDrawType === PAGE_PLAYOFF) {
       const earlyReturn = processPagePlayoff({
+        finishingPositionTargets,
         participantsInDraw,
+        sourceStructureId,
+        finishingPositions,
         playoffGroup,
+        structures,
         params,
+        links,
         stack,
-        updateStructureAndLinks,
       });
       if (earlyReturn) return earlyReturn;
     } else if (playoffDrawType === AD_HOC) {
@@ -564,7 +568,17 @@ function processFeedInPlayoff({
 }
 
 
-function processPagePlayoff({ participantsInDraw, playoffGroup, params, stack, updateStructureAndLinks }) {
+function processPagePlayoff({
+  finishingPositionTargets,
+  participantsInDraw,
+  sourceStructureId,
+  finishingPositions,
+  playoffGroup,
+  structures,
+  params,
+  links,
+  stack,
+}) {
   if (participantsInDraw !== 4) {
     return decorateResult({
       result: { error: INVALID_CONFIGURATION },
@@ -577,10 +591,42 @@ function processPagePlayoff({ participantsInDraw, playoffGroup, params, stack, u
     structureName: playoffGroup.structureName,
   });
   if (pagePlayoffResult.error) return decorateResult({ result: pagePlayoffResult, stack });
-  updateStructureAndLinks({
-    playoffStructures: pagePlayoffResult.structures,
-    playoffLinks: pagePlayoffResult.links,
-  });
+
+  const ppsStructures = pagePlayoffResult.structures;
+  structures.push(...ppsStructures);
+  links.push(...pagePlayoffResult.links);
+
+  const q1Structure = ppsStructures.find((s) => s.structureAbbreviation === 'Q1');
+  const elimStructure = ppsStructures.find((s) => s.structureAbbreviation === 'EL');
+
+  // Seeds 1-2 enter Q1, seeds 3-4 enter Eliminator
+  // For RR playoffs: finishingPositions is the source positions (e.g. [1])
+  // In that case a single POSITION link to Q1 with DRAW feedProfile is correct
+  // because all qualifiers enter the PAGE_PLAYOFF draw which handles internal seeding
+  // For SE playoffs: finishingPositions like [1,2,3,4] need split links
+  if (finishingPositions.length > 1 && q1Structure && elimStructure) {
+    const half = Math.ceil(finishingPositions.length / 2);
+    const topPositions = finishingPositions.slice(0, half);
+    const bottomPositions = finishingPositions.slice(half);
+
+    links.push(
+      generatePlayoffLink({ playoffStructureId: q1Structure.structureId, finishingPositions: topPositions, sourceStructureId }),
+      generatePlayoffLink({ playoffStructureId: elimStructure.structureId, finishingPositions: bottomPositions, sourceStructureId }),
+    );
+  } else if (q1Structure) {
+    // Single finishing position (RR group winner) — link all to Q1, internal seeding handles placement
+    links.push(
+      generatePlayoffLink({ playoffStructureId: q1Structure.structureId, finishingPositions, sourceStructureId }),
+    );
+  }
+
+  if (q1Structure) {
+    finishingPositionTargets.push({
+      structureId: q1Structure.structureId,
+      finishingPositions,
+    });
+  }
+
   return undefined;
 }
 
