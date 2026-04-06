@@ -1,16 +1,26 @@
-import { generateAdHocMatchUps } from '../generateAdHocMatchUps';
-import { generateSwissPairings } from './swissPairing';
-import { getAdHocRatings } from '../drawMatic/getAdHocRatings';
-import { getParticipantIds } from '../drawMatic/getParticipantIds';
-import { findStructure } from '@Acquire/findStructure';
+// Query
+import { getCompetitionState } from '@Query/drawDefinition/competition/getCompetitionState';
+import { getCompetitionPolicy } from '@Query/drawDefinition/competition/getCompetitionPolicy';
 import { isAdHoc } from '@Query/drawDefinition/isAdHoc';
 
+// Generators
+import { getParticipantIds } from '../drawMatic/getParticipantIds';
+import { generateAdHocMatchUps } from '../generateAdHocMatchUps';
+import { getAdHocRatings } from '../drawMatic/getAdHocRatings';
+import { generateSwissPairings } from './swissPairing';
+
+// Acquire
+import { findStructure } from '@Acquire/findStructure';
+import { findExtension } from '@Acquire/findExtension';
+
+// Constants
 import { MISSING_DRAW_DEFINITION, STRUCTURE_NOT_FOUND } from '@Constants/errorConditionConstants';
+import { SUCCESS } from '@Constants/resultConstants';
+
+// Types
 import type { DrawDefinition, Event, MatchUp, Tournament } from '@Types/tournamentTypes';
 import type { SwissPolicy } from '@Types/swissTypes';
-import { findExtension } from '@Acquire/findExtension';
 import { ResultType } from '@Types/factoryTypes';
-import { SUCCESS } from '@Constants/resultConstants';
 
 type GenerateSwissRoundArgs = {
   tournamentRecord: Tournament;
@@ -45,13 +55,25 @@ export function generateSwissRound(params: GenerateSwissRoundArgs): GenerateSwis
   if (idsResult.error) return idsResult;
   const participantIds = idsResult.participantIds ?? [];
 
-  // get ratings for initial round seeding
-  const adHocRatings = getAdHocRatings({
-    participantIds,
-    tournamentRecord,
-    scaleName: params.scaleName,
-    event,
-  });
+  // Competition policy: use dynamic form ratings when available
+  const { competitionPolicy } = getCompetitionPolicy({ tournamentRecord, drawDefinition, event });
+  const { competitionState } = competitionPolicy ? getCompetitionState({ drawDefinition }) : { competitionState: undefined };
+
+  let adHocRatings: Record<string, number>;
+  if (competitionPolicy && competitionState && competitionPolicy.pairingPolicy.ratingSource === 'DYNAMIC_FORM') {
+    adHocRatings = {};
+    for (const [pid, pState] of Object.entries(competitionState.participantStates)) {
+      adHocRatings[pid] = pState.dynamicFormRating;
+    }
+  } else {
+    // get ratings for initial round seeding
+    adHocRatings = getAdHocRatings({
+      participantIds,
+      tournamentRecord,
+      scaleName: params.scaleName,
+      event,
+    });
+  }
 
   // get swiss policy from extension or params
   const swissPolicy =
