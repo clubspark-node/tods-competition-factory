@@ -643,6 +643,116 @@ Seven new documentation files covering the full mocksEngine surface:
 
 ---
 
+## Swiss System Draw Type
+
+A full **Swiss System** implementation for multi-round tournament pairing, built on the Ad Hoc draw infrastructure.
+
+### Pairing Algorithm
+
+- **Round 1:** FIDE-style pairing — sort participants by rating (descending), split into top and bottom halves, pair top vs bottom (1v5, 2v6, 3v7, 4v8 for 8 players)
+- **Subsequent rounds:** Score-group pairing — group participants by W-L record, apply FIDE-style pairing within each group
+- **Floating:** When a score group has an odd count, the lowest-rated participant floats down to the next group
+- **Repeat avoidance:** Encounter tracking via pairing hash prevents re-matching opponents
+- **Bye handling:** Odd participant count assigns bye to the lowest-rated participant in the lowest score group
+
+### Rating Scale Support
+
+TMX exposes a rating scale selector for Swiss draws (same dropdown as DrawMatic). The selected scale is stored as a `swissScaleName` extension on the draw definition and passed through on each `generateSwissRound` call.
+
+### Standings and Tiebreakers
+
+`getSwissStandings` returns ranked standings with four tiebreaker methods:
+
+| Method | Description |
+| --- | --- |
+| BUCHHOLZ | Sum of all opponents' scores |
+| MEDIAN_BUCHHOLZ | Buchholz excluding highest and lowest opponent scores |
+| SONNEBORN_BERGER | Sum of defeated opponents' scores plus half the drawn opponents' scores |
+| PROGRESSIVE_SCORE | Cumulative sum of round-by-round cumulative point totals |
+
+### Swiss Chart
+
+`getSwissChart` returns per-round snapshots of score groups for visualization — each round contains nodes with participant lists grouped by their W-L-D record.
+
+### Key Methods
+
+- `generateSwissRound({ drawId })` — generates the next round of Swiss pairings
+- `addAdHocMatchUps({ matchUps, structureId, drawId })` — adds generated matchUps to the draw
+- `getSwissStandings({ drawId })` — returns ranked standings with tiebreaker values
+- `getSwissChart({ drawId })` — returns score-group chart data for visualization
+
+### Competition Policy Integration
+
+Swiss draws support the new `POLICY_TYPE_COMPETITION` for three-track rating evaluation. When a competition policy is attached with `pairingPolicy.method: 'SWISS'`, the Swiss pairing algorithm uses dynamic form ratings from the competition state instead of raw scale values.
+
+---
+
+## Competition Policy (Three-Track Rating System)
+
+A new `POLICY_TYPE_COMPETITION` policy type enables multi-round competition evaluation with three distinct rating tracks. This is the architecture described in the "Luck vs. Skill" specification — a system where dynamic ratings affect opportunity (pairing) but never evaluation (pressure scoring).
+
+### Three Rating Tracks
+
+| Track | Mutability | Purpose |
+| --- | --- | --- |
+| **Baseline Rating** | Frozen during event | Defines expected performance; source of pressure expectations |
+| **Dynamic Form Rating** | Updated each round | Drives pairing; ensures competitive matches via Elo-like updates |
+| **Pressure Rating** | Cumulative | Measures overperformance vs baseline expectation; determines winner |
+
+### Core Invariant
+
+**Dynamic ratings affect opportunity, never evaluation.** The pressure rating always uses the frozen baseline for expectation calculation, preventing a feedback loop where early overperformance inflates expectations.
+
+### Processing Granularity
+
+The policy supports two processing modes:
+
+- **PER_MATCHUP** — ratings update automatically in the scoring pipeline after each matchUp outcome is finalized
+- **PER_ROUND** — ratings update in batch when `processCompetitionRound` is called (typically at round generation time)
+
+### Rating Math
+
+- **Expected score:** Logistic function `E = 1 / (1 + 10^((Rj - Ri) / S))` with configurable logistic scale
+- **Actual output:** Format-agnostic — derives countable scoring units (games, points, sets) from any matchUp format
+  - `POINT_SHARE` mode: `pointsWon / totalPoints`
+  - `WEIGHTED` mode: configurable weights for point share, point differential, and context factor
+- **Pressure delta:** `actualOutput - expectedOutput` (always baseline-based)
+- **Dynamic form update:** `R_new = R_old + K * (actualOutput - dynamicExpected)`
+
+### Victory Policy
+
+Configurable primary ranking (`PRESSURE_RATING`, `DYNAMIC_FORM_RATING`, `WINS`, `POINTS`) with ordered tiebreakers including `HEAD_TO_HEAD`, `HEAD_TO_HEAD_PRESSURE`, `POINT_DIFFERENTIAL`, `STRENGTH_OF_OPPOSITION`, `BUCHHOLZ`, `SONNEBORN_BERGER`.
+
+### Preset Fixtures
+
+| Fixture | Pairing | Primary Ranking | Processing |
+| --- | --- | --- | --- |
+| POLICY_COMPETITION_STANDARD | DrawMatic | WINS | PER_ROUND |
+| POLICY_COMPETITION_PRESSURE | DrawMatic | PRESSURE_RATING | PER_MATCHUP |
+| POLICY_COMPETITION_SWISS | Swiss | WINS + BUCHHOLZ tiebreak | PER_ROUND |
+
+### Pairing Integration
+
+When a competition policy is present, `generateDrawMaticRound` and `generateSwissRound` automatically use dynamic form ratings from the competition state instead of raw scale values or the legacy `dynamicRatings` system. The existing DrawMatic value function, encounter tracking, and candidate generation are fully reused.
+
+### New competitionGovernor Methods
+
+**Mutations:** `initializeCompetitionState`, `processCompetitionMatchUp`, `processCompetitionRound`, `resetCompetitionState`
+
+**Queries:** `getCompetitionState`, `getCompetitionPolicy`, `getCompetitionLeaderboard`, `getCompetitionParticipantState`
+
+### State Management
+
+Competition state is stored as a `competitionState` extension on the draw definition. It contains per-participant states (baseline, dynamic form, pressure ratings, W/L/D records, rating history) and per-round states (processing status, lane assignments).
+
+---
+
+## Infrastructure
+
+- Resolve Jest server test failures with TypeScript 6 (`jest.config.cjs` — explicit types configuration for ts-jest)
+
+---
+
 ## Documentation
 
 Comprehensive documentation was added across all new and existing features:
@@ -654,7 +764,8 @@ Comprehensive documentation was added across all new and existing features:
 - **Scale/Ranking Engine:** 6 docs (overview, API, ranking points pipeline, aggregation, quality wins)
 - **Scoring Engine:** 2 docs (overview/architecture, complete API reference)
 - **Publishing:** 8 docs (overview, embargo, events, order of play, participants, seeding, workflows, data subscriptions)
-- **Draw Types:** 13 new draw type documentation files
+- **Draw Types:** 14 new draw type documentation files (including Swiss System)
+- **Competition Policy:** policy documentation, competition governor methods
 - **Concepts:** draft draws, mutation locks, exit profiles, finishing positions, date/time handling, draw links, seed withdrawal cascade
 - **mocksEngine:** 7 docs (overview, getting started, tournament generation, participants, outcomes, patterns, governor)
 - **DrawMatic:** pressure ratings and pressure score documentation
