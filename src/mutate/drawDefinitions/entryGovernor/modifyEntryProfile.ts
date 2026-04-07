@@ -1,6 +1,7 @@
 import { addDrawDefinitionExtension } from '../../extensions/addRemoveExtensions';
 import { findExtension } from '@Acquire/findExtension';
 
+// Constants
 import { ENTRY_PROFILE } from '@Constants/extensionConstants';
 import { DrawDefinition } from '@Types/tournamentTypes';
 
@@ -17,10 +18,10 @@ export function modifyEntryProfile({ drawDefinition, attributes }: ModifyEntryPr
 
   attributes.forEach((attribute) => {
     Object.keys(attribute).forEach((key) => {
-      if (!entryProfile[key]) {
-        entryProfile[key] = attribute[key];
-      } else {
+      if (entryProfile[key]) {
         Object.assign(entryProfile[key], attribute[key]);
+      } else {
+        entryProfile[key] = attribute[key];
       }
     });
   });
