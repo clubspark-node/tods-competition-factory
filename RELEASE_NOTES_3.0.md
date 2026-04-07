@@ -643,6 +643,26 @@ Seven new documentation files covering the full mocksEngine surface:
 
 ---
 
+## PAGE_PLAYOFF Draw Type
+
+A new **Page Playoff System (PPS)** draw type — a 4-participant hybrid knockout format that gives the top two seeds double-elimination protection while maintaining single elimination for the remaining two. All four finishing positions are resolved definitively through actual matchUps.
+
+### Structure
+
+Four linked structures: **Qualifier 1** (seeds 1 vs 2), **Eliminator** (seeds 3 vs 4), **Qualifier 2** (Q1 loser vs Eliminator winner), **Final** (Q1 winner vs Q2 winner). Connected by 4 links (2 WINNER, 1 LOSER, 1 WINNER).
+
+### Three Usage Paths
+
+1. **Standalone draw type:** `drawType: PAGE_PLAYOFF, drawSize: 4` — generates structures with manual positioning
+2. **Round Robin playoff group:** `playoffGroups: [{ drawType: PAGE_PLAYOFF, finishingPositions: [1] }]` — POSITION link from RR groups, fully automated
+3. **Single Elimination playoff attachment:** via `generateAndPopulatePlayoffStructures` — TMX "Add Playoffs" modal has "Page Playoff (1-4)" toggle
+
+### Advantages
+
+Based on research by Rafique & Sanders (Syracuse University, MIT Sloan 2026) proving PPS maximizes efficacy (probability of the best team winning) and preserves fairness across 1 million simulated tournaments. Used in IPL/PSL/BPL cricket, NBA Play-In Tournament, curling, and softball.
+
+---
+
 ## Swiss System Draw Type
 
 A full **Swiss System** implementation for multi-round tournament pairing, built on the Ad Hoc draw infrastructure.
