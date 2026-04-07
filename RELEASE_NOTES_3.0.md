@@ -185,6 +185,32 @@ Now correctly includes NOAD: `"SET3-S:6NOAD/TB7-F:TB10"`. The previous value was
 
 Changed from `"SET3-S:6/TB7-F:TB10"` to `"SET3-S:6NOAD/TB7-F:TB10"`.
 
+### `entryProfile` extension removed
+
+The `ENTRY_PROFILE` extension on draw definitions has been removed entirely. This extension previously stored per-stage capacity constraints (`drawSize`, `qualifiersCount`, `wildcardsCount`, `alternates`) and was created as a byproduct of draw generation.
+
+**What changed:**
+- `ENTRY_PROFILE` constant removed from `extensionConstants`
+- `getEntryProfile()`, `modifyEntryProfile()` deleted
+- `setStageDrawSize()`, `setStageAlternatesCount()`, `setStageWildcardsCount()`, `setStageQualifiersCount()` deleted
+- `getStageDrawPositionsCount()` now derives draw size from structure `positionAssignments.length` instead of the entryProfile extension
+- `getQualifiersCount()` derives entirely from links (no entryProfile fallback)
+- `stageAlternatesCount()`, `getStageWildcardsCount()` now read from sanctioning constraints; unsanctioned draws are unconstrained
+- `getStageSpace()` checks sanctioning constraints when present; returns unconstrained when no sanctioning
+- `getValidStage()` checks structure existence, not entryProfile existence
+
+**Migration:**
+- Code importing `ENTRY_PROFILE` from `extensionConstants`: remove the import
+- Code calling `setStageDrawSize()`: pass `drawSize` directly to `generateDrawDefinition` or `generateDrawTypeAndModifyDrawDefinition`
+- Code calling `setStageQualifiersCount()`: pass `qualifiersCount` to `generateDrawDefinition`
+- Code reading `entryProfile[stage].drawSize`: use `getStageDrawPositionsCount({ stage, drawDefinition })` which now derives from structures
+- Code reading `entryProfile[stage].qualifiersCount`: use `getQualifiersCount({ drawDefinition, structureId, stage })`
+- Draw composition enforcement (wildcards, alternates) now requires sanctioning constraints; unsanctioned draws have no composition limits
+
+### `DrawLinkSource` type expanded
+
+Added `qualifyingPositions?: number` to `DrawLinkSource`. When a qualifying placeholder link has `roundNumber: 0`, the `qualifyingPositions` field specifies how many qualifier positions to reserve in the target MAIN structure during automated positioning. This replaces the qualifier reservation that was previously handled by `entryProfile`.
+
 ---
 
 ## New Engines
@@ -200,6 +226,20 @@ A complete lifecycle engine for governing body tournament sanctioning workflows.
 - **188 tests** across 10 test files
 - Endorsement support, certification tracking, compliance monitoring
 - Full documentation suite
+
+#### Draw Composition Constraints
+
+`SanctioningTier` now includes draw composition fields:
+
+| Field | Purpose |
+| --- | --- |
+| `maxWildcards` | Maximum wildcard entries per draw |
+| `maxAlternates` | Maximum alternate entries per draw |
+| `maxQualifiers` | Maximum qualifier positions per draw |
+
+When a sanctioned tournament is activated, these constraints are stored as a `SANCTIONING_CONSTRAINTS` extension on the tournament record. Runtime enforcement via `getStageSpace()` and `getDrawCompositionConstraints()` checks these limits when adding entries. Unsanctioned draws are unconstrained — no composition limits apply without sanctioning.
+
+This replaces the `entryProfile` extension which previously stored draw composition data as a byproduct of draw generation rather than as a governance mechanism.
 
 ### Officiating Engine
 
