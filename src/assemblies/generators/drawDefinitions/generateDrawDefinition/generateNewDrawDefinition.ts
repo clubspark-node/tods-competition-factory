@@ -57,32 +57,43 @@ export function generateNewDrawDefinition(params): ResultType & {
   if (addResult.error) return addResult;
 
   // When qualifyingPlaceholder is requested, create the placeholder structure and link
-  // BEFORE positioning so that getByesData/getQualifiersCount can account for qualifier positions
+  // BEFORE positioning so that getByesData/getQualifiersCount can account for qualifier positions.
+  // Skip when there is already a qualifying structure linked to the main (e.g. qualifying-first
+  // flow where the real qualifying structure already exists).
   const { qualifyingPlaceholder, qualifyingProfiles, qualifiersCount } = params;
-  if (qualifyingPlaceholder && !qualifyingProfiles?.length && qualifiersCount && drawDefinition) {
-    const mainStructureId = drawDefinition.structures?.find(
-      (s) => s.stage === MAIN && s.stageSequence === 1,
-    )?.structureId;
-
-    if (mainStructureId) {
-      const qualifyingStructure = structureTemplate({
-        structureName: constantToString(QUALIFYING),
-        stage: QUALIFYING,
-        qualifyingOnly,
-        tieFormat: params.tieFormat,
-      });
-      const { link } = generateQualifyingLink({
-        sourceStructureId: qualifyingStructure.structureId,
-        targetStructureId: mainStructureId,
-        qualifyingPositions: qualifiersCount,
-        sourceRoundNumber: 0,
-        linkType: POSITION,
-      });
-      drawDefinition.structures ??= [];
-      drawDefinition.structures.push(qualifyingStructure);
-      drawDefinition.links ??= [];
-      drawDefinition.links.push(link);
-    }
+  const mainStructureId = drawDefinition?.structures?.find(
+    (s) => s.stage === MAIN && s.stageSequence === 1,
+  )?.structureId;
+  const existingQualifyingLink =
+    mainStructureId &&
+    drawDefinition?.links?.some(
+      (l: any) => l.target?.structureId === mainStructureId && l.source?.structureId,
+    );
+  if (
+    qualifyingPlaceholder &&
+    !qualifyingProfiles?.length &&
+    qualifiersCount &&
+    drawDefinition &&
+    mainStructureId &&
+    !existingQualifyingLink
+  ) {
+    const qualifyingStructure = structureTemplate({
+      structureName: constantToString(QUALIFYING),
+      stage: QUALIFYING,
+      qualifyingOnly,
+      tieFormat: params.tieFormat,
+    });
+    const { link } = generateQualifyingLink({
+      sourceStructureId: qualifyingStructure.structureId,
+      targetStructureId: mainStructureId,
+      qualifyingPositions: qualifiersCount,
+      sourceRoundNumber: 0,
+      linkType: POSITION,
+    });
+    drawDefinition.structures ??= [];
+    drawDefinition.structures.push(qualifyingStructure);
+    drawDefinition.links ??= [];
+    drawDefinition.links.push(link);
   }
 
   // temporary until seeding is supported in LUCKY_DRAW
