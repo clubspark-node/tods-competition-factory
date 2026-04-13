@@ -276,6 +276,11 @@ export class ScoringEngine {
 
     // Record entry in unified timeline
     this.ensureHistory();
+    // Capture the resolved scoreValue from the point that was just added so
+    // undo→rebuild can replay with the correct increment (e.g. Winner=2, Touch=1
+    // in INTENNSE). The pure addPoint() stores it on the point when non-default.
+    const lastPoint = this.state.history!.points[this.state.history!.points.length - 1];
+    const resolvedScoreValue = (lastPoint as any)?.scoreValue;
     this.state.history!.entries!.push({
       type: 'point',
       data: {
@@ -288,6 +293,7 @@ export class ScoringEngine {
         rallyLength: options.rallyLength,
         result: options.result,
         penaltyType: options.penaltyType,
+        ...(resolvedScoreValue !== undefined && resolvedScoreValue !== 1 && { scoreValue: resolvedScoreValue }),
       },
       timestamp: options.timestamp || new Date().toISOString(),
       pointIndex,
