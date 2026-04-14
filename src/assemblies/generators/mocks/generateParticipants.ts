@@ -404,7 +404,7 @@ function genRatings(params) {
 
         if (typeof attributeValue === 'object' && attributeValue.generator) {
           const { range } = attributeValue;
-          const [min, max] = range.slice().sort();
+          const [min, max] = range.slice().sort((a, b) => a - b);
 
           generatedAttributes[attribute] = randomInt(min, max, random);
         } else {
@@ -417,7 +417,7 @@ function genRatings(params) {
 
     const inverted = range[0] > range[1];
     const skew = inverted ? 2 : 0.7;
-    const [min, max] = range.slice().sort();
+    const [min, max] = range.slice().sort((a, b) => a - b);
     const generateRatings = () => {
       const ratingsBucket = generateRange(0, 2000) // overgenerate because filter and restricted range will impact final count
         .map(() => skewedDistribution(min, max, skew, step, decimalsCount, random));

@@ -210,7 +210,7 @@ function getSideValues({
   scaleName,
   sides,
 }: GetSideValuesArgs) {
-  const sortedRange = exclusionRule?.range.sort();
+  const sortedRange = exclusionRule?.range.slice().sort((a, b) => a - b);
 
   const checkExcludeParticipant = (scaleValue) => {
     const exclusionValue = scaleValue?.[exclusionRule?.valueAccessor];

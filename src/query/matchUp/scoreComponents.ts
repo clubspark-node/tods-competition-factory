@@ -49,6 +49,6 @@ function gamesPercent(scoreComponents) {
 export function pctSpread(pcts) {
   return pcts
     .map(gamesPercent)
-    .sort()
+    .sort((a, b) => a - b)
     .map((p) => parseFloat(p.toFixed(2)));
 }
