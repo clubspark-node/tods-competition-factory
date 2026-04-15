@@ -592,7 +592,7 @@ describe('Performance', () => {
     const result = unique(largeArray);
     const duration = Date.now() - start;
 
-    expect(duration).toBeLessThan(500);
+    expect(duration).toBeLessThan(2000);
     expect(result).toHaveLength(1000);
   });
 

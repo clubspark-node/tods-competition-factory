@@ -1,7 +1,7 @@
 # tods-competition-factory v3.0 Release Notes
 
 **Previous stable release:** v2.4.5 (February 23, 2026)
-**Commits since v2.4.5:** 504 (across 37 beta releases)
+**Commits since v2.4.5:** 685 (across 43 beta releases)
 
 ---
 
@@ -267,7 +267,7 @@ A scheduling infrastructure engine providing collision detection, capacity curve
 The `scaleEngine` has been expanded into a comprehensive ranking points pipeline with policy-driven point tables, aggregation, and quality win calculations.
 
 - **New governor:** `rankingGovernor` with mutate and query surfaces
-- **New queries:** `generateRankingList`, `getEventRankingPoints`, `getParticipantPoints`, `getQualityWinPoints`, `processBucketResults`
+- **New queries:** `generateRankingList`, `getEventRankingPoints`, `getParticipantPoints`, `getQualityWinPoints`, `processBucketResults`, `getApplicableAwardProfileLevels` (context-aware level filtering for award profiles)
 - **New mutation:** `applyTournamentRankingPoints`
 - **10 ranking point policy fixtures:** ATP, WTA, ITF Junior, ITF WTT, LTA, Tennis Australia, Tennis Canada, Tennis Europe, USTA Junior, Basic
 - **JSON schema** for ranking policy validation
@@ -367,6 +367,8 @@ The old history-based scoring files (`addGame.ts`, `addPoint.ts`, `addSet.ts`, `
 - `loadSupplementaryState(state)` — restore supplementary state on reload
 
 **CompetitionFormat fixtures:** `INTENNSE_STANDARD.json`, `TENNIS_STANDARD.json`
+
+**Tie format fixtures:** `INTENNSE_2026` tieFormat added for the updated 2026 INTENNSE rules
 
 **Test coverage:** `scoringEngineCoverage.test.ts` (1,733 lines), `engine-api-extensions.test.ts` (1,037 lines), `scoring-engine.test.ts` (295 lines), plus `undo-redo.test.ts`, `substitutions.test.ts`, `statistics.test.ts`, `addPoint.test.ts`, `mixed-game-point.test.ts`, `outs-scoring-engine.test.ts`, `pbp-validation.test.ts`, `pbpValidator.test.ts`, `pbpValidatorCoverage.test.ts`, `mcpParser.test.ts`, `mcpValidator.test.ts`
 
@@ -521,6 +523,8 @@ Beyond the new ScoringEngine and matchUpFormat expansion (see their dedicated se
 - Standardized `participantName` construction
 - Numeric `participantId` coercion (string conversion)
 - Expanded `ParticipantRoleEnum` with 6 new roles
+- `useOtherName` participant attribute support
+- `teamAttributes` schema definition for team-level metadata
 
 ### New Error Constants
 
@@ -576,9 +580,9 @@ Test files (`*.test.ts`) are now included in the ESLint configuration. Previousl
 
 | Metric        | v2.4.5 | v3.0  | Change         |
 | ------------- | ------ | ----- | -------------- |
-| Test files    | 659    | 843   | +184 (+28%)    |
-| Tests passing | ~6,500 | 8,284 | ~+1,800 (+27%) |
-| Tests skipped | —      | 5     | —              |
+| Test files    | 659    | 869   | +210 (+32%)    |
+| Tests passing | ~6,500 | 9,142 | ~+2,600 (+40%) |
+| Tests skipped | —      | 6     | —              |
 
 ### New Test Suites by Area
 
@@ -664,6 +668,10 @@ Seven new documentation files covering the full mocksEngine surface:
 - Fix `addPoint` when `addGame` entry is part of history
 - Add missing NOAD to `FORMAT_ATP_DOUBLES`; fix key-value scorer for NOAD tiebreaks
 - Cross-set server tracking fix
+- `getState()` now returns a deep copy to prevent external mutation of engine internals
+- `setServer()` accepts `recordEntry: false` option to suppress history entry
+- Capture resolved `scoreValue` in history entries for correct undo replay
+- Finalize tied segments with `segmentComplete` flag
 
 ### Publishing / Embargo
 
@@ -701,6 +709,7 @@ Seven new documentation files covering the full mocksEngine surface:
 - Fix lucky draw detection for Swiss and qualifying structures
 - Fix `ROUND_TARGET` extension name in `addDrawEntry` (was incorrectly `'roundEntry'`)
 - Allow qualifying entries in drawDefinition when `qualifyingOnly: true` and `drawEntries` provided
+- Skip qualifying placeholder creation when existing link already targets main structure
 
 ### Scheduling / Dates
 
@@ -715,6 +724,7 @@ Seven new documentation files covering the full mocksEngine surface:
 
 - Standardize `tsconfig.base.json` case for Linux CI compatibility
 - Make `addVersion` rm non-fatal when no backup files exist
+- Add explicit `.sort()` comparators throughout codebase for deterministic ordering and CI stability
 
 ---
 

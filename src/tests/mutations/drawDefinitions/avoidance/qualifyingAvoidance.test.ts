@@ -25,6 +25,7 @@ it('properly handles qualifiers with avoidances', () => {
   ];
 
   const result = mocksEngine.generateTournamentRecord({
+    participantsProfile: { nationalityCodesCount: 30 },
     policyDefinitions,
     drawProfiles,
   });
