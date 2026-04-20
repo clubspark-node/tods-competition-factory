@@ -1,8 +1,9 @@
 import { getParticipantStats } from '@Query/participant/getParticipantStats';
 
+// Constants and Types
 import { PARTICIPANT_STATS_REPORT } from '@Constants/reportConstants';
-import { ReportResult } from '@Types/reportTypes';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapParticipantStats({
   tournamentRecord,

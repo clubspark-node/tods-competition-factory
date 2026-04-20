@@ -1,9 +1,10 @@
 import { allTournamentMatchUps } from '@Query/matchUps/getAllTournamentMatchUps';
 import { getParticipants } from '@Query/participants/getParticipants';
 
+// Constants and Types
 import { MISSING_TOURNAMENT_RECORD } from '@Constants/errorConditionConstants';
-import { ReportContext } from '@Types/reportTypes';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportContext } from '@Types/reportTypes';
 
 type BuildReportContextArgs = {
   tournamentRecord: Tournament;

@@ -8,9 +8,10 @@ import { wrapParticipantStats } from './wrappers/wrapParticipantStats';
 import { wrapStructureReport } from './wrappers/wrapStructureReport';
 import { wrapVenuesReport } from './wrappers/wrapVenuesReport';
 
+// Constants and Types
 import { MISSING_TOURNAMENT_RECORD } from '@Constants/errorConditionConstants';
-import { ReportResult } from '@Types/reportTypes';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 import {
   COMPETITIVENESS_REPORT,
@@ -44,10 +45,7 @@ const wrapperMap: Record<string, (args: { tournamentRecord: Tournament }) => Rep
   [VENUE_UTILIZATION_REPORT]: wrapVenuesReport,
 };
 
-export function generateReport({
-  tournamentRecord,
-  reportId,
-}: GenerateReportArgs): ReportResult | { error: any } {
+export function generateReport({ tournamentRecord, reportId }: GenerateReportArgs): ReportResult | { error: any } {
   if (!tournamentRecord) return { error: MISSING_TOURNAMENT_RECORD };
 
   const wrapper = wrapperMap[reportId];

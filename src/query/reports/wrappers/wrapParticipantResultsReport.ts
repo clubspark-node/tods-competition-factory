@@ -1,11 +1,12 @@
 import { allTournamentMatchUps } from '@Query/matchUps/getAllTournamentMatchUps';
 import { getParticipants } from '@Query/participants/getParticipants';
 
-import { PARTICIPANT_RESULTS_REPORT } from '@Constants/reportConstants';
+// Constants and Types
 import { completedMatchUpStatuses } from '@Constants/matchUpStatusConstants';
 import { SINGLES_MATCHUP, DOUBLES_MATCHUP } from '@Constants/matchUpTypes';
-import { ReportResult } from '@Types/reportTypes';
+import { PARTICIPANT_RESULTS_REPORT } from '@Constants/reportConstants';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapParticipantResultsReport({
   tournamentRecord,
@@ -22,7 +23,10 @@ export function wrapParticipantResultsReport({
   const completed = matchUps.filter((m: any) => completedMatchUpStatuses.includes(m.matchUpStatus));
 
   // Accumulate per-participant stats
-  const statsMap: Record<string, { wins: number; losses: number; setsWon: number; setsLost: number; gamesWon: number; gamesLost: number }> = {};
+  const statsMap: Record<
+    string,
+    { wins: number; losses: number; setsWon: number; setsLost: number; gamesWon: number; gamesLost: number }
+  > = {};
 
   const ensureStats = (pid: string) => {
     if (!statsMap[pid]) statsMap[pid] = { wins: 0, losses: 0, setsWon: 0, setsLost: 0, gamesWon: 0, gamesLost: 0 };
@@ -38,7 +42,10 @@ export function wrapParticipantResultsReport({
     const loserIds = loserSideIds[ws] ?? [];
 
     const sets = m.score?.sets ?? [];
-    let s1SetsWon = 0, s2SetsWon = 0, s1Games = 0, s2Games = 0;
+    let s1SetsWon = 0,
+      s2SetsWon = 0,
+      s1Games = 0,
+      s2Games = 0;
     for (const set of sets) {
       const g1 = set.side1Score ?? 0;
       const g2 = set.side2Score ?? 0;

@@ -1,9 +1,10 @@
 import { allTournamentMatchUps } from '@Query/matchUps/getAllTournamentMatchUps';
 
-import { MATCHUP_STATUS_REPORT } from '@Constants/reportConstants';
+// Constants and Types
 import { completedMatchUpStatuses } from '@Constants/matchUpStatusConstants';
-import { ReportResult } from '@Types/reportTypes';
+import { MATCHUP_STATUS_REPORT } from '@Constants/reportConstants';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapMatchUpStatusReport({
   tournamentRecord,

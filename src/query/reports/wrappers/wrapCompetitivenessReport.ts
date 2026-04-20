@@ -1,10 +1,11 @@
 import { getMatchUpCompetitiveProfile } from '@Query/matchUp/getMatchUpCompetitiveProfile';
 import { allTournamentMatchUps } from '@Query/matchUps/getAllTournamentMatchUps';
 
-import { COMPETITIVENESS_REPORT } from '@Constants/reportConstants';
+// Constants and Types
 import { completedMatchUpStatuses } from '@Constants/matchUpStatusConstants';
-import { ReportResult } from '@Types/reportTypes';
+import { COMPETITIVENESS_REPORT } from '@Constants/reportConstants';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapCompetitivenessReport({
   tournamentRecord,
@@ -26,7 +27,10 @@ export function wrapCompetitivenessReport({
   ];
 
   const rows = completed
-    .sort((a: any, b: any) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || (a.roundPosition ?? 0) - (b.roundPosition ?? 0))
+    .toSorted(
+      (a: any, b: any) =>
+        (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || (a.roundPosition ?? 0) - (b.roundPosition ?? 0),
+    )
     .map((m: any) => {
       const profile: any = getMatchUpCompetitiveProfile({ matchUp: m, tournamentRecord });
 

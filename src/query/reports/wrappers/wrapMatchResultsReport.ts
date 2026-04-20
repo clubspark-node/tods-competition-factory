@@ -1,9 +1,10 @@
 import { allTournamentMatchUps } from '@Query/matchUps/getAllTournamentMatchUps';
 
-import { MATCH_RESULTS_REPORT } from '@Constants/reportConstants';
+// Constants and Types
 import { completedMatchUpStatuses } from '@Constants/matchUpStatusConstants';
-import { ReportResult } from '@Types/reportTypes';
+import { MATCH_RESULTS_REPORT } from '@Constants/reportConstants';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapMatchResultsReport({
   tournamentRecord,
@@ -25,7 +26,10 @@ export function wrapMatchResultsReport({
   ];
 
   const rows = completedMatchUps
-    .sort((a: any, b: any) => (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || (a.roundPosition ?? 0) - (b.roundPosition ?? 0))
+    .toSorted(
+      (a: any, b: any) =>
+        (a.roundNumber ?? 0) - (b.roundNumber ?? 0) || (a.roundPosition ?? 0) - (b.roundPosition ?? 0),
+    )
     .map((m: any) => {
       const side1Name = m.sides?.[0]?.participant?.participantName ?? '';
       const side2Name = m.sides?.[1]?.participant?.participantName ?? '';

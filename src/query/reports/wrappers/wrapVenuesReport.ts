@@ -1,8 +1,9 @@
 import { getVenuesReport } from '@Query/venues/venuesReport';
 
+// Constants and Types
 import { VENUE_UTILIZATION_REPORT } from '@Constants/reportConstants';
-import { ReportResult } from '@Types/reportTypes';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapVenuesReport({
   tournamentRecord,

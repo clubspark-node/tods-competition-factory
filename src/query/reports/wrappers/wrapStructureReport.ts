@@ -1,8 +1,9 @@
 import { getStructureReports } from '@Query/structure/structureReport';
 
+// Constants and Types
 import { STRUCTURE_REPORT } from '@Constants/reportConstants';
-import { ReportResult } from '@Types/reportTypes';
 import { Tournament } from '@Types/tournamentTypes';
+import { ReportResult } from '@Types/reportTypes';
 
 export function wrapStructureReport({
   tournamentRecord,
@@ -49,10 +50,7 @@ export function wrapStructureReport({
 
   const rows = (result.structureReports ?? []).map((report: any) => {
     // Resolve winner name from personId or teamId
-    const winnerName =
-      participantNameMap[report.winningPersonId] ||
-      participantNameMap[report.winningTeamId] ||
-      '';
+    const winnerName = participantNameMap[report.winningPersonId] || participantNameMap[report.winningTeamId] || '';
 
     return {
       eventId: report.eventId ?? '',
