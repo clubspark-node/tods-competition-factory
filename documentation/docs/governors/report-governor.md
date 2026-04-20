@@ -8,6 +8,195 @@ import { reportGovernor } from 'tods-competition-factory';
 
 The **reportGovernor** provides analytics and reporting functions that generate statistical summaries of tournaments, participants, structures, and venues. These methods are useful for dashboards, analytics pages, and tournament management reports.
 
+## Unified Reporting API
+
+The reporting engine provides a unified interface for generating reports in a consistent `{ reportId, columns, rows, summary }` shape. This allows consumers to render any report as a table, export to PDF/CSV/JSON, or publish as data without knowing the internal structure of each report.
+
+Three infrastructure methods power the unified API:
+- [`getAvailableReports`](#getavailablereports) — discover which reports are computable for a tournament
+- [`buildReportContext`](#buildreportcontext) — pre-hydrate shared data for multiple reports
+- [`generateReport`](#generatereport) — generate any registered report by ID
+
+The individual report methods ([`getParticipantStats`](#getparticipantstats), [`getEntryStatusReports`](#getentrystatusreports), [`getStructureReports`](#getstructurereports), [`getVenuesReport`](#getvenuesreport)) continue to work as before and return their original shapes. The unified API wraps them.
+
+---
+
+## getAvailableReports
+
+Returns a list of all registered reports with metadata indicating whether each is computable given the current tournament data.
+
+**Parameters:**
+
+```ts
+{
+  tournamentRecord: Tournament;
+}
+```
+
+**Returns:**
+
+```ts
+{
+  availableReports: Array<{
+    reportId: string;            // Unique report identifier (e.g., 'entries.entryStatus')
+    name: string;                // Human-readable name
+    description: string;         // What the report shows
+    category: string;            // Grouping: 'Entries' | 'Draws' | 'MatchUps' | 'Participants' | 'Scheduling' | 'Audit'
+    source?: 'factory' | 'server'; // Where data comes from (default: 'factory')
+    computableNow: boolean;      // Whether the tournament has sufficient data
+  }>;
+}
+```
+
+**Examples:**
+
+```js
+const { availableReports } = tournamentEngine.getAvailableReports();
+
+// Show only computable reports
+const ready = availableReports.filter(r => r.computableNow);
+console.log(`${ready.length} reports available`);
+
+ready.forEach(r => {
+  console.log(`[${r.category}] ${r.name} — ${r.description}`);
+});
+
+// Group by category
+const byCategory = Object.groupBy(ready, r => r.category);
+```
+
+**Registered Reports:**
+
+| Report ID | Name | Category | Requires |
+|---|---|---|---|
+| `entries.entryStatus` | Entry Status Report | Entries | Events |
+| `structure.drawReport` | Draw Structure Report | Draws | Events |
+| `matchUp.results` | Match Results | MatchUps | Completed draws |
+| `matchUp.statusSummary` | MatchUp Status Summary | MatchUps | Completed draws |
+| `matchUp.competitiveness` | Match Competitiveness | MatchUps | Completed draws |
+| `participant.results` | Participant Results | Participants | Completed draws |
+| `participant.seedingPerformance` | Seeding Performance | Participants | Seeded participants |
+| `participant.teamStats` | Team Statistics | Participants | Team participants |
+| `venue.utilization` | Venue Utilization | Scheduling | Venues |
+| `audit.mutationLog` | Mutation Log | Audit | Server audit trail |
+| `audit.drawRevisions` | Draw Revision History | Audit | Server audit trail |
+| `audit.schedulingChurn` | Scheduling Churn | Audit | Server audit trail |
+| `audit.positionChanges` | Position Changes | Audit | Server audit trail |
+
+Reports with `source: 'server'` require data from the server audit trail and cannot be generated from the tournament record alone.
+
+---
+
+## buildReportContext
+
+Pre-hydrates participants, matchUps, and venues into a reusable context object. Use this when generating multiple reports to avoid redundant data fetching.
+
+**Parameters:**
+
+```ts
+{
+  tournamentRecord: Tournament;
+}
+```
+
+**Returns:**
+
+```ts
+{
+  tournamentRecord: Tournament;
+  participantMap: Record<string, any>;  // Hydrated with scales, events, seeding, draws
+  matchUps: HydratedMatchUp[];
+  venues: Venue[];
+}
+```
+
+**Examples:**
+
+```js
+const context = tournamentEngine.buildReportContext();
+
+// Use context for multiple reports (avoids re-hydrating participants each time)
+const report1 = tournamentEngine.generateReport({ reportId: 'entries.entryStatus' });
+const report2 = tournamentEngine.generateReport({ reportId: 'matchUp.results' });
+```
+
+---
+
+## generateReport
+
+Generates a report by ID, returning a unified shape with columns and rows suitable for table rendering, PDF export, or data serialization.
+
+**Parameters:**
+
+```ts
+{
+  tournamentRecord: Tournament;
+  reportId: string;               // One of the registered report IDs
+  parameters?: Record<string, any>; // Optional report-specific parameters
+}
+```
+
+**Returns:**
+
+```ts
+{
+  reportId: string;
+  generatedAt: string;            // ISO timestamp
+  parameters?: Record<string, any>;
+  columns: Array<{
+    key: string;                  // Field name in row data
+    title: string;                // Display header
+    type?: 'string' | 'number' | 'boolean' | 'date';
+    width?: number;
+  }>;
+  rows: Record<string, any>[];   // Array of row objects keyed by column.key
+  summary?: Record<string, any>; // Optional aggregate data
+}
+```
+
+**Examples:**
+
+```js
+// Generate a specific report
+const result = tournamentEngine.generateReport({
+  reportId: 'entries.entryStatus',
+});
+
+console.log(result.columns); // [{ key: 'participantName', title: 'Participant', type: 'string' }, ...]
+console.log(result.rows.length); // 32
+
+// Render as a table
+result.columns.forEach(col => process.stdout.write(col.title.padEnd(20)));
+result.rows.forEach(row => {
+  result.columns.forEach(col => process.stdout.write(String(row[col.key]).padEnd(20)));
+});
+
+// Export as CSV
+const header = result.columns.map(c => c.title).join(',');
+const csv = [header, ...result.rows.map(row =>
+  result.columns.map(c => String(row[c.key] ?? '')).join(',')
+)].join('\n');
+
+// Export as JSON
+const json = JSON.stringify(result, null, 2);
+
+// Rows may include extra fields (e.g., participantId) not in columns — useful for lookups
+// Only column keys should be rendered in UI; extra fields are for CSV/JSON export
+```
+
+**Error handling:**
+
+```js
+// Unknown report ID
+const result = tournamentEngine.generateReport({ reportId: 'nonexistent' });
+// { error: 'Invalid reportId' }
+
+// Server-sourced report (audit.*)
+const result = tournamentEngine.generateReport({ reportId: 'audit.mutationLog' });
+// { error: 'Invalid reportId' }
+// Server-sourced reports must be fetched from the audit worker, not from generateReport
+```
+
 ---
 
 ## getParticipantStats
