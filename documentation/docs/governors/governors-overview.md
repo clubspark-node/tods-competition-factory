@@ -498,12 +498,12 @@ myEngine.scheduleMatchUps({ ... });
 
 ### MatchUp Operations
 
-| Governor                                             | Purpose            | Key Methods                                                     |
-| ---------------------------------------------------- | ------------------ | --------------------------------------------------------------- |
-| [MatchUp Governor](./matchup-governor)               | MatchUp management      | `setMatchUpStatus`, `setMatchUpScore`, `advanceParticipants`        |
-| [Score Governor](./score-governor)                   | Score handling          | `parseScoreString`, `generateScoreString`, `checkSetIsComplete`     |
-| [MatchUp Format Governor](./matchup-format-governor) | Format handling         | `parseMatchUpFormat`, `stringifyMatchUpFormat`                      |
-| [tieFormat Governor](./tie-format-governor)          | Team format management  | `modifyTieFormat`, `aggregateTieFormats`, `addCollectionDefinition` |
+| Governor                                             | Purpose                | Key Methods                                                         |
+| ---------------------------------------------------- | ---------------------- | ------------------------------------------------------------------- |
+| [MatchUp Governor](./matchup-governor)               | MatchUp management     | `setMatchUpStatus`, `setMatchUpScore`, `advanceParticipants`        |
+| [Score Governor](./score-governor)                   | Score handling         | `parseScoreString`, `generateScoreString`, `checkSetIsComplete`     |
+| [MatchUp Format Governor](./matchup-format-governor) | Format handling        | `parseMatchUpFormat`, `stringifyMatchUpFormat`                      |
+| [tieFormat Governor](./tie-format-governor)          | Team format management | `modifyTieFormat`, `aggregateTieFormats`, `addCollectionDefinition` |
 
 ### Scheduling & Venues
 
