@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.2](https://github.com/CourtHive/competition-factory/compare/v3.2.1...v3.2.2) (2026-04-29)
+
+
+### Bug Fixes
+
+* **deps:** update dependency tods-competition-factory to v3.2.1 ([2b276cd](https://github.com/CourtHive/competition-factory/commit/2b276cdc8631678e31c56a2e03abf868f301b74c))
+
 ## [3.2.1](https://github.com/CourtHive/competition-factory/compare/v3.2.0...v3.2.1) (2026-04-29)
 
 
