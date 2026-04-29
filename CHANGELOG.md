@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/CourtHive/competition-factory/compare/v3.2.0...v3.2.1) (2026-04-29)
+
+
+### Bug Fixes
+
+* **scheduling:** clear COURT.ORDER timeItem on empty-string + removePriorValues ([17a2d9b](https://github.com/CourtHive/competition-factory/commit/17a2d9b70f9ffffc44172e905f0adaa020ad902a))
+
 ## [3.2.0](https://github.com/CourtHive/competition-factory/compare/v3.1.5...v3.2.0) (2026-04-28)
 
 
