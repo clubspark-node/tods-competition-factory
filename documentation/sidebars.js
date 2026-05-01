@@ -58,6 +58,7 @@ module.exports = {
             'policies/competitiveBands',
             'policies/competitionPolicy',
             'policies/sanctioningPolicy',
+            'policies/printPolicy',
           ],
         },
         {
