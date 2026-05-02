@@ -5,6 +5,10 @@
       "matchPackageNames": ["tods-competition-factory"],
       "matchFileNames": ["documentation/**"],
       "semanticCommitType": "chore"
+    },
+    {
+      "matchManagers": ["npm"],
+      "semanticCommitType": "chore"
     }
   ]
 }
