@@ -101,10 +101,12 @@ export function suggestFormatPlans({
   const strategies = generateFlightingStrategies(participants);
   const resolvedModel = resolvePredictionModel(predictionModel, tournamentRecord);
 
-  const recommendationsByFlightSize = (size: number): StructureRecommendation[] =>
+  const recommendationsByFlightSize = (size: number, singleFlight: boolean): StructureRecommendation[] =>
     getStructureRecommendations({
       consolationAppetite: constraints.consolationAppetite,
+      voluntaryConsolation: constraints.voluntaryConsolation,
       allowedDrawTypes: governance?.allowedDrawTypes,
+      singleFlight,
       flightSize: size,
     });
 

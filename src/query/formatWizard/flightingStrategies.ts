@@ -3,10 +3,22 @@ import { computeRatingDistributionStats } from './distributionStats';
 // constants and types
 import { FlightingStrategy, WizardFlight, WizardParticipant } from '@Types/formatWizardTypes';
 
-const EQUAL_COUNT_VARIANTS = [2, 3, 4, 8];
+const EQUAL_COUNT_VARIANTS = [2, 3, 4, 6];
 const EQUAL_BAND_VARIANTS = [0.5, 1];
 const NATURAL_CLUSTER_MIN_FILL = 4;
-const MIN_FLIGHT_SIZE = 2;
+const MIN_FLIGHT_SIZE = 4;
+
+// Cap on how many flights are reasonable for a given pool size. The
+// purpose is to avoid the "9 flights for 32 players" trap — TDs
+// can't realistically run that many parallel events. Pools above
+// the largest tier still cap at 8 to keep ranked plans readable.
+function maxFlightCount(poolSize: number): number {
+  if (poolSize <= 8) return 1;
+  if (poolSize <= 16) return 2;
+  if (poolSize <= 32) return 4;
+  if (poolSize <= 64) return 6;
+  return 8;
+}
 
 function sortByRatingDescending(participants: WizardParticipant[]): WizardParticipant[] {
   return [...participants].sort((a, b) => b.rating - a.rating);
@@ -133,25 +145,34 @@ function staggeredSingleStrategy(sorted: WizardParticipant[]): FlightingStrategy
 // pool. The pool is treated as a single cohort — gender/category
 // segmentation is the caller's responsibility (filter the pool
 // upstream and run the engine again to compare segregated plans).
+//
+// Flight-count caps + per-flight minimum size are enforced here so
+// downstream scoring never sees "9 flights of 3 players" plans
+// that no TD would ever run.
 export function generateFlightingStrategies(participants: WizardParticipant[]): FlightingStrategy[] {
   if (!Array.isArray(participants) || participants.length < MIN_FLIGHT_SIZE) return [];
 
   const sorted = sortByRatingDescending(participants);
+  const maxFlights = maxFlightCount(participants.length);
   const strategies: FlightingStrategy[] = [];
 
   for (const k of EQUAL_COUNT_VARIANTS) {
+    if (k > maxFlights) continue;
     const candidate = equalCountStrategy(sorted, k);
     if (candidate) strategies.push(candidate);
   }
 
   for (const width of EQUAL_BAND_VARIANTS) {
     const candidate = equalBandStrategy(sorted, width);
-    if (candidate) strategies.push(candidate);
+    if (candidate && candidate.flights.length <= maxFlights) strategies.push(candidate);
   }
 
   const cluster = naturalClusterStrategy(sorted);
-  if (cluster) strategies.push(cluster);
+  if (cluster && cluster.flights.length <= maxFlights) strategies.push(cluster);
 
+  // STAGGERED_SINGLE — one flight, whole pool — is always emitted
+  // as the connected-bracket alternative (FEED_IN catalog) feeds off
+  // it. It is not subject to the cap.
   strategies.push(staggeredSingleStrategy(sorted));
 
   return strategies;

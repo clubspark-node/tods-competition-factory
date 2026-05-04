@@ -66,7 +66,10 @@ function predictBandsForFlight({
     return predictDrawCompetitiveBands({ ratings, projectionMode: 'MIN_DELTA', predictionModel });
   }
 
-  if (kind === 'STAGGERED_FRENCH') {
+  if (kind === 'FEED_IN') {
+    // FEED_IN's whole point is balanced cross-tier matchups — model
+    // it as the balanced-bracket projection, same as the prior
+    // staggered family used.
     return predictDrawCompetitiveBands({ ratings, projectionMode: 'BALANCED_BRACKET', predictionModel });
   }
 
@@ -115,20 +118,13 @@ function aggregateBands(flightStructures: FlightStructure[]): {
   };
 }
 
-function computeFloors(flightStructures: FlightStructure[]): {
-  minMatchesPerPlayer: number;
-  effectiveMinMatchesPerPlayer: number;
-} {
-  if (flightStructures.length === 0) return { minMatchesPerPlayer: 0, effectiveMinMatchesPerPlayer: 0 };
+function computeFloors(flightStructures: FlightStructure[]): { minMatchesPerPlayer: number } {
+  if (flightStructures.length === 0) return { minMatchesPerPlayer: 0 };
   let min = Infinity;
-  let effectiveMin = Infinity;
   for (const fs of flightStructures) {
     if (fs.structure.minMatchesPerPlayer < min) min = fs.structure.minMatchesPerPlayer;
-    if (fs.structure.effectiveMinMatchesPerPlayer < effectiveMin) {
-      effectiveMin = fs.structure.effectiveMinMatchesPerPlayer;
-    }
   }
-  return { minMatchesPerPlayer: min, effectiveMinMatchesPerPlayer: effectiveMin };
+  return { minMatchesPerPlayer: min };
 }
 
 function computeCourtUtilization(
@@ -148,18 +144,21 @@ function computeCourtUtilization(
 }
 
 function buildWarnings({
-  effectiveMinMatchesPerPlayer,
+  minMatchesPerPlayer,
   flightStructures,
   courtUtilization,
   constraints,
 }: {
-  effectiveMinMatchesPerPlayer: number;
   flightStructures: FlightStructure[];
+  minMatchesPerPlayer: number;
   courtUtilization: number;
   constraints: WizardConstraints;
 }): PlanWarning[] {
   const warnings: PlanWarning[] = [];
-  if (typeof constraints.minMatchesFloor === 'number' && effectiveMinMatchesPerPlayer < constraints.minMatchesFloor) {
+  if (
+    typeof constraints.targetMatchesPerPlayer === 'number' &&
+    minMatchesPerPlayer < constraints.targetMatchesPerPlayer
+  ) {
     warnings.push('BELOW_FLOOR');
   }
   if (courtUtilization > 1) warnings.push('OVER_CAPACITY');
@@ -175,10 +174,15 @@ function competitiveDistance(target: number | undefined, actual: number): number
   return Math.max(0, 1 - distance);
 }
 
-function floorScore(effective: number, floor: number | undefined): number {
-  if (typeof floor !== 'number') return 1;
-  if (effective >= floor) return 1;
-  return Math.max(0, effective / floor);
+// Score how close the plan's structural floor is to the TD's target.
+// Plans at or above target score full marks for the floor component;
+// plans below score linearly toward zero. Going above target is not
+// penalized — utilization is the gating constraint when matches per
+// player exceed the budget.
+function floorScore(minMatchesPerPlayer: number, target: number | undefined): number {
+  if (typeof target !== 'number') return 1;
+  if (minMatchesPerPlayer >= target) return 1;
+  return Math.max(0, minMatchesPerPlayer / target);
 }
 
 function utilizationScore(courtUtilization: number): number {
@@ -194,20 +198,20 @@ function withdrawalScore(flightStructures: FlightStructure[]): number {
 }
 
 function compositeScore({
-  effectiveMinMatchesPerPlayer,
+  minMatchesPerPlayer,
   flightStructures,
   courtUtilization,
   constraints,
   competitive,
 }: {
-  effectiveMinMatchesPerPlayer: number;
+  minMatchesPerPlayer: number;
   flightStructures: FlightStructure[];
   courtUtilization: number;
   constraints: WizardConstraints;
   competitive: number;
 }): number {
   const competitiveComponent = competitiveDistance(constraints.targetCompetitivePct, competitive);
-  const floorComponent = floorScore(effectiveMinMatchesPerPlayer, constraints.minMatchesFloor);
+  const floorComponent = floorScore(minMatchesPerPlayer, constraints.targetMatchesPerPlayer);
   const utilComponent = utilizationScore(courtUtilization);
   const withdrawalComponent = withdrawalScore(flightStructures);
 
@@ -234,7 +238,7 @@ export function scorePlansForStrategy({
   constraints,
   strategy,
 }: {
-  recommendationsByFlightSize: (size: number) => StructureRecommendation[];
+  recommendationsByFlightSize: (size: number, singleFlight: boolean) => StructureRecommendation[];
   predictionModel?: PredictionModel;
   constraints: WizardConstraints;
   strategy: FlightingStrategy;
@@ -243,9 +247,10 @@ export function scorePlansForStrategy({
 
   // Group flights by size — same-size flights can use the same
   // structure recommendation list, avoiding duplicate lookups.
+  const isSingleFlight = strategy.flights.length === 1;
   const sizes = new Set(strategy.flights.map((f) => f.participantIds.length));
   const recsBySize = new Map<number, StructureRecommendation[]>();
-  for (const size of sizes) recsBySize.set(size, recommendationsByFlightSize(size));
+  for (const size of sizes) recsBySize.set(size, recommendationsByFlightSize(size, isSingleFlight));
 
   // Find structures available to every flight (intersection by
   // kind+variantId), then build one plan per common structure.
@@ -303,7 +308,6 @@ function assemblePlan({
   const utilization = computeCourtUtilization(aggregateBandsResult.totalMatches, constraints);
 
   const aggregate: RankedPlanAggregate = {
-    effectiveMinMatchesPerPlayer: floors.effectiveMinMatchesPerPlayer,
     minMatchesPerPlayer: floors.minMatchesPerPlayer,
     courtHoursRequired: utilization.courtHoursRequired,
     courtHoursAvailable: utilization.courtHoursAvailable,
@@ -315,14 +319,14 @@ function assemblePlan({
   };
 
   const warnings = buildWarnings({
-    effectiveMinMatchesPerPlayer: floors.effectiveMinMatchesPerPlayer,
+    minMatchesPerPlayer: floors.minMatchesPerPlayer,
     courtUtilization: utilization.courtUtilization,
     flightStructures,
     constraints,
   });
 
   const score = compositeScore({
-    effectiveMinMatchesPerPlayer: floors.effectiveMinMatchesPerPlayer,
+    minMatchesPerPlayer: floors.minMatchesPerPlayer,
     courtUtilization: utilization.courtUtilization,
     competitive: aggregateBandsResult.competitive,
     flightStructures,

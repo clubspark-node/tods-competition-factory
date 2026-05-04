@@ -13,7 +13,7 @@ const baseConstraints: WizardConstraints = {
   courts: 4,
   days: 2,
   hoursPerDay: 8,
-  minMatchesFloor: 3,
+  targetMatchesPerPlayer: 3,
   consolationAppetite: 'LIGHT',
 };
 
@@ -89,10 +89,10 @@ describe('suggestFormatPlans — signal sensitivity', () => {
     expect(tight.plans[0].aggregate.competitive).toBeGreaterThan(wide.plans[0].aggregate.competitive);
   });
 
-  it('plans flag BELOW_FLOOR when effective min < minMatchesFloor', () => {
+  it('plans flag BELOW_FLOOR when minMatchesPerPlayer < targetMatchesPerPlayer', () => {
     const result = suggestFormatPlans({
       participants: pool([4, 4.5, 5, 5.5]),
-      constraints: { ...baseConstraints, minMatchesFloor: 5 },
+      constraints: { ...baseConstraints, targetMatchesPerPlayer: 5 },
     });
     expect(result.plans.some((p) => p.warnings.includes('BELOW_FLOOR'))).toBe(true);
   });

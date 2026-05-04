@@ -6,14 +6,21 @@ const ROUND_ROBIN_GROUP_SIZES = [4, 6, 8];
 const SWISS_ROUND_VARIANTS = [3, 5, 7];
 const DRAW_MATIC_ROUND_VARIANTS = [3, 5];
 
+// Voluntary-consolation modeling. The structural floor never moves
+// (VC is opt-in), but estimated extra match volume is added to the
+// total so utilization scoring stays honest. Conservative sign-up
+// rate of 50% — empirically TDs see anywhere from 30–70%.
+const VC_SIGNUP_RATE = 0.5;
+
 const APPETITE_KINDS: Record<ConsolationAppetite, StructureKind[]> = {
-  NONE: ['SINGLE_ELIMINATION', 'ROUND_ROBIN', 'SWISS', 'DRAW_MATIC', 'LUCKY_DRAW'],
+  NONE: ['SINGLE_ELIMINATION', 'ROUND_ROBIN', 'SWISS', 'DRAW_MATIC', 'LUCKY_DRAW', 'FEED_IN'],
   LIGHT: [
     'SINGLE_ELIMINATION',
     'ROUND_ROBIN',
     'SWISS',
     'DRAW_MATIC',
     'LUCKY_DRAW',
+    'FEED_IN',
     'FIRST_MATCH_LOSER_CONSOLATION',
     'ROUND_ROBIN_WITH_PLAYOFF',
     'DOUBLE_ELIMINATION',
@@ -24,13 +31,13 @@ const APPETITE_KINDS: Record<ConsolationAppetite, StructureKind[]> = {
     'SWISS',
     'DRAW_MATIC',
     'LUCKY_DRAW',
+    'FEED_IN',
     'FIRST_MATCH_LOSER_CONSOLATION',
     'ROUND_ROBIN_WITH_PLAYOFF',
     'DOUBLE_ELIMINATION',
     'FIRST_ROUND_LOSER_CONSOLATION',
     'COMPASS',
     'ADAPTIVE',
-    'STAGGERED_FRENCH',
   ],
 };
 
@@ -39,9 +46,9 @@ const WITHDRAWAL_RISK: Record<StructureKind, number> = {
   ROUND_ROBIN_WITH_PLAYOFF: 0,
   SWISS: 0,
   SINGLE_ELIMINATION: 0,
+  FEED_IN: 0.05,
   DOUBLE_ELIMINATION: 0.1,
   DRAW_MATIC: 0.1,
-  STAGGERED_FRENCH: 0.1,
   LUCKY_DRAW: 0.1,
   FIRST_MATCH_LOSER_CONSOLATION: 0.2,
   FIRST_ROUND_LOSER_CONSOLATION: 0.25,
@@ -58,25 +65,19 @@ function isPowerOfTwo(n: number): boolean {
   return n > 0 && (n & (n - 1)) === 0;
 }
 
-// Effective min reflects the discount from withdrawal risk on
-// consolation-bearing structures. The structural floor stays at
-// minMatchesPerPlayer; the effective floor is what the TD should
-// expect in practice.
-function applyWithdrawalDiscount(min: number, kind: StructureKind, base: number): number {
-  if (min <= base) return min;
-  const above = min - base;
-  return base + above * (1 - WITHDRAWAL_RISK[kind]);
-}
-
+// minMatchesPerPlayer is the structural guarantee — the count every
+// player gets when the bracket runs to completion (i.e., absent
+// withdrawals). It is always an integer. Withdrawal risk is exposed
+// separately via withdrawalRiskFactor so the caller can render a
+// chip / warning rather than baking a fractional discount into the
+// match-count number.
 function buildRecommendation(
   kind: StructureKind,
   minMatchesPerPlayer: number,
   totalMatches: number,
-  base: number,
   extras: Partial<StructureRecommendation> = {},
 ): StructureRecommendation {
   return {
-    effectiveMinMatchesPerPlayer: applyWithdrawalDiscount(minMatchesPerPlayer, kind, base),
     withdrawalRiskFactor: WITHDRAWAL_RISK[kind],
     minMatchesPerPlayer,
     totalMatches,
@@ -91,22 +92,22 @@ function singleEliminationFamily(flightSize: number): StructureRecommendation[] 
   const totalMatches = flightSize - 1;
   const rounds = Math.max(1, Math.ceil(Math.log2(padded)));
   return [
-    buildRecommendation('SINGLE_ELIMINATION', 1, totalMatches, 1),
-    buildRecommendation('FIRST_MATCH_LOSER_CONSOLATION', 2, Math.round(totalMatches * 1.5), 1, { variantId: 'FMLC' }),
-    buildRecommendation('FIRST_ROUND_LOSER_CONSOLATION', rounds, Math.round(totalMatches * 1.7), 1, {
+    buildRecommendation('SINGLE_ELIMINATION', 1, totalMatches),
+    buildRecommendation('FIRST_MATCH_LOSER_CONSOLATION', 2, Math.round(totalMatches * 1.5), { variantId: 'FMLC' }),
+    buildRecommendation('FIRST_ROUND_LOSER_CONSOLATION', rounds, Math.round(totalMatches * 1.7), {
       variantId: 'FRLC',
       rounds,
     }),
-    buildRecommendation('DOUBLE_ELIMINATION', 2, totalMatches * 2 - 1, 1),
+    buildRecommendation('DOUBLE_ELIMINATION', 2, totalMatches * 2 - 1),
   ];
 }
 
 function compassFamily(flightSize: number): StructureRecommendation[] {
   if (flightSize >= 7 && flightSize <= 8) {
-    return [buildRecommendation('COMPASS', 3, 12, 1, { variantId: 'COMPASS_8' })];
+    return [buildRecommendation('COMPASS', 3, 12, { variantId: 'COMPASS_8' })];
   }
   if (flightSize >= 13 && flightSize <= 16) {
-    return [buildRecommendation('COMPASS', 4, 28, 1, { variantId: 'COMPASS_16' })];
+    return [buildRecommendation('COMPASS', 4, 28, { variantId: 'COMPASS_16' })];
   }
   return [];
 }
@@ -114,11 +115,7 @@ function compassFamily(flightSize: number): StructureRecommendation[] {
 function roundRobinSingleGroup(flightSize: number): StructureRecommendation[] {
   if (flightSize < MIN_FLIGHT_SIZE || flightSize > 8) return [];
   const total = (flightSize * (flightSize - 1)) / 2;
-  return [
-    buildRecommendation('ROUND_ROBIN', flightSize - 1, total, flightSize - 1, {
-      groupSize: flightSize,
-    }),
-  ];
+  return [buildRecommendation('ROUND_ROBIN', flightSize - 1, total, { groupSize: flightSize })];
 }
 
 function roundRobinMultiGroup(flightSize: number, groupSize: number): StructureRecommendation[] {
@@ -129,7 +126,7 @@ function roundRobinMultiGroup(flightSize: number, groupSize: number): StructureR
   const playoffSize = nextPowerOfTwo(groups);
   const playoffMatches = playoffSize - 1;
   return [
-    buildRecommendation('ROUND_ROBIN', groupSize - 1, total, groupSize - 1, {
+    buildRecommendation('ROUND_ROBIN', groupSize - 1, total, {
       variantId: `RR_${groupSize}x${groups}`,
       groupSize,
     }),
@@ -137,7 +134,6 @@ function roundRobinMultiGroup(flightSize: number, groupSize: number): StructureR
       'ROUND_ROBIN_WITH_PLAYOFF',
       groupSize - 1 + Math.max(0, Math.ceil(Math.log2(playoffSize))),
       total + playoffMatches,
-      groupSize - 1,
       { variantId: `RR_${groupSize}x${groups}_PLAYOFF`, groupSize },
     ),
   ];
@@ -153,7 +149,7 @@ function swissFamily(flightSize: number): StructureRecommendation[] {
   const recommendedRounds = Math.max(3, Math.ceil(Math.log2(flightSize)));
   return SWISS_ROUND_VARIANTS.filter((rounds) => rounds <= flightSize - 1).map((rounds) => {
     const total = Math.floor((flightSize * rounds) / 2);
-    return buildRecommendation('SWISS', rounds, total, rounds, {
+    return buildRecommendation('SWISS', rounds, total, {
       variantId: `SWISS_R${rounds}${rounds === recommendedRounds ? '_REC' : ''}`,
       rounds,
     });
@@ -163,7 +159,7 @@ function swissFamily(flightSize: number): StructureRecommendation[] {
 function drawMaticFamily(flightSize: number): StructureRecommendation[] {
   if (flightSize < MIN_FLIGHT_SIZE) return [];
   return DRAW_MATIC_ROUND_VARIANTS.filter((r) => r <= flightSize - 1).map((rounds) =>
-    buildRecommendation('DRAW_MATIC', rounds, Math.floor((flightSize * rounds) / 2), rounds, {
+    buildRecommendation('DRAW_MATIC', rounds, Math.floor((flightSize * rounds) / 2), {
       variantId: `DRAW_MATIC_R${rounds}`,
       rounds,
     }),
@@ -177,37 +173,104 @@ function luckyDrawFamily(flightSize: number): StructureRecommendation[] {
   // advantage over plain SE, so skip those.
   if (isPowerOfTwo(flightSize)) return [];
   const totalMatches = flightSize - 1;
-  return [buildRecommendation('LUCKY_DRAW', 1, totalMatches, 1)];
+  return [buildRecommendation('LUCKY_DRAW', 1, totalMatches)];
 }
 
 function adaptiveFamily(flightSize: number): StructureRecommendation[] {
   if (flightSize < 4) return [];
   // Adaptive is a Lucky-Draw-rooted compass with cascading
-  // consolations — the floor for matches per player is high but
-  // withdrawals erode the effective floor more than for SE.
+  // consolations.
   const rounds = Math.max(2, Math.ceil(Math.log2(flightSize)));
   const totalMatches = Math.round(flightSize * 1.6);
-  return [buildRecommendation('ADAPTIVE', rounds, totalMatches, 1)];
+  return [buildRecommendation('ADAPTIVE', rounds, totalMatches)];
 }
 
-function staggeredFrenchFamily(flightSize: number): StructureRecommendation[] {
+// FEED_IN — the connected-bracket "French staggered" archetype.
+// One bracket, lowest-rated tiers play the early rounds, higher
+// tiers feed in at later rounds. The wizard treats this as a
+// SINGLE-FLIGHT-only structure (it IS the cross-tier bracket), so
+// the catalog only emits it for whole-pool plans.
+//
+// Variants:
+//   - FEED_IN              — bare feed-in, no consolation
+//   - FIC_R16 / FIC_QF /
+//     FIC_SF              — feed-in championship to round-of-N
+//   - FIC                  — full feed-in championship (everyone
+//                            plays to placement)
+//   - MFIC                 — modified FIC (consolation truncated)
+//
+// FIC variants follow factory's drawDefinitionConstants family.
+function feedInFamily(flightSize: number): StructureRecommendation[] {
   if (flightSize < 8) return [];
-  // French-style staggered SE: a single bracket with multiple entry
-  // tiers. Min matches per player is 1 (top-tier seed loses their
-  // first match and is out); the average across tiers is much
-  // higher, but the floor metric is the conservative guarantee.
-  const totalMatches = flightSize - 1;
-  const rounds = Math.max(1, Math.ceil(Math.log2(flightSize)));
-  return [
-    buildRecommendation('STAGGERED_FRENCH', 1, totalMatches, 1, {
-      rounds,
-      variantId: `STAGGERED_${rounds}_TIERS`,
+  const tiers = Math.max(2, Math.ceil(Math.log2(flightSize)));
+  const baseTotal = flightSize - 1;
+  const recs: StructureRecommendation[] = [
+    buildRecommendation('FEED_IN', 1, baseTotal, {
+      rounds: tiers,
+      variantId: `FEED_IN_${tiers}_TIERS`,
     }),
   ];
+  // FIC family — only emitted when consolationAppetite filtering
+  // permits (caller handles); min matches per player rises with
+  // consolation depth because more rounds get consolation matches.
+  if (flightSize >= 8) {
+    recs.push(
+      buildRecommendation('FEED_IN', 2, Math.round(baseTotal * 1.4), {
+        rounds: tiers,
+        variantId: 'FIC_SF',
+      }),
+    );
+  }
+  if (flightSize >= 12) {
+    recs.push(
+      buildRecommendation('FEED_IN', 2, Math.round(baseTotal * 1.6), {
+        rounds: tiers,
+        variantId: 'FIC_QF',
+      }),
+    );
+  }
+  if (flightSize >= 16) {
+    recs.push(
+      buildRecommendation('FEED_IN', 3, Math.round(baseTotal * 1.8), {
+        rounds: tiers,
+        variantId: 'FIC_R16',
+      }),
+    );
+    recs.push(
+      buildRecommendation('FEED_IN', 3, Math.round(baseTotal * 2.0), {
+        rounds: tiers,
+        variantId: 'FIC',
+      }),
+    );
+    recs.push(
+      buildRecommendation('FEED_IN', 2, Math.round(baseTotal * 1.7), {
+        rounds: tiers,
+        variantId: 'MFIC',
+      }),
+    );
+  }
+  return recs;
 }
 
-function recommendationsByKind(flightSize: number): StructureRecommendation[] {
-  return [
+// Adds the voluntary-consolation twin of every recommendation. VC
+// is opt-in: the structural floor never moves, but the estimated
+// extra match volume from VC sign-ups is folded into totalMatches
+// so the utilization signal stays honest.
+function withVoluntaryConsolation(recs: StructureRecommendation[], flightSize: number): StructureRecommendation[] {
+  if (recs.length === 0 || flightSize < 4) return [];
+  const expectedSignups = Math.max(2, Math.floor(flightSize * VC_SIGNUP_RATE));
+  const vcBracketSize = nextPowerOfTwo(expectedSignups);
+  const vcExtraMatches = Math.max(0, vcBracketSize - 1);
+  return recs.map((rec) => ({
+    ...rec,
+    voluntaryConsolation: true,
+    totalMatches: rec.totalMatches + vcExtraMatches,
+    variantId: rec.variantId ? `${rec.variantId}_VC` : 'VC',
+  }));
+}
+
+function recommendationsByKind(flightSize: number, singleFlight: boolean): StructureRecommendation[] {
+  const recs: StructureRecommendation[] = [
     ...singleEliminationFamily(flightSize),
     ...compassFamily(flightSize),
     ...roundRobinFamily(flightSize),
@@ -215,28 +278,45 @@ function recommendationsByKind(flightSize: number): StructureRecommendation[] {
     ...drawMaticFamily(flightSize),
     ...luckyDrawFamily(flightSize),
     ...adaptiveFamily(flightSize),
-    ...staggeredFrenchFamily(flightSize),
   ];
+  // FEED_IN is "the whole pool in one connected bracket". It only
+  // makes sense for single-flight plans; multi-flight plans treat
+  // each flight as an independent draw.
+  if (singleFlight) recs.push(...feedInFamily(flightSize));
+  return recs;
 }
 
 // Returns every structure recommendation eligible for a flight
 // of `flightSize`, filtered by consolation appetite and (when
 // supplied) the governance-allowed draw-type whitelist.
+//
+// `singleFlight` — when false, FEED_IN family is suppressed since
+// it only models the single-bracket case.
+// `voluntaryConsolation` — when true, every recommendation is
+// emitted twice: once bare, once with a `_VC` variant whose total
+// matches reflect the expected sign-up volume.
 export function getStructureRecommendations({
   consolationAppetite = 'LIGHT',
+  voluntaryConsolation = false,
   allowedDrawTypes,
+  singleFlight = true,
   flightSize,
 }: {
   consolationAppetite?: ConsolationAppetite;
+  voluntaryConsolation?: boolean;
   allowedDrawTypes?: string[];
+  singleFlight?: boolean;
   flightSize: number;
 }): StructureRecommendation[] {
   const allowedKinds = new Set(APPETITE_KINDS[consolationAppetite]);
   const governanceAllowed = allowedDrawTypes && allowedDrawTypes.length > 0 ? new Set(allowedDrawTypes) : undefined;
 
-  return recommendationsByKind(flightSize).filter((rec) => {
+  const base = recommendationsByKind(flightSize, singleFlight).filter((rec) => {
     if (!allowedKinds.has(rec.kind)) return false;
     if (governanceAllowed && !governanceAllowed.has(rec.kind)) return false;
     return true;
   });
+
+  if (!voluntaryConsolation) return base;
+  return [...base, ...withVoluntaryConsolation(base, flightSize)];
 }

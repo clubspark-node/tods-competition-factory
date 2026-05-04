@@ -14,9 +14,10 @@ export type ConsolationAppetite = 'NONE' | 'LIGHT' | 'FULL';
 export type WizardConstraints = {
   consolationAppetite?: ConsolationAppetite;
   allowCollapsedCategories?: boolean;
+  voluntaryConsolation?: boolean;
+  targetMatchesPerPlayer?: number;
   targetCompetitivePct?: number;
   allowMixedGender?: boolean;
-  minMatchesFloor?: number;
   matchUpFormat?: string;
   hoursPerDay?: number;
   avgMinutes?: number;
@@ -75,20 +76,20 @@ export type StructureKind =
   | 'ROUND_ROBIN_WITH_PLAYOFF'
   | 'DOUBLE_ELIMINATION'
   | 'SINGLE_ELIMINATION'
-  | 'STAGGERED_FRENCH'
   | 'ROUND_ROBIN'
   | 'DRAW_MATIC'
   | 'LUCKY_DRAW'
   | 'ADAPTIVE'
   | 'COMPASS'
+  | 'FEED_IN'
   | 'SWISS';
 
 export type StructureRecommendation = {
-  effectiveMinMatchesPerPlayer: number;
   withdrawalRiskFactor: number;
   minMatchesPerPlayer: number;
   kind: StructureKind;
   totalMatches: number;
+  voluntaryConsolation?: boolean;
   groupSize?: number;
   variantId?: string;
   rounds?: number;
@@ -108,7 +109,6 @@ export type PlanWarning =
   | 'BELOW_FLOOR';
 
 export type RankedPlanAggregate = {
-  effectiveMinMatchesPerPlayer: number;
   minMatchesPerPlayer: number;
   courtHoursAvailable: number;
   courtHoursRequired: number;
