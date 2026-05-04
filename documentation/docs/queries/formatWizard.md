@@ -2,7 +2,7 @@
 title: Format Wizard — suggestFormatPlans
 ---
 
-The **Format Wizard engine** (`tournamentEngine.suggestFormatPlans`) takes a participant pool, TD constraints, and optional governance caps, and returns a ranked table of plan candidates. It is the deterministic, LLM-free decision engine behind the level-based format wizard described in Dave Fish's _"Need For a Rating System"_ (2011).
+The **Format Wizard engine** (`tournamentEngine.suggestFormatPlans`) takes a participant pool, TD constraints, and optional governance caps, and returns a ranked table of plan candidates. It is the deterministic decision engine behind the level-based format wizard described in Dave Fish's _"Need For a Rating System"_ (2011).
 
 **Entry point:** `tournamentEngine.suggestFormatPlans({ participants, constraints, governance, predictionModel?, tournamentRecord? })`
 
@@ -141,4 +141,3 @@ console.log(result.plans.slice(0, 5)); // top 5 ranked plans
 ## Related
 
 - **`predictMatchUpCompetitiveBands` / `predictDrawCompetitiveBands`** — the band-distribution predictor consumed by Step 4. See the [Competitive Bands Policy](../policies/competitiveBands.md) page for the prediction model and policy controls.
-- **Format Wizard UI** (TMX) — the deterministic engine here is consumed by a tournament-level modal; UI rendering and "Apply Plan" mutations are documented in TMX, not factory.

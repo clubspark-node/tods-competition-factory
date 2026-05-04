@@ -1,6 +1,6 @@
+export { getAllowedDrawTypes, getAllowedMatchUpFormats } from '@Query/tournaments/allowedTypes';
 export { getPolicyDefinitions, getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
 export { getApplicableAwardProfileLevels } from '@Query/scales/getApplicableAwardProfileLevels';
-export { getAllowedDrawTypes, getAllowedMatchUpFormats } from '@Query/tournaments/allowedTypes';
 export { cleanExpiredMutationLocks } from '@Query/tournaments/cleanExpiredMutationLocks';
 export { getCompetitionPenalties } from '@Query/participants/getCompetitionPenalties';
 export { getCompetitionDateRange } from '@Query/tournaments/getCompetitionDateRange';
