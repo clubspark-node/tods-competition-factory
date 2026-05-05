@@ -1,5 +1,25 @@
 # Changelog
 
+## [3.4.0](https://github.com/CourtHive/competition-factory/compare/v3.3.1...v3.4.0) (2026-05-05)
+
+
+### Features
+
+* **format-wizard:** integer match counts, FEED_IN, voluntary consolation, flighting caps ([0cd61da](https://github.com/CourtHive/competition-factory/commit/0cd61daf0fb38a7a55def807d3c36aa8feaab131))
+* **query:** :sparkles: enrich matchUps with competitiveProfile without inContext hydration ([997730c](https://github.com/CourtHive/competition-factory/commit/997730c24967166edf8361652ebb235bad5d1df7))
+* **query:** predictCompetitiveBands for level-based format wizard ([b512280](https://github.com/CourtHive/competition-factory/commit/b51228091e593aad5e70a35410a9c3d8df18d8b4))
+* **query:** suggestFormatPlans engine for level-based format wizard ([557eed2](https://github.com/CourtHive/competition-factory/commit/557eed2c170e046db730c07a2d81647083a90fc5))
+
+
+### Bug Fixes
+
+* **scheduler:** persist scheduledDate separately in jinnScheduler ([22af38c](https://github.com/CourtHive/competition-factory/commit/22af38cf88db9b4de16a0f3d02d3c3a1e5c69af5))
+
+
+### Documentation
+
+* **format-wizard:** introduce concept category with engine doc + stubs ([9ee9de9](https://github.com/CourtHive/competition-factory/commit/9ee9de951d49aea85d6e3669bf907bad171c2f70))
+
 ## [3.3.1](https://github.com/CourtHive/competition-factory/compare/v3.3.0...v3.3.1) (2026-05-03)
 
 
