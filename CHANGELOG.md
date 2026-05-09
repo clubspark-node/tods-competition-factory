@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.4.2](https://github.com/CourtHive/competition-factory/compare/v3.4.1...v3.4.2) (2026-05-09)
+
+
+### Bug Fixes
+
+* **.npmrc:** rename confirmModulesPurge to confirm-modules-purge ([7bd7e5d](https://github.com/CourtHive/competition-factory/commit/7bd7e5d80de6d65dcd1763f7cd3e1082c8932248))
+* **documentation:** unblock pnpm 11 install + Docusaurus build ([eeb9009](https://github.com/CourtHive/competition-factory/commit/eeb9009398c8f6257aca2b70f0226b3b43672aed))
+
 ## [3.4.1](https://github.com/CourtHive/competition-factory/compare/v3.4.0...v3.4.1) (2026-05-06)
 
 
