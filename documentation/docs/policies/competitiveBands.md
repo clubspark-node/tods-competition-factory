@@ -197,6 +197,39 @@ console.log(participantStats.competitiveRatio); // 0.214
 
 ---
 
+## Bulk Enrichment Without Full Context Hydration
+
+For analytics that only need competitiveness bucketing (donut charts, summary stats, downloadable reports), `allTournamentMatchUps`, `allEventMatchUps`, and `allDrawMatchUps` accept `contextProfile: { withCompetitiveness: true }` together with `inContext: false`. This attaches `competitiveProfile` to each completed matchUp without paying the per-matchUp cost of `addMatchUpContext` hydration (participant resolution, exit profiles, round naming, schedule joins, etc.).
+
+```js
+const { matchUps } = tournamentEngine.allTournamentMatchUps({
+  contextProfile: { withCompetitiveness: true },
+  inContext: false,
+});
+
+// Each completed matchUp now has matchUp.competitiveProfile attached:
+//   { competitiveness: 'DECISIVE' | 'ROUTINE' | 'COMPETITIVE', spread: number, ... }
+```
+
+The same flag works on `allEventMatchUps({ eventId, ... })` and `allDrawMatchUps({ drawId, ... })`.
+
+### Behavior
+
+- The competitive-bands policy is resolved with the standard three-tier lookup: explicit `policyDefinitions` argument → `getAppliedPolicies` (event → draw → tournament scope) → `POLICY_COMPETITIVE_BANDS_DEFAULT` fixture.
+- Each matchUp is **shallow-copied** before `competitiveProfile` is attached, so the underlying `drawDefinition.matchUps` is never mutated.
+- MatchUps with no `winningSide` (incomplete, BYEs, walkovers without a recorded winner) are returned untouched.
+- MatchUps that already carry `competitiveProfile` (from an earlier `inContext: true` pass) are passed through as-is.
+
+### When to use this vs. `inContext: true`
+
+| Need                                                                          | Recommended call                                                                 |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Competitive-band counts only (e.g., overview donut, league-wide histogram)    | `inContext: false` + `contextProfile: { withCompetitiveness: true }`             |
+| Per-participant competitive stats (`getParticipantStats`, `getMatchUpsStats`) | `inContext: false` + `contextProfile: { withCompetitiveness: true }` is enough   |
+| Anything that joins on participants, schedule, exit profiles, or rounds       | `inContext: true` (full hydration; competitiveProfile is attached automatically) |
+
+---
+
 ## Real-World Use Cases
 
 ### Tournament Quality Analysis
