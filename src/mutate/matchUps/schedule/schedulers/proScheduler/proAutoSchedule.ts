@@ -1,8 +1,8 @@
 import { modifyParticipantMatchUpsCount } from '@Mutate/matchUps/schedule/scheduleMatchUps/modifyParticipantMatchUpsCount';
-import { competitionScheduleMatchUps } from '@Query/matchUps/competitionScheduleMatchUps';
 import { processNextMatchUps } from '@Mutate/matchUps/schedule/scheduleMatchUps/processNextMatchUps';
-import { bulkScheduleMatchUps } from '@Mutate/matchUps/schedule/bulkScheduleMatchUps';
 import { checkDailyLimits } from '@Mutate/matchUps/schedule/scheduleMatchUps/checkDailyLimits';
+import { competitionScheduleMatchUps } from '@Query/matchUps/competitionScheduleMatchUps';
+import { bulkScheduleMatchUps } from '@Mutate/matchUps/schedule/bulkScheduleMatchUps';
 import { getMatchUpDependencies } from '@Query/matchUps/getMatchUpDependencies';
 import { matchUpSort } from '@Functions/sorters/matchUpSort';
 import { validMatchUps } from '@Validators/validMatchUp';
