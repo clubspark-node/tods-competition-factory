@@ -1,6 +1,7 @@
 import { modifyParticipantMatchUpsCount } from '@Mutate/matchUps/schedule/scheduleMatchUps/modifyParticipantMatchUpsCount';
 import { processNextMatchUps } from '@Mutate/matchUps/schedule/scheduleMatchUps/processNextMatchUps';
 import { checkDailyLimits } from '@Mutate/matchUps/schedule/scheduleMatchUps/checkDailyLimits';
+import { matchUpChronologicalSort } from '@Functions/sorters/matchUpChronologicalSort';
 import { competitionScheduleMatchUps } from '@Query/matchUps/competitionScheduleMatchUps';
 import { bulkScheduleMatchUps } from '@Mutate/matchUps/schedule/bulkScheduleMatchUps';
 import { getMatchUpDependencies } from '@Query/matchUps/getMatchUpDependencies';
@@ -88,25 +89,12 @@ export function proAutoSchedule({
 
   // When Garman has already set scheduledTime on matchUps (Garman → Pro
   // workflow), walk earlier times first so they land on earlier rows.
-  // Scoped within scheduledDate so multi-date inputs stay grouped. Pairs
-  // where either side is missing date or time return 0 — stable sort
-  // preserves input order for those (covers fresh proAutoSchedule runs
-  // with no times, e.g. proConflicts.test fixtures). TODO: migrate this
-  // comparator into matchUpSort once we've reviewed every other caller
-  // for compatibility, then remove this local sort.
-  // BYE / completed filtering happens upstream in `findRoundMatchUps` for
-  // the production path; direct callers (tests) pass raw matchUps through.
-  matchUps.sort((a, b) => {
-    const aDate = a.schedule?.scheduledDate;
-    const bDate = b.schedule?.scheduledDate;
-    const aTime = a.schedule?.scheduledTime;
-    const bTime = b.schedule?.scheduledTime;
-    if (aDate && bDate) {
-      if (aDate !== bDate) return aDate.localeCompare(bDate);
-      if (aTime && bTime && aTime !== bTime) return aTime.localeCompare(bTime);
-    }
-    return 0;
-  });
+  // The comparator is a no-op when either side lacks date/time, so a
+  // stable sort preserves input order for fresh runs (proConflicts
+  // fixtures). BYE / completed filtering happens upstream in
+  // `findRoundMatchUps` for the production path; direct callers (tests)
+  // pass raw matchUps through.
+  matchUps.sort(matchUpChronologicalSort);
 
   const deps = getMatchUpDependencies({
     matchUps: matchUps.concat(gridMatchUps),
