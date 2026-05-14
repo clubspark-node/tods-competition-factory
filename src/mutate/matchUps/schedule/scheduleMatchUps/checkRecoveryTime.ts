@@ -49,7 +49,7 @@ export function checkRecoveryTime({
 
     const participantBookings = [...potentialParticipantBookings, ...profile.bookings];
 
-    const timeOverlap = !!participantBookings.find(
+    const timeOverlap = participantBookings.some(
       (booking) => analyzeScheduleOverlap({ scheduleTime, timeAfterRecovery }, booking).hasOverlap,
     );
 
