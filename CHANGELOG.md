@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.6.0](https://github.com/CourtHive/competition-factory/compare/v3.5.0...v3.6.0) (2026-05-16)
+
+
+### Features
+
+* **query:** emit registrationProfile on getTournamentInfo ([ffc63ed](https://github.com/CourtHive/competition-factory/commit/ffc63eddb8554158cc1fea048295456a111e3503))
+* **scheduling:** explain-why payloads for over-limit + recovery-deferred jinn refusals ([49d5530](https://github.com/CourtHive/competition-factory/commit/49d55301431b92c3edfcdb5f8b37eb4c7b674077))
+
 ## [3.5.0](https://github.com/CourtHive/competition-factory/compare/v3.4.4...v3.5.0) (2026-05-14)
 
 
