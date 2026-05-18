@@ -3,6 +3,7 @@ import { SignedInStatusUnion } from '@Constants/participantConstants';
 import { HydratedMatchUp, HydratedParticipant } from './hydrated';
 import { ErrorType } from '@Constants/errorConditionConstants';
 import { ValidPolicyTypes } from '@Constants/policyConstants';
+import type { FactoryEngineMethod } from './factoryEngineMethods';
 import {
   Category,
   DrawDefinition,
@@ -29,6 +30,25 @@ import {
 export type FactoryEngine = {
   [key: string]: any;
 };
+
+/**
+ * Closed engine surface for consumers — every method name comes from
+ * `factoryEngineMethods.ts`, which is regenerated from the live engine via
+ * `pnpm gen:engine-methods`. Has no index signature, so calls like
+ * `engine.findEvent(...)` (where `findEvent` is not a registered method)
+ * fail at compile time.
+ *
+ * Per-method param/return shapes are still `any` — this layer catches typo'd
+ * method names, not bad argument shapes. Tighter signatures are a follow-up.
+ *
+ * Opt in at the consumer boundary:
+ *
+ *   import { tournamentEngine, FactoryEngineTyped } from 'tods-competition-factory';
+ *   const engine = tournamentEngine as FactoryEngineTyped;
+ */
+export type FactoryEngineTyped = Record<FactoryEngineMethod, (params?: any) => any>;
+
+export type { FactoryEngineMethod } from './factoryEngineMethods';
 
 export type TournamentRecords = {
   [key: string]: Tournament;
