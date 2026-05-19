@@ -2,6 +2,7 @@ export { modifyPersonRequests } from '@Mutate/matchUps/schedule/scheduleMatchUps
 export { removePersonRequests } from '@Mutate/matchUps/schedule/scheduleMatchUps/personRequests/removePersonRequests';
 export { addPersonRequests } from '@Mutate/matchUps/schedule/scheduleMatchUps/personRequests/addPersonRequests';
 export { setParticipantScaleItems, setParticipantScaleItem } from '@Mutate/participants/scaleItems/addScaleItems';
+export { modifyParticipantsPaymentStatus } from '@Mutate/participants/modifyParticipantsPaymentStatus';
 export { modifyIndividualParticipantIds } from '@Mutate/participants/modifyIndividualParticipantIds';
 export { createTeamsFromParticipantAttributes } from '@Mutate/participants/createTeamsFromAttributes';
 export { modifyParticipantsSignInStatus } from '@Mutate/participants/modifyParticipantsSignInStatus';

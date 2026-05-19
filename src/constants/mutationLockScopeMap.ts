@@ -144,6 +144,7 @@ export const methodScopeMap: Record<string, MutationLockScope> = {
   setParticipantScaleItem: 'PARTICIPANTS',
   modifyIndividualParticipantIds: 'PARTICIPANTS',
   createTeamsFromParticipantAttributes: 'PARTICIPANTS',
+  modifyParticipantsPaymentStatus: 'PARTICIPANTS',
   modifyParticipantsSignInStatus: 'PARTICIPANTS',
   addIndividualParticipantIds: 'PARTICIPANTS',
   modifyParticipantOtherName: 'PARTICIPANTS',

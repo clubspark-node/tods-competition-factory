@@ -308,6 +308,21 @@ const { schedules } = engine.getParticipantSchedules({
 
 ---
 
+## getParticipantPaymentStatus
+
+Returns the current payment status for a participant — one of `PAID`, `UNPAID`, `PARTIAL`, `WAIVED`, `REFUNDED`, or `undefined` if no payment status has ever been set. See `modifyParticipantsPaymentStatus` for the write side and history semantics.
+
+```js
+const paymentStatus = engine.getParticipantPaymentStatus({
+  participantId, // required
+  tournamentRecord, // required
+});
+```
+
+**Purpose:** Check whether the participant's registration fee has been paid, separately from whether they've physically signed in.
+
+---
+
 ## getParticipantSignInStatus
 
 Returns sign-in status for a participant.
@@ -345,43 +360,43 @@ Returns participants with optional hydration and filtering. This is the primary 
 
 ```js
 const {
-  participants,                 // HydratedParticipant[]
-  participantMap,               // { [participantId]: participantData }
-  matchUps,                     // HydratedMatchUp[] (when withMatchUps)
-  mappedMatchUps,               // matchUps indexed by matchUpId
-  participantIdsWithConflicts,  // participantIds with schedule conflicts
-  eventsPublishStatuses,        // publish statuses keyed by eventId
-  derivedEventInfo,             // derived event metadata
-  derivedDrawInfo,              // derived draw metadata
-  missingParticipantIds,        // participantIds referenced but not found
+  participants, // HydratedParticipant[]
+  participantMap, // { [participantId]: participantData }
+  matchUps, // HydratedMatchUp[] (when withMatchUps)
+  mappedMatchUps, // matchUps indexed by matchUpId
+  participantIdsWithConflicts, // participantIds with schedule conflicts
+  eventsPublishStatuses, // publish statuses keyed by eventId
+  derivedEventInfo, // derived event metadata
+  derivedDrawInfo, // derived draw metadata
+  missingParticipantIds, // participantIds referenced but not found
 } = engine.getParticipants({
-  participantFilters,              // optional — filter criteria object
-  policyDefinitions,               // optional — privacy/display policies
-  scheduleAnalysis,                // optional — schedule conflict detection parameters
-  contextProfile,                  // optional — control context attributes on matchUps
-  contextFilters,                  // optional — filters based on context attributes
-  matchUpFilters,                  // optional — filters for matchUps
+  participantFilters, // optional — filter criteria object
+  policyDefinitions, // optional — privacy/display policies
+  scheduleAnalysis, // optional — schedule conflict detection parameters
+  contextProfile, // optional — control context attributes on matchUps
+  contextFilters, // optional — filters based on context attributes
+  matchUpFilters, // optional — filters for matchUps
 
-  withIndividualParticipants,      // optional boolean or object template — hydrate individualParticipants
-  withPotentialMatchUps,           // optional boolean — include potential upcoming matchUps
-  withRankingProfile,              // optional boolean — include ranking profile (implies withMatchUps/Events/Draws)
-  withScheduleItems,               // optional boolean — include schedule items
-  withSignInStatus,                // optional boolean — include sign-in status
-  withTeamMatchUps,                // optional boolean — include TEAM matchUps
-  withScaleValues,                 // optional boolean — include ratings/rankings
-  usePublishState,                 // optional boolean — filter by publish state
-  withStatistics,                  // optional boolean — include statistical data
-  withOpponents,                   // optional boolean — include opponent data
-  withMatchUps,                    // optional boolean — include matchUp data
-  convertExtensions,               // optional boolean — convert extensions to flat properties
-  withSeeding,                     // optional boolean — include seeding data
-  withEvents,                      // optional boolean — include event entries
-  withDraws,                       // optional boolean — include draw entries
-  withISO2,                        // optional boolean — include ISO2 country codes
-  withIOC,                         // optional boolean — include IOC country codes
-  returnParticipantMap,            // optional boolean — defaults to true
-  returnMatchUps,                  // optional boolean — defaults to true
-  internalUse,                     // optional boolean
+  withIndividualParticipants, // optional boolean or object template — hydrate individualParticipants
+  withPotentialMatchUps, // optional boolean — include potential upcoming matchUps
+  withRankingProfile, // optional boolean — include ranking profile (implies withMatchUps/Events/Draws)
+  withScheduleItems, // optional boolean — include schedule items
+  withSignInStatus, // optional boolean — include sign-in status
+  withTeamMatchUps, // optional boolean — include TEAM matchUps
+  withScaleValues, // optional boolean — include ratings/rankings
+  usePublishState, // optional boolean — filter by publish state
+  withStatistics, // optional boolean — include statistical data
+  withOpponents, // optional boolean — include opponent data
+  withMatchUps, // optional boolean — include matchUp data
+  convertExtensions, // optional boolean — convert extensions to flat properties
+  withSeeding, // optional boolean — include seeding data
+  withEvents, // optional boolean — include event entries
+  withDraws, // optional boolean — include draw entries
+  withISO2, // optional boolean — include ISO2 country codes
+  withIOC, // optional boolean — include IOC country codes
+  returnParticipantMap, // optional boolean — defaults to true
+  returnMatchUps, // optional boolean — defaults to true
+  internalUse, // optional boolean
 });
 ```
 
@@ -509,6 +524,36 @@ const { penaltyId } = result;
 const notes = 'Hit ball into spectator';
 const modifications = { notes };
 engine.modifyPenalty({ penaltyId, modifications });
+```
+
+---
+
+## modifyParticipantsPaymentStatus
+
+Modify the payment status of multiple participants, referenced by participantId. Stored as a participant `timeItem` with `itemType: 'PAYMENT_STATUS'`, so successive calls preserve history via `previousItems` on `getTimeItem`. Use this to record registration-fee payment independently of sign-in (which only tells you whether a player physically checked in on tournament day).
+
+Valid `paymentState` values: `PAID`, `UNPAID`, `PARTIAL`, `WAIVED`, `REFUNDED`. `PARTIAL` is intended for doubles or installment scenarios where one component has paid and the other has not; `WAIVED` for comps, sponsorships, or fee waivers; `REFUNDED` for participants who paid but were later refunded.
+
+```js
+import { PAID, REFUNDED } from 'tods-competition-factory';
+
+engine.modifyParticipantsPaymentStatus({
+  participantIds: ['participantId'],
+  paymentState: PAID,
+});
+
+// Later — issue a refund. PAID stays in previousItems; current becomes REFUNDED.
+engine.modifyParticipantsPaymentStatus({
+  participantIds: ['participantId'],
+  paymentState: REFUNDED,
+});
+```
+
+Read the current value with `getParticipantPaymentStatus`:
+
+```js
+const paymentStatus = engine.getParticipantPaymentStatus({ participantId });
+// → 'PAID' | 'UNPAID' | 'PARTIAL' | 'WAIVED' | 'REFUNDED' | undefined
 ```
 
 ---
@@ -766,10 +811,10 @@ Removes `individualParticipantIds` from a grouping participant (`TEAM` or `GROUP
 
 ```js
 engine.removeIndividualParticipantIds({
-  groupingParticipantId,                // required — participantId of the TEAM or GROUP
-  individualParticipantIds,             // required — array of participantIds to remove
-  addIndividualParticipantsToEvents,    // optional boolean — add removed participants as UNGROUPED event entries
-  suppressErrors,                       // optional boolean — continue on errors (e.g. participant not found in group)
+  groupingParticipantId, // required — participantId of the TEAM or GROUP
+  individualParticipantIds, // required — array of participantIds to remove
+  addIndividualParticipantsToEvents, // optional boolean — add removed participants as UNGROUPED event entries
+  suppressErrors, // optional boolean — continue on errors (e.g. participant not found in group)
 });
 ```
 
@@ -783,10 +828,10 @@ Adds a timeItem to a specific participant. TimeItems store time-based metadata s
 
 ```js
 engine.addParticipantTimeItem({
-  participantId,          // required
-  timeItem,               // required — { itemType, itemValue, ... } time item object
-  removePriorValues,      // optional boolean — remove prior timeItems of the same itemType
-  duplicateValues,        // optional boolean — allow duplicate values
+  participantId, // required
+  timeItem, // required — { itemType, itemValue, ... } time item object
+  removePriorValues, // optional boolean — remove prior timeItems of the same itemType
+  duplicateValues, // optional boolean — allow duplicate values
 });
 ```
 

@@ -5,6 +5,7 @@ export { getParticipantSchedules } from '@Query/participants/getParticipantSched
 export { getParticipantScaleItem } from '@Query/participant/getParticipantScaleItem';
 export { participantScaleItem } from '@Query/participant/participantScaleItem';
 export { getPairedParticipant } from '@Query/participant/getPairedParticipant';
+export { getParticipantPaymentStatus } from '@Query/participant/paymentStatus';
 export { getParticipantSignInStatus } from '@Query/participant/signInStatus';
 export { filterParticipants } from '@Query/participants/filterParticipants';
 export { getParticipants } from '@Query/participants/getParticipants';

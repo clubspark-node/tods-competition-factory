@@ -294,6 +294,7 @@ export type FactoryEngineMethod =
   | 'getParticipantEventDetails'
   | 'getParticipantIdFinishingPositions'
   | 'getParticipantMembership'
+  | 'getParticipantPaymentStatus'
   | 'getParticipantPoints'
   | 'getParticipantResults'
   | 'getParticipants'
@@ -400,6 +401,7 @@ export type FactoryEngineMethod =
   | 'modifyParticipant'
   | 'modifyParticipantName'
   | 'modifyParticipantOtherName'
+  | 'modifyParticipantsPaymentStatus'
   | 'modifyParticipantsSignInStatus'
   | 'modifyPenalty'
   | 'modifyPersonRequests'
@@ -888,6 +890,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'getParticipantEventDetails',
   'getParticipantIdFinishingPositions',
   'getParticipantMembership',
+  'getParticipantPaymentStatus',
   'getParticipantPoints',
   'getParticipantResults',
   'getParticipants',
@@ -994,6 +997,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'modifyParticipant',
   'modifyParticipantName',
   'modifyParticipantOtherName',
+  'modifyParticipantsPaymentStatus',
   'modifyParticipantsSignInStatus',
   'modifyPenalty',
   'modifyPersonRequests',
