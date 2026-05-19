@@ -21,8 +21,8 @@ export function modifyParticipantsSignInStatus({ tournamentRecord, participantId
   const participants = tournamentRecord.participants ?? [];
   if (!participants.length) return { error: MISSING_PARTICIPANTS };
 
-  const allParticipantIds = participants.map(getParticipantId);
-  const invalidParticipantIds = participantIds.filter((participantId) => !allParticipantIds.includes(participantId));
+  const allParticipantIds = new Set(participants.map(getParticipantId));
+  const invalidParticipantIds = participantIds.filter((participantId) => !allParticipantIds.has(participantId));
   if (invalidParticipantIds.length) return { error: INVALID_VALUES, context: { invalidParticipantIds } };
 
   const modifiedParticipants: Participant[] = [];
