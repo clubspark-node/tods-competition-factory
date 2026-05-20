@@ -438,6 +438,7 @@ Level is **not** the same as `tournamentLevel` in the TODS schema (which describ
 | ATP         | 1 = Grand Slam, 2 = ATP Finals, 8 = ATP 250, 15 = ITF M15 |
 | WTA         | 1 = Grand Slam, 2 = WTA Finals, 5 = WTA 250, 11 = ITF W15 |
 | ITF WTT     | 1 = $25K+H, 2 = $25K, 3 = $15K+H, 4 = $15K                |
+| ITF Junior  | 1 = Grand Slam, 2 = J500, 5 = J100, 9 = J30               |
 | USTA Junior | 1 = National Championships, 7 = Intermediate              |
 
 Policies that require a level will produce **no awards** when called without one (all profiles specify `levels` or `maxLevel`, so no profile matches). The Basic policy has no level-keyed values and produces points regardless of whether a level is passed.
@@ -454,7 +455,7 @@ const {
   POLICY_RANKING_POINTS_ATP,
   POLICY_RANKING_POINTS_WTA,
   POLICY_RANKING_POINTS_ITF_WTT,
-  POLICY_RANKING_POINTS_USTA_JUNIOR,
+  POLICY_RANKING_POINTS_ITF_JUNIOR,
 } = fixtures.policies;
 
 // Basic policy — no level needed
@@ -471,15 +472,41 @@ const atp = scaleEngine.getEventRankingPoints({
 });
 ```
 
-| Fixture                             | Levels                       | Period   | Best-of                  | Notes                                                   |
-| ----------------------------------- | ---------------------------- | -------- | ------------------------ | ------------------------------------------------------- |
-| `POLICY_RANKING_POINTS_BASIC`       | None (level-independent)     | —        | —                        | Simple position-based points, no level required         |
-| `POLICY_RANKING_POINTS_ATP`         | 15 (Grand Slam → ITF M15)    | 52 weeks | Singles: 19, Doubles: 18 | Mandatory counting rules, qualifying points             |
-| `POLICY_RANKING_POINTS_WTA`         | 11 (Grand Slam → ITF W15)    | 52 weeks | Singles: 18, Doubles: 12 | Draw size threshold arrays                              |
-| `POLICY_RANKING_POINTS_ITF_WTT`     | 4 ($25K+H → $15K)            | 52 weeks | 14                       | Qualifying-only system (post-2020, no main draw points) |
-| `POLICY_RANKING_POINTS_USTA_JUNIOR` | 7 (Nationals → Intermediate) | —        | —                        | 8 age categories, per-win with maxCountableMatches      |
+| Fixture                            | Levels                    | Period   | Best-of                  | Notes                                                   |
+| ---------------------------------- | ------------------------- | -------- | ------------------------ | ------------------------------------------------------- |
+| `POLICY_RANKING_POINTS_BASIC`      | None (level-independent)  | —        | —                        | Simple position-based points, no level required         |
+| `POLICY_RANKING_POINTS_ATP`        | 15 (Grand Slam → ITF M15) | 52 weeks | Singles: 19, Doubles: 18 | Mandatory counting rules, qualifying points             |
+| `POLICY_RANKING_POINTS_WTA`        | 11 (Grand Slam → ITF W15) | 52 weeks | Singles: 18, Doubles: 12 | Draw size threshold arrays                              |
+| `POLICY_RANKING_POINTS_ITF_WTT`    | 4 ($25K+H → $15K)         | 52 weeks | 14                       | Qualifying-only system (post-2020, no main draw points) |
+| `POLICY_RANKING_POINTS_ITF_JUNIOR` | 9 (Grand Slam → J30)      | —        | —                        | ITF Junior Circuit with qualifying and consolation      |
 
 These fixtures can be used as-is for preview/backoffice ranking point calculations, or as starting points for custom policies.
+
+### Federation policies served via CFS
+
+As of factory 4.0.0, federation-specific ranking policies (USTA Junior 2025/2026, Tennis Europe, LTA, Tennis Canada, Tennis Australia, ČTS) are no longer bundled. They live in CFS-served storage and reach the embedded factory engine via the [`policyRegistry`](/docs/concepts/policies#registry-served-query-time) at runtime:
+
+```js
+import { policyRegistry, scaleEngine } from 'tods-competition-factory';
+
+// Consumer (CFS, courthive-rankings, etc.) registers at boot, usually
+// from a GET /policies/catalog response:
+policyRegistry.register({
+  policyType: 'rankingPoints',
+  name: 'USTA_JUNIOR_2026',
+  version: '2026.01',
+  definition: /* fetched from CFS */,
+});
+
+// Engine resolves by name when policyDefinitions isn't passed:
+scaleEngine.getTournamentPoints({
+  tournamentRecord,
+  policyName: 'USTA_JUNIOR_2026',
+  level: 1,
+});
+```
+
+See [POLICY_DELIVERY](https://github.com/CourtHive/Mentat/blob/main/planning/POLICY_DELIVERY.md) in the orchestration repo for the full architecture and the per-consumer migration paths (TMX, courthive-rankings, courthive-ingest).
 
 ## Related Documentation
 
