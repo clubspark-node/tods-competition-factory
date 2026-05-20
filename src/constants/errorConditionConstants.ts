@@ -853,11 +853,17 @@ export const SCORES_PRESENT = {
   code: 'ERR_SCORES_PRESENT',
 };
 
+export const TOURNAMENT_CATEGORY_IN_USE = {
+  message: 'Tournament category is referenced by one or more events',
+  code: 'ERR_TOURNAMENT_CATEGORY_IN_USE',
+};
+
 export const errorConditionConstants = {
   ANACHRONISM,
   BOOKING_NOT_FOUND,
   CANNOT_CHANGE_WINNING_SIDE,
   CANNOT_MODIFY_TIEFORMAT,
+  TOURNAMENT_CATEGORY_IN_USE,
   CANNOT_MODIFY_PARTICIPANT_TYPE,
   CANNOT_REMOVE_MAIN_STRUCTURE,
   CANNOT_REMOVE_PARTICIPANTS,

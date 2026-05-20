@@ -3,7 +3,7 @@ import { addNotes, removeNotes } from '../base/addRemoveNotes';
 import { addNotice } from '@Global/state/globalState';
 
 // constants
-import { INVALID_TIME_ZONE } from '@Constants/errorConditionConstants';
+import { INVALID_TIME_ZONE, TOURNAMENT_CATEGORY_IN_USE } from '@Constants/errorConditionConstants';
 import { MODIFY_TOURNAMENT_DETAIL } from '@Constants/topicConstants';
 import { TOURNAMENT_RECORD } from '@Constants/attributeConstants';
 import { SUCCESS } from '@Constants/resultConstants';
@@ -189,6 +189,37 @@ export function setTournamentCategories({ tournamentRecord, categories }) {
   const paramsCheck = requireParams({ tournamentRecord }, [TOURNAMENT_RECORD]);
   if (paramsCheck.error) return paramsCheck;
   categories = (categories ?? []).filter((category) => category.categoryName && category.type);
+
+  // Reject any removal that would leave an event.category orphaned. The
+  // join key matches what consumers use (ageCategoryCode if present, else
+  // categoryName); both are walked so a partial-shape event reference
+  // still gets caught.
+  const incomingCodes = new Set<string>();
+  const incomingNames = new Set<string>();
+  for (const category of categories) {
+    if (category.ageCategoryCode) incomingCodes.add(category.ageCategoryCode);
+    if (category.categoryName) incomingNames.add(category.categoryName);
+  }
+
+  const referenced: string[] = [];
+  for (const event of tournamentRecord.events ?? []) {
+    const eventCategory = event?.category;
+    if (!eventCategory) continue;
+    const code = eventCategory.ageCategoryCode;
+    const name = eventCategory.categoryName;
+    if (code && !incomingCodes.has(code) && !incomingNames.has(code)) {
+      referenced.push(code);
+      continue;
+    }
+    if (name && !incomingNames.has(name) && !incomingCodes.has(name)) {
+      referenced.push(name);
+    }
+  }
+
+  if (referenced.length) {
+    return { error: TOURNAMENT_CATEGORY_IN_USE, referenced: [...new Set(referenced)] };
+  }
+
   tournamentRecord.tournamentCategories = categories;
 
   addNotice({
