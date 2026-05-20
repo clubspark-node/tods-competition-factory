@@ -1,5 +1,5 @@
 import { getAwardProfile } from '@Query/scales/getAwardProfile';
-import { POLICY_RANKING_POINTS_USTA_JUNIOR } from '@Fixtures/policies/POLICY_RANKING_POINTS_USTA_JUNIOR';
+import { POLICY_RANKING_POINTS_USTA_JUNIOR } from '@Tests/fixtures/policies/POLICY_RANKING_POINTS_USTA_JUNIOR';
 import scaleEngine from '@Engines/scaleEngine';
 import { mocksEngine } from '../../..';
 import { describe, expect, it, afterEach } from 'vitest';

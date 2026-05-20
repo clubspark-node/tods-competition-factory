@@ -1,4 +1,4 @@
-import { POLICY_RANKING_POINTS_CTS } from '@Fixtures/policies/POLICY_RANKING_POINTS_CTS';
+import { POLICY_RANKING_POINTS_CTS } from '@Tests/fixtures/policies/POLICY_RANKING_POINTS_CTS';
 import scaleEngine from '@Assemblies/engines/scale';
 import { tournamentEngine } from '@Engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
