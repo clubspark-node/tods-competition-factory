@@ -53,6 +53,7 @@ function awardLinePointsToWinningSide({
   participantIndividualIdsMap,
   participantPersonMap,
   personPoints,
+  pointsAuthority,
   eventType,
   drawId,
 }) {
@@ -74,6 +75,7 @@ function awardLinePointsToWinningSide({
       personPoints[personId].push({
         linePoints: lineValue,
         collectionPosition,
+        pointsAuthority,
         eventType,
         drawId,
       });
@@ -92,6 +94,7 @@ function calculateTeamLinePoints({
   participantIndividualIdsMap,
   participantPersonMap,
   personPoints,
+  pointsAuthority,
   eventType,
   drawId,
 }) {
@@ -118,6 +121,7 @@ function calculateTeamLinePoints({
         participantIndividualIdsMap,
         participantPersonMap,
         personPoints,
+        pointsAuthority,
         eventType,
         drawId,
       });
@@ -135,6 +139,7 @@ function calculateQualityWinPoints({
   tournamentRecord,
   level,
   personPoints,
+  pointsAuthority,
   eventType,
 }) {
   if (!qualityWinProfiles?.length || !participant.matchUps) return;
@@ -169,6 +174,7 @@ function calculateQualityWinPoints({
       personPoints[personId].push({
         qualityWinPoints,
         qualityWins,
+        pointsAuthority,
         eventType,
         drawId,
       });
@@ -422,6 +428,7 @@ function calculateDrawPoints({
   teamPoints,
   participantPersonMap,
   participantIndividualIdsMap,
+  pointsAuthority,
   level,
   devContext,
   tournamentRecord,
@@ -463,6 +470,7 @@ function calculateDrawPoints({
       participantIndividualIdsMap,
       participantPersonMap,
       personPoints,
+      pointsAuthority,
       drawId,
     });
 
@@ -492,6 +500,7 @@ function calculateDrawPoints({
         doublesAttribution,
         participantIndividualIdsMap,
         participantPersonMap,
+        pointsAuthority,
       });
     }
 
@@ -505,6 +514,7 @@ function calculateDrawPoints({
       tournamentRecord,
       level,
       personPoints,
+      pointsAuthority,
       eventType,
     });
   }
@@ -546,6 +556,7 @@ function processAllParticipations({
   participantIndividualIdsMap,
   participantPersonMap,
   personPoints,
+  pointsAuthority,
   drawId,
 }) {
   for (const participation of structureParticipation) {
@@ -583,6 +594,7 @@ function processAllParticipations({
         participantIndividualIdsMap,
         participantPersonMap,
         personPoints,
+        pointsAuthority,
         eventType,
         drawId,
       });
@@ -611,6 +623,7 @@ function buildAndDistributeAward({
   doublesAttribution,
   participantIndividualIdsMap,
   participantPersonMap,
+  pointsAuthority,
 }) {
   const award: Record<string, any> = {
     winCount: accum.totalWinsCount,
@@ -618,6 +631,7 @@ function buildAndDistributeAward({
     rangeAccessor: accum.rangeAccessor,
     perWinPoints: accum.perWinPoints,
     bonusPoints,
+    pointsAuthority,
     eventType,
     drawId,
     points,
@@ -679,6 +693,7 @@ export function getTournamentPoints({
   const requireWinForPoints = pointsPolicy.requireWinForPoints;
   const doublesAttribution = pointsPolicy.doublesAttribution;
   const qualityWinProfiles = pointsPolicy.qualityWinProfiles;
+  const pointsAuthority = pointsPolicy.pointsAuthority;
 
   const { participants, derivedEventInfo, derivedDrawInfo, mappedMatchUps } = getParticipants({
     withRankingProfile: true,
@@ -726,6 +741,7 @@ export function getTournamentPoints({
         teamPoints,
         participantPersonMap,
         participantIndividualIdsMap,
+        pointsAuthority,
         level,
         devContext,
         tournamentRecord,

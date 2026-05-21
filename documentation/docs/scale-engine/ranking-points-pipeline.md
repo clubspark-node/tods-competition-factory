@@ -239,8 +239,17 @@ Each award in `personPoints` contains a granular breakdown:
   level: 3,
   startDate: '2025-06-01',
   endDate: '2025-06-07',
+  pointsAuthority: 'ATP',    // copied from policy.pointsAuthority (optional)
 }
 ```
+
+The `pointsAuthority` field is copied from the source policy at award time
+(see [Ranking Policy → Points Authority](/docs/policies/rankingPolicy#points-authority)).
+It rides through every emitted award shape — main awards, doubles-split
+individual awards, quality-win awards, and team line-points awards — so
+federated ranking generators can scope and weight by source authority without
+re-joining to policy metadata. The field is `undefined` when the source policy
+did not declare a `pointsAuthority`.
 
 ## Related Documentation
 

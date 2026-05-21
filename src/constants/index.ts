@@ -15,6 +15,8 @@ export { participantConstants, participantTypes } from './participantConstants';
 export { participantRoles } from './participantRoles';
 export { penaltyConstants } from './penaltyConstants';
 export { policyConstants } from './policyConstants';
+export { pointsAuthorityConstants } from './pointsAuthorityConstants';
+export type { PointsAuthority } from './pointsAuthorityConstants';
 export { positionActionConstants } from './positionActionConstants';
 export { rankingConstants } from './rankingConstants';
 export { ratingConstants } from './ratingConstants';

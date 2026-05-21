@@ -1,3 +1,4 @@
+import type { PointsAuthority } from '../constants/pointsAuthorityConstants';
 import type { EventTypeUnion } from './tournamentTypes';
 
 // ─── Top-Level Policy ────────────────────────────────────────────────
@@ -8,6 +9,14 @@ export interface RankingPolicy {
 
   /** Optional version identifier for historical recalculation */
   policyVersion?: string;
+
+  /**
+   * Authority that issues points under this policy. Copied onto every
+   * PointAward emitted from this policy so federated rank lists (e.g.
+   * Tennis Europe consuming ATP + ITF) can filter and weight by source.
+   * Optional for back-compat; new policies should declare it.
+   */
+  pointsAuthority?: PointsAuthority;
 
   /** Date range during which this entire policy is valid */
   validDateRange?: DateRange;
@@ -619,6 +628,13 @@ export interface PointAward {
 
   // Audit: which profile was selected and why
   profileName?: string;
+
+  /**
+   * Authority that issued these points. Stamped from policy.pointsAuthority
+   * at award time so federated ranking generators can scope queries by
+   * source without joining back to policy metadata.
+   */
+  pointsAuthority?: PointsAuthority;
 }
 
 // ─── Ranking List Output ─────────────────────────────────────────────

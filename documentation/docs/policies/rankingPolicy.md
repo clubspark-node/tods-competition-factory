@@ -33,8 +33,74 @@ scaleEngine.getTournamentPoints({ policyDefinitions, level: 3 });
   doublesAttribution?: string;              // 'fullToEach' | 'splitEven'
   requireWinForPoints?: boolean;            // Global: must win to earn position points
   requireWinFirstRound?: boolean;           // Global: R1 losers need a win for points
+  pointsAuthority?: PointsAuthority;        // Issuing authority (ATP, WTA, ITF, …)
 }
 ```
+
+## Points Authority
+
+`pointsAuthority` declares which body issues the points awarded under a policy.
+Every `PointAward` emitted from the policy carries this value, so downstream
+consumers — most importantly federated rank lists like Tennis Europe's, which
+mix ATP + ITF + TE-internal points into one list — can scope and weight by
+source without re-joining to policy metadata.
+
+The vocabulary is a closed enum exported from `@Constants/pointsAuthorityConstants`:
+
+```ts
+import {
+  ATP,
+  WTA,
+  ITF,
+  ITF_JUNIOR,
+  ITF_WHEELCHAIR,
+  TENNIS_EUROPE,
+  USTA,
+  LTA,
+  FFT,
+  DTB,
+  PPA,
+  BWF,
+  UTR,
+  UNSPECIFIED,
+  POINTS_AUTHORITIES,
+  type PointsAuthority,
+} from 'tods-competition-factory';
+```
+
+The field is **optional** — policies that don't declare it produce awards with
+`pointsAuthority: undefined`, and downstream consumers (e.g. courthive-rankings)
+default such rows to `'UNSPECIFIED'`. The published CourtHive fixtures declare:
+
+| Policy                             | `pointsAuthority` |
+| ---------------------------------- | ----------------- |
+| `POLICY_RANKING_POINTS_ATP`        | `ATP`             |
+| `POLICY_RANKING_POINTS_WTA`        | `WTA`             |
+| `POLICY_RANKING_POINTS_ITF_WTT`    | `ITF`             |
+| `POLICY_RANKING_POINTS_ITF_JUNIOR` | `ITF_JUNIOR`      |
+| `POLICY_RANKING_POINTS_BASIC`      | _(unset)_         |
+
+The vocabulary intentionally aligns with `TierClassification.system` so a
+tournament's tier-system (`'ATP'`, `'ITF_JUNIOR'`, `'PPA'`, …) lines up with
+the authority of the points it awards.
+
+### Why a separate field from `policyName`?
+
+`policyName` identifies a specific published rulebook
+(`'PIF ATP Rankings 2026'`); `pointsAuthority` identifies the issuing body.
+Two policies for ATP can coexist (e.g. a 2025 and 2026 version) but both
+share `pointsAuthority: ATP`. Filtering by authority — "include every ATP
+award in the rolling window, regardless of which annual policy was in effect"
+— is impossible from `policyName` alone.
+
+### Authority weighting at aggregation time
+
+The authority weight a federated rank list applies (e.g. Tennis Europe weights
+ITF at `1.0` and TENNIS_EUROPE at `1.0`, while a USTA-internal list might weight
+external authorities at `0.5`) is **not** part of the policy. It belongs to the
+consuming rank list and is applied at aggregation time, downstream of the
+factory. See the [`courthive-rankings`](https://github.com/CourtHive/courthive-rankings)
+`AggregateArgs.authorityWeights` and `AggregateArgs.authorityFilter` inputs.
 
 ## Award Profiles
 
