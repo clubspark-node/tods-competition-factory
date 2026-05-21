@@ -368,7 +368,10 @@ function processParticipation({
     if (!drawSize) return { awardProfile, skip: true };
 
     if (awardProfile.profileName) accum.profileName = awardProfile.profileName;
-    accum.primaryAwardProfile ??= awardProfile;
+    if (accum.primaryAwardProfile === undefined) {
+      accum.primaryAwardProfile = awardProfile;
+      accum.rankingStage = rankingStage;
+    }
 
     accum.maxCountable = resolveMaxCountable(awardProfile, level, accum.maxCountable);
 
@@ -393,6 +396,7 @@ function processParticipation({
       accum.positionPoints = awardPoints;
       accum.rangeAccessor = accessor;
       accum.primaryAwardProfile = awardProfile;
+      accum.rankingStage = rankingStage;
     }
 
     if (!awardPoints) {
@@ -532,6 +536,12 @@ function buildAccumulator({ initialRequireWinFirstRound, requireWinForPoints }) 
     maxCountable: undefined as number | undefined,
     rangeAccessor: undefined as any,
     profileName: undefined as any,
+    // rankingStage of the participation that contributed positionPoints —
+    // tracked so emitted awards can be disambiguated by stage. Without it,
+    // a Q-final loser (accessor rewritten to 2) and a MAIN finalist (max
+    // finishingPositionRange = 2) share rangeAccessor=2 and downstream
+    // consumers can't tell them apart.
+    rankingStage: undefined as string | undefined,
     totalWinsCount: 0,
     positionPoints: 0,
     perWinPoints: 0,
@@ -638,6 +648,7 @@ function buildAndDistributeAward({
     perWinPoints: accum.perWinPoints,
     bonusPoints,
     pointsAuthority: effectiveAuthority,
+    stage: accum.rankingStage,
     eventType,
     drawId,
     points,

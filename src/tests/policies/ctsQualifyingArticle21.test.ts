@@ -2,10 +2,10 @@ import { POLICY_RANKING_POINTS_CTS } from '@Tests/fixtures/policies/POLICY_RANKI
 import scaleEngine from '@Assemblies/engines/scale';
 import { tournamentEngine } from '@Engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
+import { QUALIFYING } from '@Constants/drawDefinitionConstants';
 import { describe, expect, test } from 'vitest';
 
 import { SINGLES } from '@Constants/eventConstants';
-import { QUALIFYING } from '@Constants/drawDefinitionConstants';
 import { MALE } from '@Constants/genderConstants';
 
 // CTS Klasifikační řád 2025, Tabulka IV postscript (Article 21):
@@ -78,8 +78,16 @@ describe('CTS POLICY_RANKING_POINTS_CTS — Article 21 qualifying-stage points',
     // Collect every Q-stage award and assert at least one Q-final-loser
     // (rangeKey 2 = 2^1 — finishingRound 1 in a 2-round Q final) received
     // the Tabulka IV col+1 points.
+    //
+    // Filter on stage === QUALIFYING in addition to rangeAccessor === 2.
+    // Without the stage gate, MAIN-finalists also match (their
+    // finishingPositionRange max = 2) and intermittently contaminate
+    // qFinalLoserAwards with pts=138 awards whenever the random mock
+    // outcome produces a SINGLES finalist with that shape.
     const allAwards = Object.values(r.personPoints).flat();
-    const qFinalLoserAwards = allAwards.filter((a: any) => a.eventType === SINGLES && a.rangeAccessor === 2);
+    const qFinalLoserAwards = allAwards.filter(
+      (a: any) => a.eventType === SINGLES && a.stage === QUALIFYING && a.rangeAccessor === 2,
+    );
     expect(qFinalLoserAwards.length).toBeGreaterThan(0);
     // Tabulka IV row 12 col 5 = 33 pts (16-MAIN's "Q final loser" shift +1).
     for (const award of qFinalLoserAwards) {

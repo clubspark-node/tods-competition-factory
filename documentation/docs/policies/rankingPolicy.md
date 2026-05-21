@@ -142,6 +142,14 @@ whichever profile matched its draw — so courthive-rankings can scope,
 filter, and weight by source authority directly, without splitting the
 rank list across three separate policies.
 
+A working reference fixture lives at
+[`src/tests/fixtures/policies/POLICY_RANKING_POINTS_HYBRID_EXAMPLE.ts`](https://github.com/CourtHive/competition-factory/blob/master/src/tests/fixtures/policies/POLICY_RANKING_POINTS_HYBRID_EXAMPLE.ts).
+It models the three-bucket pattern observed in Tennis Europe's production
+rank list (TE-circuit + ITF Junior crossover + ATP crossover). Point
+values in that fixture are placeholders — copy the file, calibrate the
+ranges against the actual federation rulebook, and adjust the scoping
+(levels, drawSizes, eventTypes) to match the federation's event taxonomy.
+
 The override applies to every award shape emitted from `getTournamentPoints`:
 main awards, doubles-split individual awards (via spread), team
 line-points awards, and quality-win bonus awards. Quality-win bonuses
