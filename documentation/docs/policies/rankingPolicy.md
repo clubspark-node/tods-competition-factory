@@ -84,6 +84,71 @@ The vocabulary intentionally aligns with `TierClassification.system` so a
 tournament's tier-system (`'ATP'`, `'ITF_JUNIOR'`, `'PPA'`, …) lines up with
 the authority of the points it awards.
 
+### Per-AwardProfile override
+
+`AwardProfile.pointsAuthority` is the per-profile override that makes
+federated rank lists possible. When set, it stamps every award the
+profile matches with its own authority — overriding the policy-level
+`pointsAuthority` for that profile only. Resolution rule at award time:
+
+```ts
+award.pointsAuthority = matchedProfile.pointsAuthority ?? policy.pointsAuthority;
+```
+
+The Tennis Europe production rank list aggregates points from three
+issuing authorities into a single weekly list. With per-profile authority,
+the entire list is one policy:
+
+```ts
+const POLICY_RANKING_POINTS_TE_HYBRID = {
+  [POLICY_TYPE_RANKING_POINTS]: {
+    policyName: 'Tennis Europe Hybrid 2026',
+    pointsAuthority: TENNIS_EUROPE, // default for any profile
+    awardProfiles: [
+      {
+        profileName: 'TE Circuit (16U/18U)',
+        // matches TE-circuit events; no authority override → TENNIS_EUROPE
+        finishingPositionRanges: {
+          /* TE point values */
+        },
+      },
+      {
+        profileName: 'ITF Junior crossover',
+        pointsAuthority: ITF_JUNIOR, // override for ITF events
+        levels: [
+          /* ITF Jr levels */
+        ],
+        finishingPositionRanges: {
+          /* ITF point values */
+        },
+      },
+      {
+        profileName: 'ATP crossover',
+        pointsAuthority: ATP, // override for ATP events
+        levels: [
+          /* ATP levels */
+        ],
+        finishingPositionRanges: {
+          /* ATP point values */
+        },
+      },
+    ],
+  },
+};
+```
+
+Every award emitted under this policy carries the issuing authority of
+whichever profile matched its draw — so courthive-rankings can scope,
+filter, and weight by source authority directly, without splitting the
+rank list across three separate policies.
+
+The override applies to every award shape emitted from `getTournamentPoints`:
+main awards, doubles-split individual awards (via spread), team
+line-points awards, and quality-win bonus awards. Quality-win bonuses
+inherit the matched profile's authority for the same draw (so a player
+who won an ITF crossover event gets ITF-stamped quality wins, even
+under a TE-Hybrid policy).
+
 ### Why a separate field from `policyName`?
 
 `policyName` identifies a specific published rulebook

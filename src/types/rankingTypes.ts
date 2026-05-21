@@ -151,6 +151,16 @@ export interface AwardProfile extends AwardProfileScope {
   /** Human-readable label for auditing/debugging */
   profileName?: string;
 
+  /**
+   * Issuing authority for points emitted under this profile. When set,
+   * overrides RankingPolicy.pointsAuthority for any award the profile
+   * matches. Lets a single federated policy (e.g. "TE Hybrid 2026")
+   * mint awards stamped with whichever body issued them — ITF for ITF
+   * profiles, ATP for ATP profiles, TENNIS_EUROPE for TE-circuit
+   * profiles — without splitting the policy in three.
+   */
+  pointsAuthority?: PointsAuthority;
+
   /** Points by finishing position (key = max finishingPositionRange value) */
   finishingPositionRanges?: Record<number, PositionValue>;
 

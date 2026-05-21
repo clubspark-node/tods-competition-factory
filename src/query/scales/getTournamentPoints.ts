@@ -504,6 +504,9 @@ function calculateDrawPoints({
       });
     }
 
+    // Quality-win bonuses are part of the same draw context as the
+    // primary award, so they inherit the matched profile's authority
+    // and only fall back to the policy default when no profile matched.
     calculateQualityWinPoints({
       qualityWinProfiles,
       participant,
@@ -514,7 +517,7 @@ function calculateDrawPoints({
       tournamentRecord,
       level,
       personPoints,
-      pointsAuthority,
+      pointsAuthority: accum.primaryAwardProfile?.pointsAuthority ?? pointsAuthority,
       eventType,
     });
   }
@@ -594,7 +597,7 @@ function processAllParticipations({
         participantIndividualIdsMap,
         participantPersonMap,
         personPoints,
-        pointsAuthority,
+        pointsAuthority: awardProfile.pointsAuthority ?? pointsAuthority,
         eventType,
         drawId,
       });
@@ -625,13 +628,16 @@ function buildAndDistributeAward({
   participantPersonMap,
   pointsAuthority,
 }) {
+  // Profile authority wins over policy authority; falls back to the
+  // policy default (or undefined) when no profile overrides.
+  const effectiveAuthority = accum.primaryAwardProfile?.pointsAuthority ?? pointsAuthority;
   const award: Record<string, any> = {
     winCount: accum.totalWinsCount,
     positionPoints: accum.positionPoints,
     rangeAccessor: accum.rangeAccessor,
     perWinPoints: accum.perWinPoints,
     bonusPoints,
-    pointsAuthority,
+    pointsAuthority: effectiveAuthority,
     eventType,
     drawId,
     points,
