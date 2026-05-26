@@ -5,10 +5,10 @@ import { checkRequiredParameters } from '@Helpers/parameters/checkRequiredParame
 import { getAllStructureMatchUps } from '@Query/matchUps/getAllStructureMatchUps';
 import { isCompletedStructure } from '@Query/drawDefinition/structureActions';
 import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { mapNumbersToIndexes } from '@Tools/mapNumbersToIndexes';
 import { definedAttributes } from '@Tools/definedAttributes';
-import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { ResultType } from '@Types/factoryTypes';
 import { generateRange } from '@Tools/arrays';
 

@@ -1,7 +1,7 @@
 import { getContainedStructures } from '@Query/drawDefinition/getContainedStructures';
 import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
-import { getStructureLinks } from '@Query/drawDefinition/linkGetter';
 import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
+import { getStructureLinks } from '@Query/drawDefinition/linkGetter';
 import { overlap } from '@Tools/arrays';
 
 import { TALLY } from '@Constants/extensionConstants';

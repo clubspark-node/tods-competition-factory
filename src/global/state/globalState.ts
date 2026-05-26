@@ -4,8 +4,8 @@ import { intersection } from '@Tools/arrays';
 import { isNumeric } from '@Tools/math';
 
 // constants and types
-import { TournamentRecords, ResultType } from '@Types/factoryTypes';
 import { DUAL, LEGACY, NATIVE, SchemaWriteMode, schemaWriteModes } from '@Constants/schemaWriteModeConstants';
+import { TournamentRecords, ResultType } from '@Types/factoryTypes';
 import { SUCCESS } from '@Constants/resultConstants';
 import {
   ErrorType,

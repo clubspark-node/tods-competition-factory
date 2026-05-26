@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
-import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { setSchemaWriteMode, getSchemaWriteMode } from '@Global/state/globalState';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import tournamentEngine from '../engines/syncEngine';
 
+// constants and types
 import { DUAL, LEGACY, NATIVE } from '@Constants/schemaWriteModeConstants';
 
 const TALLY_NAME = 'tally';

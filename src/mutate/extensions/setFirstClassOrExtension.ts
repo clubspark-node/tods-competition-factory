@@ -1,7 +1,7 @@
 import { writeLegacyEnabled, writeNativeEnabled } from '@Global/state/globalState';
 import { decorateResult } from '@Functions/global/decorateResult';
-import { addExtension } from './addExtension';
 import { removeExtension } from './removeExtension';
+import { addExtension } from './addExtension';
 
 // constants and types
 import { ErrorType, INVALID_VALUES, MISSING_VALUE } from '@Constants/errorConditionConstants';

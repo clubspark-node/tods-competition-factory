@@ -1,6 +1,8 @@
 import { beforeEach } from 'vitest';
 
 import { setSchemaWriteMode } from '@Global/state/globalState';
+
+// constants and types
 import { LEGACY } from '@Constants/schemaWriteModeConstants';
 
 /**

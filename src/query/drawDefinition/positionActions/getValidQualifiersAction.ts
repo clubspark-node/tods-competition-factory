@@ -1,9 +1,9 @@
 import { getSourceStructureIdsAndRelevantLinks } from '@Query/structure/getSourceStructureIdsAndRelevantLinks';
 import { getAllStructureMatchUps } from '@Query/matchUps/getAllStructureMatchUps';
-import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
 import { isCompletedStructure } from '@Query/drawDefinition/structureActions';
-import { definedAttributes } from '@Tools/definedAttributes';
+import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
 import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
+import { definedAttributes } from '@Tools/definedAttributes';
 
 // constants and types
 import { QUALIFYING_PARTICIPANT, QUALIFYING_PARTICIPANT_METHOD } from '@Constants/positionActionConstants';

@@ -1,5 +1,5 @@
-import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
 import { tallyParticipantResults } from '@Query/matchUps/roundRobinTally/tallyParticipantResults';
+import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
 import { getPolicyDefinitions } from '@Query/extensions/getAppliedPolicies';
 import { modifyDrawNotice } from '@Mutate/notifications/drawNotifications';
 import { createSubOrderMap } from '@Query/structure/createSubOrderMap';
