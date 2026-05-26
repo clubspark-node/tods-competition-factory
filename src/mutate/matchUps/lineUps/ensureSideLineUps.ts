@@ -1,7 +1,7 @@
 import { modifyMatchUpNotice } from '../../notifications/drawNotifications';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { findDrawMatchUp } from '@Acquire/findDrawMatchUp';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
-import { findExtension } from '@Acquire/findExtension';
 
 import { DrawDefinition, MatchUp } from '@Types/tournamentTypes';
 import { LINEUPS } from '@Constants/extensionConstants';
@@ -30,12 +30,8 @@ export function ensureSideLineUps({
       })?.matchUp;
     }
 
-    const { extension } = findExtension({
-      element: drawDefinition,
-      name: LINEUPS,
-    });
-
-    const lineUps = makeDeepCopy(extension?.value ?? {}, false, true);
+    const lineUpsValue = firstClassOrExtension({ element: drawDefinition, attribute: 'lineUps', name: LINEUPS });
+    const lineUps = makeDeepCopy(lineUpsValue ?? {}, false, true);
 
     const extractSideDetail = ({ displaySideNumber, drawPosition, sideNumber }) => ({
       drawPosition,

@@ -1,11 +1,11 @@
 import { deleteDrawNotice, deleteMatchUpsNotice } from '../notifications/drawNotifications';
-import { getPositionAssignments } from '@Query/structure/getPositionAssignments';
 import { checkAndUpdateSchedulingProfile } from '../tournaments/schedulingProfile';
+import { setFirstClassOrExtension } from '../extensions/setFirstClassOrExtension';
+import { getPositionAssignments } from '@Query/structure/getPositionAssignments';
 import { getEventPublishStatus } from '@Query/event/getEventPublishStatus';
 import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
 import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { modifyEventPublishStatus } from './modifyEventPublishStatus';
-import { addEventExtension } from '../extensions/addRemoveExtensions';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { addNotice, hasTopic } from '@Global/state/globalState';
@@ -201,12 +201,12 @@ export function deleteDrawDefinitions(params: DeleteDrawDefinitionArgs) {
   event.drawDefinitions = filteredDrawDefinitions;
 
   if (flightProfile) {
-    const extension = {
+    setFirstClassOrExtension({
+      element: event,
+      attribute: 'flightProfile',
       name: FLIGHT_PROFILE,
       value: flightProfile,
-    };
-
-    addEventExtension({ event, extension });
+    });
   }
 
   // cleanup references to drawId in schedulingProfile extension

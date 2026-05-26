@@ -2,11 +2,11 @@ import { addDrawNotice, modifyMatchUpNotice } from '@Mutate/notifications/drawNo
 import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { getParticipants } from '@Query/participants/getParticipants';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
+import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { addEventEntries } from '@Mutate/entries/addEventEntries';
 import { decorateResult } from '@Functions/global/decorateResult';
-import { addExtension } from '@Mutate/extensions/addExtension';
 import { addNotice } from '@Global/state/globalState';
-import { findExtension } from '@Acquire/findExtension';
 
 // constants and types
 import { Participant, ParticipantRoleUnion, Tournament } from '@Types/tournamentTypes';
@@ -223,14 +223,11 @@ function purgeParticipantFromLineUps({ groupingParticipantId, tournamentRecord, 
 }
 
 function purgeFromDrawLineUp({ drawDefinition, groupingParticipantId, participantId }) {
-  const { extension } = findExtension({
-    element: drawDefinition,
-    name: LINEUPS,
-  });
-  const lineUp = extension?.value[groupingParticipantId];
-  if (extension && lineUp) {
-    extension.value[groupingParticipantId] = lineUp.filter((assignment) => assignment.participantId !== participantId);
-    addExtension({ element: drawDefinition, extension });
+  const lineUps = firstClassOrExtension({ element: drawDefinition, attribute: 'lineUps', name: LINEUPS });
+  const lineUp = lineUps?.[groupingParticipantId];
+  if (lineUps && lineUp) {
+    lineUps[groupingParticipantId] = lineUp.filter((assignment) => assignment.participantId !== participantId);
+    setFirstClassOrExtension({ element: drawDefinition, attribute: 'lineUps', name: LINEUPS, value: lineUps });
     addDrawNotice({ drawDefinition });
   }
 }
