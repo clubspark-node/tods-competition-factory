@@ -3,6 +3,7 @@ import { getDrawCompositionConstraints } from './getDrawCompositionConstraints';
 import { getBestFinishers } from '@Query/drawDefinition/getBestFinishers';
 
 // Acquire
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { findExtension } from '@Acquire/findExtension';
 import { findStructure } from '@Acquire/findStructure';
 
@@ -151,10 +152,11 @@ function getPlayoffEntries({ provisionalPositioning, drawDefinition, structureId
           ...positionAssignments
             .map((assignment) => {
               const { participantId } = assignment;
-              const tallied = findExtension({
+              const tallied = firstClassOrExtension({
                 element: assignment,
+                attribute: 'tally',
                 name: TALLY,
-              }).extension?.value;
+              });
 
               return tallied && participantId ? { [participantId]: tallied } : undefined;
             })
