@@ -9,6 +9,7 @@ import { getStructureGroups } from '@Query/structure/getStructureGroups';
 import { createSubOrderMap } from '@Query/structure/createSubOrderMap';
 import { getPublishState } from '@Query/publishing/getPublishState';
 import { structureSort } from '@Functions/sorters/structureSort';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { findStructure } from '@Acquire/findStructure';
 import { findExtension } from '@Acquire/findExtension';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
@@ -147,7 +148,7 @@ export function getDrawData(params): {
         const { positionAssignments } = getPositionAssignments({ structure });
 
         let participantResults = positionAssignments?.filter(xa(PARTICIPANT_ID)).map((assignment) => {
-          const participantResult = findExtension({ element: assignment, name: TALLY })?.extension?.value;
+          const participantResult = firstClassOrExtension({ element: assignment, attribute: 'tally', name: TALLY });
           const { drawPosition, participantId } = assignment;
           participantPlacements = true;
 

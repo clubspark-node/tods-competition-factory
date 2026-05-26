@@ -5,7 +5,7 @@ import { processPlayoffGroups } from './drawTypes/processPlayoffGroups';
 import { getAllDrawMatchUps } from '@Query/matchUps/drawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getMatchUpId } from '@Functions/global/extractors';
-import { findExtension } from '@Acquire/findExtension';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { generateTieMatchUps } from './tieMatchUps';
 
 // Constants
@@ -90,11 +90,11 @@ export function generateAndPopulateRRplayoffStructures(params) {
   });
   const finishingPositionParticipantIds = {};
   positionAssignments?.forEach((assignment) => {
-    const result = findExtension({
+    const participantResult = firstClassOrExtension({
       element: assignment,
+      attribute: 'tally',
       name: TALLY,
     });
-    const participantResult = result?.extension?.value;
     const groupOrder = participantResult?.groupOrder;
     if (groupOrder) {
       if (!finishingPositionParticipantIds[groupOrder]) finishingPositionParticipantIds[groupOrder] = [];

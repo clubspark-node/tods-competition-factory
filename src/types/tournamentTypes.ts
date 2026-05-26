@@ -705,6 +705,43 @@ export enum FinishingPositionEnum {
 }
 export type FinishingPositionUnion = keyof typeof FinishingPositionEnum;
 
+export interface TallyResult {
+  GEMscore?: number;
+  allDefaults?: number;
+  defaults?: number;
+  defeats?: any[];
+  gamesLost?: number;
+  gamesPct?: number;
+  gamesWon?: number;
+  groupOrder?: number;
+  matchUpsCancelled?: number;
+  matchUpsLost?: number;
+  matchUpsPct?: number;
+  matchUpsWon?: number;
+  pointsLost?: number;
+  pointsPct?: number;
+  pointsWon?: number;
+  pressureOrder?: number;
+  pressureScores?: number[];
+  provisionalOrder?: number;
+  rankOrder?: number;
+  retirements?: number;
+  setsLost?: number;
+  setsPct?: number;
+  setsWon?: number;
+  subOrder?: number;
+  tieDoublesLost?: number;
+  tieDoublesWon?: number;
+  tieMatchUpsLost?: number;
+  tieMatchUpsWon?: number;
+  tieSinglesLost?: number;
+  tieSinglesWon?: number;
+  ties?: number;
+  victories?: any[];
+  walkovers?: number;
+  [key: string]: any;
+}
+
 export interface PositionAssignment {
   bye?: boolean;
   createdAt?: Date | string;
@@ -714,6 +751,10 @@ export interface PositionAssignment {
   notes?: string;
   participantId?: string;
   qualifier?: boolean;
+  // CODES first-class: previously stored as `tally` extension
+  tally?: TallyResult;
+  // CODES first-class: previously stored as `subOrder` extension
+  subOrder?: number;
   timeItems?: TimeItem[];
   updatedAt?: Date | string;
 }
