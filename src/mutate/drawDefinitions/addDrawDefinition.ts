@@ -1,4 +1,4 @@
-import { addEventExtension } from '@Mutate/extensions/addRemoveExtensions';
+import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
@@ -122,17 +122,14 @@ export function addDrawDefinition(
 
   const flight = flightProfile?.flights?.find((flight) => flight.drawId === drawId);
 
-  let extension;
+  let value;
   if (flight) {
     // if this drawId was defined in a flightProfile...
     // ...update the flight.drawName with the drawName in the drawDefinition
     flight.drawName = drawDefinition.drawName;
-    extension = {
-      name: FLIGHT_PROFILE,
-      value: {
-        ...flightProfile,
-        flights: flightProfile.flights,
-      },
+    value = {
+      ...flightProfile,
+      flights: flightProfile.flights,
     };
 
     const flightNumber = flight.flightNumber;
@@ -150,16 +147,13 @@ export function addDrawDefinition(
       drawName,
       drawId,
     });
-    extension = {
-      name: FLIGHT_PROFILE,
-      value: {
-        ...flightProfile,
-        flights,
-      },
+    value = {
+      ...flightProfile,
+      flights,
     };
   }
 
-  addEventExtension({ event, extension });
+  setFirstClassOrExtension({ element: event, attribute: 'flightProfile', name: FLIGHT_PROFILE, value });
   Object.assign(drawDefinition, { drawOrder });
 
   const existingDrawDefinition = event.drawDefinitions.find((dd) => dd.drawId === drawId);

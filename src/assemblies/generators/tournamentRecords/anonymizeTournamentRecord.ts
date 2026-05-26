@@ -56,6 +56,17 @@ export function anonymizeTournamentRecord({
   return { ...SUCCESS };
 }
 
+function anonymizeFlightProfileFlights(flightProfile: any, idMap: any) {
+  for (const flight of flightProfile.flights) {
+    flight.drawId = idMap[flight.drawId];
+    if (Array.isArray(flight.drawEntries)) {
+      for (const entry of flight.drawEntries) {
+        entry.participantId = idMap[entry.participantId];
+      }
+    }
+  }
+}
+
 function anonymizeTournamentHeader({ tournamentRecord, filterExtensions, idMap, tournamentId, tournamentName }) {
   tournamentRecord.extensions = filterExtensions(tournamentRecord);
 
@@ -196,20 +207,14 @@ function anonymizeEvents({ tournamentRecord, filterExtensions, idMap }) {
       anonymizeDrawDefinition({ drawDefinition, filterExtensions, idMap });
     }
 
-    const { extension: flightProfile } = findExtension({
-      name: FLIGHT_PROFILE,
-      element: event,
-    });
-
-    if (Array.isArray(flightProfile?.value?.flights)) {
-      flightProfile?.value.flights?.forEach((flight) => {
-        flight.drawId = idMap[flight.drawId];
-        if (Array.isArray(flight.drawEntries)) {
-          for (const entry of flight.drawEntries) {
-            entry.participantId = idMap[entry.participantId];
-          }
-        }
-      });
+    // anonymize CODES first-class flightProfile when present
+    if (Array.isArray(event.flightProfile?.flights)) {
+      anonymizeFlightProfileFlights(event.flightProfile, idMap);
+    }
+    // also anonymize the legacy extension form so DUAL / LEGACY records remain consistent
+    const { extension: flightProfileExt } = findExtension({ name: FLIGHT_PROFILE, element: event });
+    if (Array.isArray(flightProfileExt?.value?.flights)) {
+      anonymizeFlightProfileFlights(flightProfileExt.value, idMap);
     }
 
     eventCount += 1;

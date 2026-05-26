@@ -1,7 +1,7 @@
-import { addEventExtension } from '../extensions/addRemoveExtensions';
+import { setFirstClassOrExtension } from '../extensions/setFirstClassOrExtension';
 import { decorateResult } from '@Functions/global/decorateResult';
-import { getParticipantId } from '@Functions/global/extractors';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
+import { getParticipantId } from '@Functions/global/extractors';
 import { intersection } from '@Tools/arrays';
 import { ensureInt } from '@Tools/ensureInt';
 import { UUID } from '@Tools/UUID';
@@ -65,13 +65,10 @@ export function addFlight({
 
   const flights = (flightProfile?.flights ?? []).concat(flight);
 
-  const extension = {
+  return setFirstClassOrExtension({
+    element: event,
+    attribute: 'flightProfile',
     name: FLIGHT_PROFILE,
-    value: {
-      ...flightProfile,
-      flights,
-    },
-  };
-
-  return addEventExtension({ event, extension });
+    value: { ...flightProfile, flights },
+  });
 }

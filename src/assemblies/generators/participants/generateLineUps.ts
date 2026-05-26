@@ -5,7 +5,7 @@ import { getParticipants } from '@Query/participants/getParticipants';
 import { addParticipant } from '@Mutate/participants/addParticipant';
 import { validateTieFormat } from '@Validators/validateTieFormat';
 import { getParticipantId } from '@Functions/global/extractors';
-import { addExtension } from '@Mutate/extensions/addExtension';
+import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
 import { generateRange } from '@Tools/arrays';
 import { isNumeric } from '@Tools/math';
 
@@ -192,8 +192,7 @@ export function generateLineUps(params: GenerateLineUpsArgs): ResultType & {
         tournamentRecord,
       });
     }
-    const extension = { name: LINEUPS, value: lineUps };
-    addExtension({ element: drawDefinition, extension });
+    setFirstClassOrExtension({ element: drawDefinition, attribute: 'lineUps', name: LINEUPS, value: lineUps });
   }
 
   return { ...SUCCESS, lineUps, participantsToAdd };

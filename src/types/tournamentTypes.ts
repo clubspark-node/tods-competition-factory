@@ -70,6 +70,8 @@ export interface Event {
   eventTier?: TierClassification;
   eventType?: EventTypeUnion;
   extensions?: Extension[];
+  // CODES first-class: previously stored as `flightProfile` extension
+  flightProfile?: any;
   gender?: GenderUnion;
   indoorOutdoor?: IndoorOutdoorUnion;
   isMock?: boolean;
@@ -181,7 +183,11 @@ export interface DrawDefinition {
   endDate?: string;
   entries?: Entry[];
   extensions?: Extension[];
+  // CODES first-class: previously stored as `flightProfile` extension
+  flightProfile?: any;
   isMock?: boolean;
+  // CODES first-class: previously stored as `lineUps` extension
+  lineUps?: any;
   links?: DrawLink[];
   matchUpFormat?: string;
   matchUps?: MatchUp[];

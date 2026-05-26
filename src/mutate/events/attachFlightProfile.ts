@@ -1,4 +1,4 @@
-import { addEventExtension } from '../extensions/addRemoveExtensions';
+import { setFirstClassOrExtension } from '../extensions/setFirstClassOrExtension';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
@@ -27,12 +27,12 @@ export function attachFlightProfile({ deleteExisting, event, flightProfile }) {
       stack,
     });
 
-  const extension = {
+  setFirstClassOrExtension({
+    element: event,
+    attribute: 'flightProfile',
     name: FLIGHT_PROFILE,
     value: flightProfile,
-  };
-
-  addEventExtension({ event, extension });
+  });
 
   return {
     flightProfile: makeDeepCopy(flightProfile, false, true),
