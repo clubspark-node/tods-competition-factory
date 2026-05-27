@@ -76,7 +76,61 @@ Lifecycle timeItems intentionally stay on `matchUp.timeItems[]`: `START_TIME`, `
 
 ### linkedTournamentIds (Phase 7)
 
-Previous shape `{tournamentIds: []}` is normalized to a flat string array on `tournamentRecord.linkedTournamentIds`. The `migrateTournamentRecord` utility (Phase 7) handles this shape translation when upgrading a v4 record.
+Two things changed at once on this attribute, which is why it was deferred from Phase 4 (flat scalars) to Phase 7 (migration utility).
+
+**Change 1 — name (typo fix).** The 4.x extension name is `linkedTournamentsIds` (with an extra "s" — typo in the original code; the constant lives as `LINKED_TOURNAMENTS = 'linkedTournamentsIds'`). The 5.0.0 first-class attribute uses the corrected spelling `linkedTournamentIds`. The extension key is not renamed because that would invalidate stored records.
+
+**Change 2 — wrapper unwrapping.** The 4.x extension `value` was an object wrapping the array: `{ tournamentIds: ['t-1', 't-2'] }`. The 5.0.0 first-class attribute is a flat array: `['t-1', 't-2']`.
+
+```
+// 4.x — extension
+record.extensions = [
+  { name: 'linkedTournamentsIds', value: { tournamentIds: ['t-1', 't-2'] } }
+];
+
+// 5.0.0 — first-class
+record.linkedTournamentIds = ['t-1', 't-2'];
+```
+
+The wrapper had no other fields and bought nothing, so CODES flattens it away.
+
+**Why deferred to Phase 7.** Every other CODES promotion in Phases 0–5 was a structural shadow: extension value and first-class attribute hold the same value. A DUAL-mode writer could write the same value to both surfaces and a reader could fall back from first-class to extension transparently. `linkedTournamentIds` is different — the two surfaces hold values of different shapes, so the promotion required a one-time translator. That translator is special-cased in the `migrateTournamentRecord` utility (see `src/mutate/tournaments/migrateTournamentRecord.ts`):
+
+```ts
+{
+  name: LINKED_TOURNAMENTS,
+  attribute: 'linkedTournamentIds',
+  // historical shape `{tournamentIds: string[]}` flattens to a plain `string[]`
+  translate: (legacy) => legacy?.tournamentIds ?? legacy,
+}
+```
+
+**What 5.0.0 writes.** The `competitionEngine` mutations `linkTournaments`, `unlinkTournament`, and `unlinkTournaments` are mode-aware:
+
+- NATIVE (5.0.0 default) → writes flat array to `record.linkedTournamentIds`; clears any pre-existing legacy extension on the same record
+- LEGACY → writes the legacy `{tournamentIds: []}` wrapper extension; clears any first-class field
+- DUAL → writes both surfaces
+
+The corresponding factory readers (`getLinkedTournamentIds` query, `removeUnlinkedTournamentRecords` state method, and `unlinkTournament`'s internal read) are mode-agnostic via a shared `getRecordLinkedTournamentIds` helper that prefers the first-class field and falls back to the legacy extension.
+
+**Consumer-side read.** If you depend on the linked-tournament list (typically `findCourt` / `findVenue` in multi-tournament mode) call the engine method:
+
+```ts
+const { linkedTournamentIds } = competitionEngine.getLinkedTournamentIds();
+// linkedTournamentIds: { [tournamentId]: string[] }
+// returns OTHER linked ids per record (self is filtered out)
+```
+
+If you need to read the raw record directly (e.g. server-side, looking at JSON before any engine load), prefer first-class with the wrapped-extension fallback:
+
+```ts
+const linked =
+  tournamentRecord.linkedTournamentIds ??
+  tournamentRecord.extensions?.find((e) => e.name === 'linkedTournamentsIds')?.value?.tournamentIds ??
+  [];
+```
+
+Or run the record through `engine.migrateTournamentRecord({ tournamentRecord })` once on load, after which the first-class field is always populated.
 
 ## Mode-agnostic read helper
 
