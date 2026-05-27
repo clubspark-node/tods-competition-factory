@@ -8,6 +8,10 @@ import {
   getDevContext,
   setSchemaWriteMode,
   getSchemaWriteMode,
+  setSaveDrawDeletions,
+  getSaveDrawDeletions,
+  setAuditAuthorityServer,
+  getAuditAuthorityServer,
   removeTournamentRecord,
   setTournamentRecords,
   setTournamentId,
@@ -49,6 +53,16 @@ export function engineStart(engine: FactoryEngine, engineInvoke: any): void {
     return processResult(engine, result);
   };
   engine.getSchemaWriteMode = () => getSchemaWriteMode();
+  engine.saveDrawDeletions = (flag) => {
+    const result = setSaveDrawDeletions(flag);
+    return processResult(engine, result);
+  };
+  engine.getSaveDrawDeletions = () => getSaveDrawDeletions();
+  engine.auditAuthorityServer = (flag) => {
+    const result = setAuditAuthorityServer(flag);
+    return processResult(engine, result);
+  };
+  engine.getAuditAuthorityServer = () => getAuditAuthorityServer();
   engine.newTournamentRecord = (params = {}) => {
     const result = createTournamentRecord(params);
     const tournamentId = result.tournamentId;
