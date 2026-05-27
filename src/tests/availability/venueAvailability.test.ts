@@ -10,9 +10,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
-import { venueKey, venueDayKey } from '@Assemblies/governors/temporalGovernor/railDerivation';
-import { BLOCK_TYPES } from '@Assemblies/governors/temporalGovernor/types';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
+import { venueKey, venueDayKey } from '@Assemblies/governors/availabilityGovernor/railDerivation';
+import { BLOCK_TYPES } from '@Assemblies/governors/availabilityGovernor/types';
 
 // ============================================================================
 // Test Fixtures
@@ -73,7 +73,7 @@ describe('Venue-level loading from tournament record', () => {
     record.venues[0].defaultStartTime = '08:00';
     record.venues[0].defaultEndTime = '20:00';
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
 
     const avail = engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID);
@@ -86,7 +86,7 @@ describe('Venue-level loading from tournament record', () => {
       { date: '2026-06-15', startTime: '09:00', endTime: '18:00', venueId: VENUE_ID },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
 
     const dayAvail = engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15');
@@ -97,11 +97,9 @@ describe('Venue-level loading from tournament record', () => {
     const record = makeBasicRecord();
     record.venues[0].defaultStartTime = '08:00';
     record.venues[0].defaultEndTime = '20:00';
-    record.venues[0].dateAvailability = [
-      { startTime: '07:00', endTime: '22:00', venueId: VENUE_ID },
-    ];
+    record.venues[0].dateAvailability = [{ startTime: '07:00', endTime: '22:00', venueId: VENUE_ID }];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
 
     // The dateless entry should override the defaultStartTime/defaultEndTime
@@ -117,13 +115,11 @@ describe('Venue-level loading from tournament record', () => {
         startTime: '08:00',
         endTime: '20:00',
         venueId: VENUE_ID,
-        bookings: [
-          { startTime: '12:00', endTime: '13:00', bookingType: 'MAINTENANCE' },
-        ],
+        bookings: [{ startTime: '12:00', endTime: '13:00', bookingType: 'MAINTENANCE' }],
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
 
     const allBlocks = engine.getAllBlocks();
@@ -141,10 +137,10 @@ describe('Venue-level loading from tournament record', () => {
 // ============================================================================
 
 describe('Court + Venue intersection logic', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
   });
 
@@ -215,11 +211,11 @@ describe('Court + Venue intersection logic', () => {
 // ============================================================================
 
 describe('Venue API methods', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
   let events: any[];
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
     events = [];
     engine.subscribe((e) => events.push(e));
@@ -255,13 +251,22 @@ describe('Venue API methods', () => {
     // Set default
     engine.setVenueDefaultAvailability(TOURNAMENT_ID, VENUE_ID, { startTime: '08:00', endTime: '20:00' });
     expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID)).toEqual({ startTime: '08:00', endTime: '20:00' });
-    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15')).toEqual({ startTime: '08:00', endTime: '20:00' });
+    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15')).toEqual({
+      startTime: '08:00',
+      endTime: '20:00',
+    });
 
     // Set day-specific -- day resolves to it, no-day still returns default
     engine.setVenueDayAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15', { startTime: '10:00', endTime: '16:00' });
-    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15')).toEqual({ startTime: '10:00', endTime: '16:00' });
+    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-15')).toEqual({
+      startTime: '10:00',
+      endTime: '16:00',
+    });
     expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID)).toEqual({ startTime: '08:00', endTime: '20:00' });
-    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-16')).toEqual({ startTime: '08:00', endTime: '20:00' });
+    expect(engine.getVenueAvailability(TOURNAMENT_ID, VENUE_ID, '2026-06-16')).toEqual({
+      startTime: '08:00',
+      endTime: '20:00',
+    });
   });
 
   it('getConfig exposes engine config', () => {
@@ -278,7 +283,7 @@ describe('Venue API methods', () => {
 
 describe('clearCourtAvailabilityForVenue', () => {
   it('removes all court-level entries for the venue', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     const court1 = makeCourtRef(COURT_1);
@@ -302,7 +307,7 @@ describe('clearCourtAvailabilityForVenue', () => {
   });
 
   it('does not affect venue-level availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.setVenueDefaultAvailability(TOURNAMENT_ID, VENUE_ID, { startTime: '08:00', endTime: '20:00' });
@@ -323,7 +328,7 @@ describe('clearCourtAvailabilityForVenue', () => {
       courts: [{ courtId: 'court-3', courtName: 'Court 3' }],
     });
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
 
     const courtInVenue2 = { tournamentId: TOURNAMENT_ID, venueId: 'venue-2', courtId: 'court-3' };
@@ -339,7 +344,7 @@ describe('clearCourtAvailabilityForVenue', () => {
   });
 
   it('emits AVAILABILITY_CHANGED event', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     const events: any[] = [];
@@ -355,14 +360,14 @@ describe('clearCourtAvailabilityForVenue', () => {
 
 describe('getCourtAvailabilityKeys', () => {
   it('returns empty array when no court-level entries exist', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     expect(engine.getCourtAvailabilityKeys(makeCourtRef())).toEqual([]);
   });
 
   it('returns DEFAULT when court has all-days availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.setCourtAvailabilityAllDays(makeCourtRef(), { startTime: '09:00', endTime: '17:00' });
@@ -370,7 +375,7 @@ describe('getCourtAvailabilityKeys', () => {
   });
 
   it('returns day strings for day-specific entries', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.setCourtAvailability(makeCourtRef(), '2026-06-15', { startTime: '09:00', endTime: '17:00' });
@@ -383,7 +388,7 @@ describe('getCourtAvailabilityKeys', () => {
   });
 
   it('returns mixed DEFAULT and day keys', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.setCourtAvailabilityAllDays(makeCourtRef(), { startTime: '09:00', endTime: '17:00' });
@@ -402,7 +407,7 @@ describe('getCourtAvailabilityKeys', () => {
 
 describe('Snapshot preservation', () => {
   it('venue data survives createSnapshot via simulateBlocks', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     // Set venue-level availability
@@ -420,7 +425,7 @@ describe('Snapshot preservation', () => {
   });
 
   it('venue availability affects simulated rails', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     // Set venue availability to narrow window
@@ -443,7 +448,7 @@ describe('Snapshot preservation', () => {
 
 describe('getCourtSchedulingSummary', () => {
   it('court with no blocks → all time is available', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     // 3-day tournament, venue open 08:00-20:00 → 12 hours × 3 days = 2160 minutes
     const record = makeBasicRecord();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
@@ -456,7 +461,7 @@ describe('getCourtSchedulingSummary', () => {
   });
 
   it('court with SCHEDULED block → scheduledMinutes reflects it', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const record = makeBasicRecord();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
     engine.setVenueDefaultAvailability(TOURNAMENT_ID, VENUE_ID, { startTime: '08:00', endTime: '20:00' });
@@ -475,7 +480,7 @@ describe('getCourtSchedulingSummary', () => {
   });
 
   it('court with MAINTENANCE block → blockedMinutes reflects it', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const record = makeBasicRecord();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
     engine.setVenueDefaultAvailability(TOURNAMENT_ID, VENUE_ID, { startTime: '08:00', endTime: '20:00' });
@@ -494,7 +499,7 @@ describe('getCourtSchedulingSummary', () => {
   });
 
   it('court with both SCHEDULED and BLOCKED → all three fields populated', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const record = makeBasicRecord();
     engine.init(record, { tournamentId: TOURNAMENT_ID });
     engine.setVenueDefaultAvailability(TOURNAMENT_ID, VENUE_ID, { startTime: '08:00', endTime: '20:00' });

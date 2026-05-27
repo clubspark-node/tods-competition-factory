@@ -1,5 +1,5 @@
 /**
- * Temporal Engine - Core State Machine
+ * Availability Engine - Core State Machine
  *
  * Pure JavaScript state machine for managing court availability as continuous
  * time-based capacity streams. UI-agnostic and fully testable.
@@ -43,7 +43,7 @@ import {
   type SimulationResult,
   type Template,
   type TemplateId,
-} from '@Assemblies/governors/temporalGovernor/types';
+} from '@Assemblies/governors/availabilityGovernor/types';
 
 import { extractDate } from '@Tools/dateTime';
 
@@ -55,17 +55,17 @@ import {
   extractDay,
   resolveVenueId,
   resolveCourtId,
-} from '@Assemblies/governors/temporalGovernor/railDerivation';
+} from '@Assemblies/governors/availabilityGovernor/railDerivation';
 
-import { generateCapacityCurve } from '@Assemblies/governors/temporalGovernor/capacityCurve';
+import { generateCapacityCurve } from '@Assemblies/governors/availabilityGovernor/capacityCurve';
 
-import { type PlanItem, type DayPlan, computePlanItemId } from '@Assemblies/governors/temporalGovernor/planState';
+import { type PlanItem, type DayPlan, computePlanItemId } from '@Assemblies/governors/availabilityGovernor/planState';
 
 // ============================================================================
-// Temporal Engine Class
+// Availability Engine Class
 // ============================================================================
 
-export class TemporalEngine {
+export class AvailabilityEngine {
   private config!: EngineConfig;
   private tournamentRecord: any = null;
 
@@ -1134,7 +1134,7 @@ export class TemporalEngine {
    */
   private evaluateConflicts(mutations: BlockMutation[]) {
     const ctx = this.createContext();
-    const allConflicts: import('@Assemblies/governors/temporalGovernor/types').EngineConflict[] = [];
+    const allConflicts: import('@Assemblies/governors/availabilityGovernor/types').EngineConflict[] = [];
 
     for (const evaluator of this.config.conflictEvaluators ?? []) {
       try {
@@ -1165,8 +1165,8 @@ export class TemporalEngine {
   /**
    * Create a snapshot for simulation
    */
-  private createSnapshot(): TemporalEngine {
-    const snapshot = new TemporalEngine();
+  private createSnapshot(): AvailabilityEngine {
+    const snapshot = new AvailabilityEngine();
     snapshot.config = { ...this.config };
     snapshot.tournamentRecord = this.tournamentRecord;
     snapshot.blocksById = new Map(this.blocksById);
@@ -1296,7 +1296,7 @@ export class TemporalEngine {
     const st = booking.startTime.length === 5 ? `${booking.startTime}:00` : booking.startTime;
     const et = booking.endTime.length === 5 ? `${booking.endTime}:00` : booking.endTime;
     const blockType: BlockType =
-      TemporalEngine.BOOKING_TYPE_MAP[(booking.bookingType || '').toUpperCase()] || BLOCK_TYPES.RESERVED;
+      AvailabilityEngine.BOOKING_TYPE_MAP[(booking.bookingType || '').toUpperCase()] || BLOCK_TYPES.RESERVED;
 
     const blockId = this.generateBlockId();
     const block: Block = {

@@ -2,10 +2,10 @@
 title: Core API Reference
 ---
 
-Complete method reference for the `TemporalEngine` class.
+Complete method reference for the `AvailabilityEngine` class.
 
 :::info
-The TemporalEngine uses **ISO 8601 datetime strings** (e.g., `'2026-06-15T08:00:00'`) for block time ranges, **`YYYY-MM-DD`** strings for day IDs, and **`HH:MM`** strings for time-of-day values (availability windows, plan times).
+The AvailabilityEngine uses **ISO 8601 datetime strings** (e.g., `'2026-06-15T08:00:00'`) for block time ranges, **`YYYY-MM-DD`** strings for day IDs, and **`HH:MM`** strings for time-of-day values (availability windows, plan times).
 :::
 
 ## Lifecycle
@@ -19,7 +19,7 @@ init(tournamentRecord: any, config?: Partial<EngineConfig>): void
 Initialize the engine with a tournament record and optional configuration. Merges config with defaults, loads blocks from the tournament record's venue/court structures, and emits `STATE_CHANGED`.
 
 ```js
-const engine = new TemporalEngine();
+const engine = new AvailabilityEngine();
 engine.init(tournamentRecord, {
   dayStartTime: '08:00',
   dayEndTime: '20:00',
@@ -708,7 +708,7 @@ See **[Event System & Validation](./event-system-and-validation)** for full even
 
 ## Related Documentation
 
-- **[Overview](./temporal-engine-overview)** — Introduction and architecture
+- **[Overview](./availability-engine-overview)** — Introduction and architecture
 - **[Event System & Validation](./event-system-and-validation)** — Events, conflict evaluators, and validation pipeline
 - **[Block Types & Algorithms](./block-types-and-algorithms)** — Block types, rail derivation, capacity curves, collision detection
 - **[UI Integration Scenarios](./ui-integration-scenarios)** — Building UIs with engine data

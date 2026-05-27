@@ -1,8 +1,8 @@
-# DST-Safe Date Iteration in TemporalEngine
+# DST-Safe Date Iteration in AvailabilityEngine
 
 ## Overview
 
-`TemporalEngine.getTournamentDays()` generates the list of calendar days for a
+`AvailabilityEngine.getTournamentDays()` generates the list of calendar days for a
 tournament. It handles Daylight Saving Time (and other time-change) boundaries
 correctly so that tournaments spanning a clock change never produce duplicate or
 missing days.
@@ -12,7 +12,7 @@ missing days.
 JavaScript's `Date` constructor treats date-only strings as **UTC midnight**:
 
 ```js
-new Date("2026-03-08")  // → 2026-03-08T00:00:00.000Z (UTC)
+new Date('2026-03-08'); // → 2026-03-08T00:00:00.000Z (UTC)
 ```
 
 But `getDate()`, `setDate()`, and other accessors operate in **local time**.
@@ -47,10 +47,10 @@ Two changes, both essential:
 
 ```ts
 // Before (UTC midnight):
-const current = new Date("2026-03-08");
+const current = new Date('2026-03-08');
 
 // After (local midnight):
-const current = new Date("2026-03-08T00:00:00");
+const current = new Date('2026-03-08T00:00:00');
 ```
 
 Appending `T00:00:00` triggers ISO 8601 date-time parsing, which JavaScript

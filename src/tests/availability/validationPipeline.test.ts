@@ -6,9 +6,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
-import { runValidationPipeline } from '@Assemblies/governors/temporalGovernor/validationPipeline';
-import type { ValidationPhase } from '@Assemblies/governors/temporalGovernor/validationPipeline';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
+import { runValidationPipeline } from '@Assemblies/governors/availabilityGovernor/validationPipeline';
+import type { ValidationPhase } from '@Assemblies/governors/availabilityGovernor/validationPipeline';
 
 // ============================================================================
 // Test Fixtures
@@ -35,7 +35,7 @@ function makeBasicRecord() {
 }
 
 function initEngine() {
-  const engine = new TemporalEngine();
+  const engine = new AvailabilityEngine();
   engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
   return engine;
 }
@@ -108,7 +108,7 @@ describe('runValidationPipeline', () => {
 // ============================================================================
 
 describe('PRECHECK validators', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = initEngine();

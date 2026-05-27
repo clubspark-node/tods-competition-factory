@@ -12,8 +12,8 @@ import {
   snapToGranularity,
   snapIsoToGranularity,
   iterateDayTicks,
-} from '@Assemblies/governors/temporalGovernor/timeGranularity';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
+} from '@Assemblies/governors/availabilityGovernor/timeGranularity';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
 
 // ============================================================================
 // hhmmToMinutes / minutesToHhmm
@@ -204,7 +204,7 @@ describe('iterateDayTicks', () => {
 // Engine Integration: getResolvedGranularityMinutes
 // ============================================================================
 
-describe('TemporalEngine granularity resolution', () => {
+describe('AvailabilityEngine granularity resolution', () => {
   const basicRecord = {
     tournamentId: 'test-tournament',
     startDate: '2026-06-15',
@@ -213,25 +213,25 @@ describe('TemporalEngine granularity resolution', () => {
   };
 
   it('defaults to slotMinutes (15) when no granularityMinutes set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(basicRecord);
     expect(engine.getResolvedGranularityMinutes()).toBe(15);
   });
 
   it('uses explicit slotMinutes when granularityMinutes not set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(basicRecord, { slotMinutes: 10 });
     expect(engine.getResolvedGranularityMinutes()).toBe(10);
   });
 
   it('uses granularityMinutes over slotMinutes when both set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(basicRecord, { slotMinutes: 15, granularityMinutes: 30 });
     expect(engine.getResolvedGranularityMinutes()).toBe(30);
   });
 
   it('uses granularityMinutes when only it is set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(basicRecord, { granularityMinutes: 60 });
     expect(engine.getResolvedGranularityMinutes()).toBe(60);
   });

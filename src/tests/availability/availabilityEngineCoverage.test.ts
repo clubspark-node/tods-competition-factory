@@ -1,5 +1,5 @@
-import { BLOCK_TYPES, type CourtRef } from '@Assemblies/governors/temporalGovernor/types';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
+import { BLOCK_TYPES, type CourtRef } from '@Assemblies/governors/availabilityGovernor/types';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const TEST_TOURNAMENT = 'test-tournament';
@@ -40,9 +40,9 @@ function makeBasicRecord() {
   };
 }
 
-describe('TemporalEngine availability resolution', () => {
+describe('AvailabilityEngine availability resolution', () => {
   it('intersects court and venue availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     // Set court avail: 08:00-20:00
@@ -57,7 +57,7 @@ describe('TemporalEngine availability resolution', () => {
   });
 
   it('falls back to venue when intersection is empty', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     // Court: 18:00-20:00, Venue: 08:00-10:00 -> no overlap
@@ -71,7 +71,7 @@ describe('TemporalEngine availability resolution', () => {
   });
 
   it('uses court-only when no venue availability set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setCourtAvailability(makeCourtRef(), '2026-06-15', { startTime: '09:00', endTime: '17:00' });
@@ -82,7 +82,7 @@ describe('TemporalEngine availability resolution', () => {
   });
 
   it('uses global default when no court or venue availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setAllCourtsDefaultAvailability({ startTime: '07:00', endTime: '21:00' });
@@ -94,7 +94,7 @@ describe('TemporalEngine availability resolution', () => {
   });
 
   it('falls back to engine config when nothing is set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT, dayStartTime: '06:30', dayEndTime: '22:30' });
 
     const avail = engine.getCourtAvailability(makeCourtRef(), '2026-06-16');
@@ -103,7 +103,7 @@ describe('TemporalEngine availability resolution', () => {
   });
 
   it('setCourtAvailabilityAllDays works as DEFAULT', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setCourtAvailabilityAllDays(makeCourtRef(), { startTime: '08:30', endTime: '19:30' });
@@ -114,9 +114,9 @@ describe('TemporalEngine availability resolution', () => {
   });
 });
 
-describe('TemporalEngine venue availability', () => {
+describe('AvailabilityEngine venue availability', () => {
   it('setVenueDefaultAvailability and getVenueAvailability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setVenueDefaultAvailability(TEST_TOURNAMENT, TEST_VENUE, { startTime: '09:00', endTime: '18:00' });
@@ -125,7 +125,7 @@ describe('TemporalEngine venue availability', () => {
   });
 
   it('returns null when no venue availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const avail = engine.getVenueAvailability(TEST_TOURNAMENT, 'nonexistent');
@@ -133,7 +133,7 @@ describe('TemporalEngine venue availability', () => {
   });
 
   it('day-specific overrides DEFAULT', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setVenueDefaultAvailability(TEST_TOURNAMENT, TEST_VENUE, { startTime: '09:00', endTime: '18:00' });
@@ -144,9 +144,9 @@ describe('TemporalEngine venue availability', () => {
   });
 });
 
-describe('TemporalEngine clearCourtAvailabilityForVenue', () => {
+describe('AvailabilityEngine clearCourtAvailabilityForVenue', () => {
   it('clears court-level overrides for a venue', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setCourtAvailability(makeCourtRef(COURT_1), '2026-06-15', { startTime: '08:00', endTime: '16:00' });
@@ -162,9 +162,9 @@ describe('TemporalEngine clearCourtAvailabilityForVenue', () => {
   });
 });
 
-describe('TemporalEngine getVisibleTimeRange', () => {
+describe('AvailabilityEngine getVisibleTimeRange', () => {
   it('returns union of court availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.setCourtAvailability(makeCourtRef(COURT_1), '2026-06-15', { startTime: '08:00', endTime: '18:00' });
@@ -176,7 +176,7 @@ describe('TemporalEngine getVisibleTimeRange', () => {
   });
 
   it('returns config defaults when no courts', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({ tournamentId: TEST_TOURNAMENT, startDate: '2026-06-15' }, { tournamentId: TEST_TOURNAMENT });
 
     const range = engine.getVisibleTimeRange('2026-06-15');
@@ -185,9 +185,9 @@ describe('TemporalEngine getVisibleTimeRange', () => {
   });
 });
 
-describe('TemporalEngine getCourtSchedulingSummary', () => {
+describe('AvailabilityEngine getCourtSchedulingSummary', () => {
   it('classifies minutes as scheduled/available/blocked', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     engine.applyBlock({
@@ -209,9 +209,9 @@ describe('TemporalEngine getCourtSchedulingSummary', () => {
   });
 });
 
-describe('TemporalEngine getActiveDays', () => {
+describe('AvailabilityEngine getActiveDays', () => {
   it('returns activeDates when set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const record = makeBasicRecord();
     (record as any).activeDates = ['2026-06-16', '2026-06-15'];
 
@@ -221,7 +221,7 @@ describe('TemporalEngine getActiveDays', () => {
   });
 
   it('falls back to getTournamentDays when no activeDates', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const days = engine.getActiveDays();
@@ -229,9 +229,9 @@ describe('TemporalEngine getActiveDays', () => {
   });
 });
 
-describe('TemporalEngine moveBlock', () => {
+describe('AvailabilityEngine moveBlock', () => {
   it('returns warning for nonexistent block', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const result = engine.moveBlock({
@@ -243,7 +243,7 @@ describe('TemporalEngine moveBlock', () => {
   });
 
   it('moves a block to a new time', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const applyResult = engine.applyBlock({
@@ -263,7 +263,7 @@ describe('TemporalEngine moveBlock', () => {
   });
 
   it('moves a block to a different court', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const applyResult = engine.applyBlock({
@@ -284,7 +284,7 @@ describe('TemporalEngine moveBlock', () => {
   });
 
   it('returns warning when move is outside availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       dayStartTime: '08:00',
@@ -310,9 +310,9 @@ describe('TemporalEngine moveBlock', () => {
   });
 });
 
-describe('TemporalEngine resizeBlock', () => {
+describe('AvailabilityEngine resizeBlock', () => {
   it('returns warning for nonexistent block', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const result = engine.resizeBlock({
@@ -324,7 +324,7 @@ describe('TemporalEngine resizeBlock', () => {
   });
 
   it('resizes a block', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const applyResult = engine.applyBlock({
@@ -344,7 +344,7 @@ describe('TemporalEngine resizeBlock', () => {
   });
 
   it('returns warning when resize is outside availability', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const applyResult = engine.applyBlock({
@@ -365,9 +365,9 @@ describe('TemporalEngine resizeBlock', () => {
   });
 });
 
-describe('TemporalEngine applyTemplate', () => {
+describe('AvailabilityEngine applyTemplate', () => {
   it('returns warning for nonexistent template', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const result = engine.applyTemplate({ templateId: 'nonexistent', days: ['2026-06-15'] } as any);
@@ -376,9 +376,9 @@ describe('TemporalEngine applyTemplate', () => {
   });
 });
 
-describe('TemporalEngine importScheduledMatchUps', () => {
+describe('AvailabilityEngine importScheduledMatchUps', () => {
   it('imports scheduled matchUps as SCHEDULED blocks', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const result = engine.importScheduledMatchUps([
@@ -400,7 +400,7 @@ describe('TemporalEngine importScheduledMatchUps', () => {
   });
 
   it('clears existing SYSTEM SCHEDULED blocks before importing', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     // First import
@@ -432,7 +432,7 @@ describe('TemporalEngine importScheduledMatchUps', () => {
   });
 
   it('handles HH:MM:SS time format', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const result = engine.importScheduledMatchUps([
@@ -449,9 +449,9 @@ describe('TemporalEngine importScheduledMatchUps', () => {
   });
 });
 
-describe('TemporalEngine getCapacityCurve', () => {
+describe('AvailabilityEngine getCapacityCurve', () => {
   it('returns capacity curve for a day', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
 
     const curve = engine.getCapacityCurve('2026-06-15');
@@ -459,9 +459,9 @@ describe('TemporalEngine getCapacityCurve', () => {
   });
 });
 
-describe('TemporalEngine clamping', () => {
+describe('AvailabilityEngine clamping', () => {
   it('clamps blocks to availability window', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       dayStartTime: '10:00',
@@ -481,9 +481,9 @@ describe('TemporalEngine clamping', () => {
   });
 });
 
-describe('TemporalEngine granularity config', () => {
+describe('AvailabilityEngine granularity config', () => {
   it('uses explicit granularityMinutes', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       granularityMinutes: 30,
@@ -493,7 +493,7 @@ describe('TemporalEngine granularity config', () => {
   });
 
   it('falls back to slotMinutes when granularityMinutes not set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       slotMinutes: 20,
@@ -502,13 +502,13 @@ describe('TemporalEngine granularity config', () => {
   });
 });
 
-describe('TemporalEngine venue-level dateAvailability loading', () => {
+describe('AvailabilityEngine venue-level dateAvailability loading', () => {
   it('loads venue default start/end times', () => {
     const record = makeBasicRecord();
     (record.venues[0] as any).defaultStartTime = '07:00';
     (record.venues[0] as any).defaultEndTime = '21:00';
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const avail = engine.getVenueAvailability(TEST_TOURNAMENT, TEST_VENUE);
@@ -521,7 +521,7 @@ describe('TemporalEngine venue-level dateAvailability loading', () => {
       { startTime: '08:00', endTime: '19:00' }, // no date
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const avail = engine.getVenueAvailability(TEST_TOURNAMENT, TEST_VENUE);
@@ -529,11 +529,11 @@ describe('TemporalEngine venue-level dateAvailability loading', () => {
   });
 });
 
-describe('TemporalEngine plan state', () => {
-  let engine: TemporalEngine;
+describe('AvailabilityEngine plan state', () => {
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
   });
 
@@ -627,11 +627,11 @@ describe('TemporalEngine plan state', () => {
   });
 });
 
-describe('TemporalEngine conflict evaluator error handling', () => {
+describe('AvailabilityEngine conflict evaluator error handling', () => {
   it('catches evaluator errors and continues', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       conflictEvaluators: [

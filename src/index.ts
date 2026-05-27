@@ -24,8 +24,8 @@ export { matchUpEngine } from './assemblies/engines/matchUp';
 export { mocksEngine } from './assemblies/engines/mock';
 
 // ENGINES - Standalone class engines -----------------------------------
-export { TemporalEngine } from './assemblies/engines/temporal';
-export * as temporal from './assemblies/engines/temporal';
+export { AvailabilityEngine } from './assemblies/engines/availability';
+export * as availability from './assemblies/engines/availability';
 
 // ENGINES - Scale engine -----------------------------------------------
 export { scaleEngine } from './assemblies/engines/scale';

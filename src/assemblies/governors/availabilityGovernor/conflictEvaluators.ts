@@ -1,7 +1,7 @@
 /**
  * Conflict Evaluators
  *
- * Pluggable conflict detection system for the Temporal Engine.
+ * Pluggable conflict detection system for the Availability Engine.
  * Evaluators inspect proposed mutations and return conflicts/warnings.
  *
  * Design:

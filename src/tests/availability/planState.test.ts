@@ -12,9 +12,9 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
-import { computePlanItemId, type PlanItem } from '@Assemblies/governors/temporalGovernor/planState';
-import type { EngineEvent } from '@Assemblies/governors/temporalGovernor/types';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
+import { computePlanItemId, type PlanItem } from '@Assemblies/governors/availabilityGovernor/planState';
+import type { EngineEvent } from '@Assemblies/governors/availabilityGovernor/types';
 
 // ============================================================================
 // Test Fixtures
@@ -52,8 +52,8 @@ function makePlanItemInput(overrides?: Partial<Omit<PlanItem, 'planItemId'>>): O
   };
 }
 
-function createInitializedEngine(): TemporalEngine {
-  const engine = new TemporalEngine();
+function createInitializedEngine(): AvailabilityEngine {
+  const engine = new AvailabilityEngine();
   engine.init(makeBasicRecord());
   return engine;
 }
@@ -101,7 +101,7 @@ describe('computePlanItemId', () => {
 // ============================================================================
 
 describe('addPlanItem', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -156,7 +156,7 @@ describe('addPlanItem', () => {
 // ============================================================================
 
 describe('removePlanItem', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -206,7 +206,7 @@ describe('removePlanItem', () => {
 // ============================================================================
 
 describe('updatePlanItem', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -259,7 +259,7 @@ describe('updatePlanItem', () => {
 // ============================================================================
 
 describe('movePlanItem', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -318,7 +318,7 @@ describe('movePlanItem', () => {
 // ============================================================================
 
 describe('getDayPlan', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -344,7 +344,7 @@ describe('getDayPlan', () => {
 // ============================================================================
 
 describe('getAllPlans', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();
@@ -409,7 +409,7 @@ describe('Plan lifecycle', () => {
 // ============================================================================
 
 describe('Multiple plan items', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
     engine = createInitializedEngine();

@@ -17,14 +17,14 @@ import {
   type Block,
   type BlockType,
   type CourtRef,
-} from '@Assemblies/governors/temporalGovernor/types';
+} from '@Assemblies/governors/availabilityGovernor/types';
 import {
   clampDragToCollisions,
   findBlocksContainingTime,
   intervalsOverlap,
   sortBlocksByStart,
   timeInsideBlock,
-} from '@Assemblies/governors/temporalGovernor/collisionDetection';
+} from '@Assemblies/governors/availabilityGovernor/collisionDetection';
 
 // ============================================================================
 // Test Fixtures & Helpers
@@ -40,12 +40,7 @@ const mockCourt: CourtRef = {
   courtId: TEST_COURT,
 };
 
-function createBlock(
-  id: string,
-  start: string,
-  end: string,
-  type: BlockType = BLOCK_TYPES.BLOCKED,
-): Block {
+function createBlock(id: string, start: string, end: string, type: BlockType = BLOCK_TYPES.BLOCKED): Block {
   return { id, court: mockCourt, start, end, type };
 }
 
@@ -162,9 +157,7 @@ describe('findBlocksContainingTime', () => {
   });
 
   it('should handle a single matching block', () => {
-    const blocks = [
-      createBlock('b1', '2026-06-15T10:00:00', '2026-06-15T12:00:00'),
-    ];
+    const blocks = [createBlock('b1', '2026-06-15T10:00:00', '2026-06-15T12:00:00')];
 
     const found = findBlocksContainingTime(toMs('2026-06-15T11:00:00'), blocks);
     expect(found).toHaveLength(1);

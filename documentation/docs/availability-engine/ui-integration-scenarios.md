@@ -2,14 +2,14 @@
 title: UI Integration Scenarios
 ---
 
-This page demonstrates how to build real-world UIs on top of the TemporalEngine, drawn from the `temporal-grid` and `scheduling-profile` components in `courthive-components`.
+This page demonstrates how to build real-world UIs on top of the AvailabilityEngine, drawn from the `temporal-grid` and `scheduling-profile` components in `courthive-components`.
 
 ## Architecture Pattern
 
 All UI integrations follow the same data flow:
 
 ```text
-Tournament Record → TemporalEngine → View Projections → UI Layer
+Tournament Record → AvailabilityEngine → View Projections → UI Layer
                          ↑                                   │
                          └──── Controller (events/mutations) ┘
 ```
@@ -42,10 +42,10 @@ The temporal grid is an interactive calendar-style editor that uses [vis-timelin
 ### Initialization Pattern
 
 ```js
-import { TemporalEngine, defaultEvaluators } from 'tods-competition-factory';
+import { AvailabilityEngine, defaultEvaluators } from 'tods-competition-factory';
 
 // 1. Create and initialize the engine
-const engine = new TemporalEngine();
+const engine = new AvailabilityEngine();
 engine.init(tournamentRecord, {
   dayStartTime: '08:00',
   dayEndTime: '20:00',
@@ -193,7 +193,7 @@ const updatedRecord = applyTemporalAvailabilityToTournamentRecord({
 The scheduling profile builder is a 3-panel UI — date chips, venue lanes, and a round catalog — for drag-and-drop assignment of tournament rounds to days and venues.
 
 :::note
-The scheduling profile component does **not** import `TemporalEngine` directly. Instead, it receives a `TemporalAdapter` callback interface that abstracts the engine's availability queries. This keeps the profile component decoupled from the engine.
+The scheduling profile component does **not** import `AvailabilityEngine` directly. Instead, it receives a `TemporalAdapter` callback interface that abstracts the engine's availability queries. This keeps the profile component decoupled from the engine.
 :::
 
 ### TemporalAdapter Interface
@@ -363,7 +363,7 @@ const scheduled = matchUps
     durationMinutes: m.schedule.averageMinutes || 60,
   }));
 
-// 3. Import into TemporalEngine as SCHEDULED blocks
+// 3. Import into AvailabilityEngine as SCHEDULED blocks
 const result = engine.importScheduledMatchUps(scheduled);
 // The temporal grid now shows scheduled matches alongside availability blocks
 ```
@@ -374,7 +374,7 @@ This creates `SCHEDULED`-type blocks that appear visually in the temporal grid, 
 
 ## Related Documentation
 
-- **[Overview](./temporal-engine-overview)** — Introduction and architecture
-- **[Core API Reference](./temporal-engine-api)** — Complete method reference
+- **[Overview](./availability-engine-overview)** — Introduction and architecture
+- **[Core API Reference](./availability-engine-api)** — Complete method reference
 - **[Event System & Validation](./event-system-and-validation)** — Events, conflict evaluators, and validation pipeline
 - **[Block Types & Algorithms](./block-types-and-algorithms)** — Block types, rail derivation, capacity curves, collision detection

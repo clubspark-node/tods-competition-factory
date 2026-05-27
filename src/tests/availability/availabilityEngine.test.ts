@@ -1,7 +1,7 @@
 /**
- * Temporal Engine Tests
+ * Availability Engine Tests
  *
- * Comprehensive test suite for the TemporalEngine class covering:
+ * Comprehensive test suite for the AvailabilityEngine class covering:
  * - Engine Lifecycle (init, config defaults, updateTournamentRecord)
  * - Tournament Days
  * - Block CRUD (applyBlock, moveBlock, resizeBlock, removeBlock)
@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
 import {
   BLOCK_TYPES,
   type Block,
@@ -22,7 +22,7 @@ import {
   type ConflictEvaluator,
   type CourtRef,
   type EngineEvent,
-} from '@Assemblies/governors/temporalGovernor/types';
+} from '@Assemblies/governors/availabilityGovernor/types';
 
 // ============================================================================
 // Test Fixtures
@@ -72,7 +72,7 @@ function makeBasicRecord() {
 
 describe('Engine Lifecycle', () => {
   it('should init with a minimal tournament record', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({ tournamentId: TEST_TOURNAMENT });
 
     const config = engine.getConfig();
@@ -80,7 +80,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should init with full config overrides', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: 'custom-id',
       dayStartTime: '08:00',
@@ -96,7 +96,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should use correct default config values', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord());
 
     const config = engine.getConfig();
@@ -106,7 +106,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should use tournamentId from record when not in config', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord());
 
     const config = engine.getConfig();
@@ -114,7 +114,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should replace blocks on updateTournamentRecord', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const record = makeBasicRecord();
     (record.venues[0].courts[0] as any).dateAvailability = [
       {
@@ -134,7 +134,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should emit STATE_CHANGED event on init', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     const events: EngineEvent[] = [];
     engine.subscribe((e) => events.push(e));
     engine.init(makeBasicRecord());
@@ -145,7 +145,7 @@ describe('Engine Lifecycle', () => {
   });
 
   it('should emit STATE_CHANGED on updateTournamentRecord', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord());
 
     const events: EngineEvent[] = [];
@@ -165,7 +165,7 @@ describe('Engine Lifecycle', () => {
 
 describe('Tournament Days', () => {
   it('should return days from startDate to endDate', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord());
 
     const days = engine.getTournamentDays();
@@ -173,7 +173,7 @@ describe('Tournament Days', () => {
   });
 
   it('should handle single-day tournament', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({
       tournamentId: TEST_TOURNAMENT,
       startDate: '2026-06-15',
@@ -186,7 +186,7 @@ describe('Tournament Days', () => {
   });
 
   it('should return empty array when no startDate', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({ tournamentId: TEST_TOURNAMENT, venues: [] });
 
     const days = engine.getTournamentDays();
@@ -194,7 +194,7 @@ describe('Tournament Days', () => {
   });
 
   it('should use startDate as endDate when endDate not set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({
       tournamentId: TEST_TOURNAMENT,
       startDate: '2026-06-15',
@@ -211,11 +211,11 @@ describe('Tournament Days', () => {
 // ============================================================================
 
 describe('Block CRUD', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
   let events: EngineEvent[];
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
     events = [];
     engine.subscribe((e) => events.push(e));
@@ -417,10 +417,10 @@ describe('Block CRUD', () => {
 // ============================================================================
 
 describe('Queries', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
   });
 
@@ -530,10 +530,10 @@ describe('Queries', () => {
 // ============================================================================
 
 describe('Event System', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
   });
 
@@ -616,10 +616,10 @@ describe('Event System', () => {
 // ============================================================================
 
 describe('Simulation', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
   });
 
@@ -697,7 +697,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const blocks = engine.getAllBlocks();
@@ -718,7 +718,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const blocks = engine.getAllBlocks();
@@ -739,7 +739,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     expect(engine.getAllBlocks()[0].type).toBe(BLOCK_TYPES.MAINTENANCE);
@@ -754,7 +754,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     expect(engine.getAllBlocks()[0].type).toBe(BLOCK_TYPES.PRACTICE);
@@ -769,7 +769,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     expect(engine.getAllBlocks()[0].type).toBe(BLOCK_TYPES.SCHEDULED);
@@ -784,7 +784,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     expect(engine.getAllBlocks()[0].type).toBe(BLOCK_TYPES.RESERVED);
@@ -800,7 +800,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const avail = engine.getCourtAvailability(makeCourtRef(), '2026-06-15');
@@ -817,7 +817,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const block = engine.getAllBlocks()[0];
@@ -835,7 +835,7 @@ describe('Tournament Record Loading', () => {
       },
     ];
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(record, { tournamentId: TEST_TOURNAMENT });
 
     const block = engine.getAllBlocks()[0];
@@ -844,7 +844,7 @@ describe('Tournament Record Loading', () => {
   });
 
   it('should handle record with no venues gracefully', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init({ tournamentId: TEST_TOURNAMENT, startDate: '2026-06-15' });
 
     expect(engine.getAllBlocks()).toHaveLength(0);
@@ -856,10 +856,10 @@ describe('Tournament Record Loading', () => {
 // ============================================================================
 
 describe('Court Metadata', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TEST_TOURNAMENT });
   });
 
@@ -905,7 +905,7 @@ describe('Court Metadata', () => {
   });
 
   it('listCourtMeta should return empty array for record with no venues', () => {
-    const engine2 = new TemporalEngine();
+    const engine2 = new AvailabilityEngine();
     engine2.init({ tournamentId: TEST_TOURNAMENT });
     expect(engine2.listCourtMeta()).toHaveLength(0);
   });
@@ -930,7 +930,7 @@ describe('Conflict Evaluators', () => {
         })),
     };
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       conflictEvaluators: [rejectingEvaluator],
@@ -965,7 +965,7 @@ describe('Conflict Evaluators', () => {
         })),
     };
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       conflictEvaluators: [warningEvaluator],
@@ -1002,7 +1002,7 @@ describe('Conflict Evaluators', () => {
         })),
     };
 
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), {
       tournamentId: TEST_TOURNAMENT,
       conflictEvaluators: [warningEvaluator],

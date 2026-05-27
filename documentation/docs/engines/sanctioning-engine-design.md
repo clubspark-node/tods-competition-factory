@@ -739,7 +739,7 @@ interface SanctioningRecord {
 
 **Research findings:**
 
-The factory's existing scheduling system (TemporalEngine, scheduleGovernor) operates on **locally loaded data** — blocks, courts, and time ranges within tournaments that have been `setState`'d into the engine. It has no concept of fetching external calendar data; all data must be present in the engine's state. The server's `calendarStorage` interface handles persistence, but the factory engine itself is storage-agnostic.
+The factory's existing scheduling system (AvailabilityEngine, scheduleGovernor) operates on **locally loaded data** — blocks, courts, and time ranges within tournaments that have been `setState`'d into the engine. It has no concept of fetching external calendar data; all data must be present in the engine's state. The server's `calendarStorage` interface handles persistence, but the factory engine itself is storage-agnostic.
 
 Calendar conflict detection for sanctioning requires knowledge of **all sanctioned events across a region and season** — data that no single client or tournament record holds. This is fundamentally a cross-record query.
 

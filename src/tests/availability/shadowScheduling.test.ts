@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
-import { BLOCK_TYPES } from '@Assemblies/governors/temporalGovernor/types';
+import { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
+import { BLOCK_TYPES } from '@Assemblies/governors/availabilityGovernor/types';
 
 // ============================================================================
 // Test Fixtures
@@ -40,10 +40,10 @@ function makeBasicRecord() {
 // ============================================================================
 
 describe('importScheduledMatchUps', () => {
-  let engine: TemporalEngine;
+  let engine: AvailabilityEngine;
 
   beforeEach(() => {
-    engine = new TemporalEngine();
+    engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
   });
 
@@ -262,7 +262,7 @@ describe('importScheduledMatchUps', () => {
 
 describe('Block matchUpId field', () => {
   it('blocks created via applyBlock have no matchUpId', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.applyBlock({
@@ -276,7 +276,7 @@ describe('Block matchUpId field', () => {
   });
 
   it('blocks from importScheduledMatchUps have matchUpId set', () => {
-    const engine = new TemporalEngine();
+    const engine = new AvailabilityEngine();
     engine.init(makeBasicRecord(), { tournamentId: TOURNAMENT_ID });
 
     engine.importScheduledMatchUps([

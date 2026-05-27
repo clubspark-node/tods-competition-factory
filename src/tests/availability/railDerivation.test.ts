@@ -11,7 +11,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BLOCK_TYPES, type Block, type BlockType, type EngineConfig, type TimeRange } from '@Assemblies/governors/temporalGovernor/types';
+import {
+  BLOCK_TYPES,
+  type Block,
+  type BlockType,
+  type EngineConfig,
+  type TimeRange,
+} from '@Assemblies/governors/availabilityGovernor/types';
 import {
   buildDayRange,
   clampToDayRange,
@@ -24,7 +30,7 @@ import {
   rangesOverlap,
   resolveStatus,
   validateSegments,
-} from '@Assemblies/governors/temporalGovernor/railDerivation';
+} from '@Assemblies/governors/availabilityGovernor/railDerivation';
 
 // ============================================================================
 // Test Fixtures
@@ -60,12 +66,7 @@ const mockCourt = {
   courtId: TEST_COURT,
 };
 
-function createBlock(
-  id: string,
-  start: string,
-  end: string,
-  type: BlockType = BLOCK_TYPES.AVAILABLE,
-): Block {
+function createBlock(id: string, start: string, end: string, type: BlockType = BLOCK_TYPES.AVAILABLE): Block {
   return {
     id,
     court: mockCourt,
@@ -323,9 +324,7 @@ describe('deriveRailSegments', () => {
     const segments = deriveRailSegments(blocks, dayRange, mockConfig);
 
     // Find the overlap segment (12:00-14:00)
-    const overlapSegment = segments.find(
-      (s) => s.start === '2026-06-15T12:00:00' && s.end === '2026-06-15T14:00:00',
-    );
+    const overlapSegment = segments.find((s) => s.start === '2026-06-15T12:00:00' && s.end === '2026-06-15T14:00:00');
     expect(overlapSegment).toBeDefined();
     expect(overlapSegment?.status).toBe(BLOCK_TYPES.MAINTENANCE); // Higher precedence
     expect(overlapSegment?.contributingBlocks).toHaveLength(2);
@@ -373,9 +372,7 @@ describe('deriveRailSegments', () => {
     expect(validateSegments(segments)).toBe(true);
 
     // Check that HARD_BLOCK wins during 11:00-12:00
-    const hardBlockSegment = segments.find(
-      (s) => s.start === '2026-06-15T11:00:00' && s.end === '2026-06-15T12:00:00',
-    );
+    const hardBlockSegment = segments.find((s) => s.start === '2026-06-15T11:00:00' && s.end === '2026-06-15T12:00:00');
     expect(hardBlockSegment?.status).toBe(BLOCK_TYPES.HARD_BLOCK);
 
     // Check that we have AVAILABLE segments before and after blocks
@@ -433,9 +430,7 @@ describe('deriveRailSegments', () => {
     });
 
     it('should handle maintenance block reducing available time', () => {
-      const blocks = [
-        createBlock('1', '2026-06-15T12:00:00', '2026-06-15T13:00:00', BLOCK_TYPES.MAINTENANCE),
-      ];
+      const blocks = [createBlock('1', '2026-06-15T12:00:00', '2026-06-15T13:00:00', BLOCK_TYPES.MAINTENANCE)];
       const segments = deriveRailSegments(blocks, dayRange, mockConfig);
 
       const availableSegments = segments.filter((s) => s.status === BLOCK_TYPES.AVAILABLE);
@@ -456,9 +451,7 @@ describe('deriveRailSegments', () => {
     });
 
     it('should handle scheduled blocks reducing available time', () => {
-      const blocks = [
-        createBlock('1', '2026-06-15T10:00:00', '2026-06-15T12:00:00', BLOCK_TYPES.SCHEDULED),
-      ];
+      const blocks = [createBlock('1', '2026-06-15T10:00:00', '2026-06-15T12:00:00', BLOCK_TYPES.SCHEDULED)];
       const segments = deriveRailSegments(blocks, dayRange, mockConfig);
 
       const availableSegments = segments.filter((s) => s.status === BLOCK_TYPES.AVAILABLE);
@@ -484,11 +477,11 @@ describe('deriveRailSegments', () => {
       expect(availableSegments.length).toBeGreaterThan(0);
 
       // Verify we have all the block types
-      expect(segments.some(s => s.status === BLOCK_TYPES.MAINTENANCE)).toBe(true);
-      expect(segments.some(s => s.status === BLOCK_TYPES.PRACTICE)).toBe(true);
-      expect(segments.some(s => s.status === BLOCK_TYPES.RESERVED)).toBe(true);
-      expect(segments.some(s => s.status === BLOCK_TYPES.BLOCKED)).toBe(true);
-      expect(segments.some(s => s.status === BLOCK_TYPES.SCHEDULED)).toBe(true);
+      expect(segments.some((s) => s.status === BLOCK_TYPES.MAINTENANCE)).toBe(true);
+      expect(segments.some((s) => s.status === BLOCK_TYPES.PRACTICE)).toBe(true);
+      expect(segments.some((s) => s.status === BLOCK_TYPES.RESERVED)).toBe(true);
+      expect(segments.some((s) => s.status === BLOCK_TYPES.BLOCKED)).toBe(true);
+      expect(segments.some((s) => s.status === BLOCK_TYPES.SCHEDULED)).toBe(true);
     });
 
     it('should handle CLOSED blocks marking unavailable time', () => {

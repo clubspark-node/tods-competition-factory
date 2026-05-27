@@ -5,7 +5,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { BLOCK_TYPES, type Block, type BlockMutation, type EngineConfig, type EngineContext } from '@Assemblies/governors/temporalGovernor/types';
+import {
+  BLOCK_TYPES,
+  type Block,
+  type BlockMutation,
+  type EngineConfig,
+  type EngineContext,
+} from '@Assemblies/governors/availabilityGovernor/types';
 import {
   adjacentBlockEvaluator,
   blockDurationEvaluator,
@@ -19,7 +25,7 @@ import {
   lightingEvaluator,
   maintenanceWindowEvaluator,
   matchWindowEvaluator,
-} from '@Assemblies/governors/temporalGovernor/conflictEvaluators';
+} from '@Assemblies/governors/availabilityGovernor/conflictEvaluators';
 
 // ============================================================================
 // Test Fixtures
@@ -43,12 +49,7 @@ const mockCourt = {
   courtId: TEST_COURT,
 };
 
-function createBlock(
-  id: string,
-  start: string,
-  end: string,
-  type: any = BLOCK_TYPES.AVAILABLE,
-): Block {
+function createBlock(id: string, start: string, end: string, type: any = BLOCK_TYPES.AVAILABLE): Block {
   return {
     id,
     court: mockCourt,
@@ -81,7 +82,10 @@ function createContext(blocks: Block[]): EngineContext {
   };
 }
 
-function createMutation(block: Block, kind: 'ADD_BLOCK' | 'UPDATE_BLOCK' | 'REMOVE_BLOCK' = 'ADD_BLOCK'): BlockMutation {
+function createMutation(
+  block: Block,
+  kind: 'ADD_BLOCK' | 'UPDATE_BLOCK' | 'REMOVE_BLOCK' = 'ADD_BLOCK',
+): BlockMutation {
   return { kind, block };
 }
 
@@ -356,7 +360,12 @@ describe('dayBoundaryEvaluator', () => {
 
 describe('maintenanceWindowEvaluator', () => {
   it('should suggest avoiding maintenance during peak hours', () => {
-    const peakMaintenanceBlock = createBlock('1', '2026-06-15T14:00:00', '2026-06-15T15:00:00', BLOCK_TYPES.MAINTENANCE);
+    const peakMaintenanceBlock = createBlock(
+      '1',
+      '2026-06-15T14:00:00',
+      '2026-06-15T15:00:00',
+      BLOCK_TYPES.MAINTENANCE,
+    );
 
     const ctx = createContext([]);
     const mutations = [createMutation(peakMaintenanceBlock)];
@@ -379,7 +388,12 @@ describe('maintenanceWindowEvaluator', () => {
   });
 
   it('should warn about very short maintenance', () => {
-    const shortMaintenanceBlock = createBlock('1', '2026-06-15T20:00:00', '2026-06-15T20:15:00', BLOCK_TYPES.MAINTENANCE);
+    const shortMaintenanceBlock = createBlock(
+      '1',
+      '2026-06-15T20:00:00',
+      '2026-06-15T20:15:00',
+      BLOCK_TYPES.MAINTENANCE,
+    );
 
     const ctx = createContext([]);
     const mutations = [createMutation(shortMaintenanceBlock)];

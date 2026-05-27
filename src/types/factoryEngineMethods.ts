@@ -76,9 +76,9 @@ export type FactoryEngineMethod =
   | 'analyzeSet'
   | 'analyzeTournament'
   | 'anonymizeTournamentRecord'
+  | 'applyAvailabilityToTournamentRecord'
   | 'applyDerivedRankings'
   | 'applyLineUps'
-  | 'applyTemporalAvailabilityToTournamentRecord'
   | 'applyTournamentRankingPoints'
   | 'assignDrawPosition'
   | 'assignDrawPositionBye'
@@ -682,9 +682,9 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'analyzeSet',
   'analyzeTournament',
   'anonymizeTournamentRecord',
+  'applyAvailabilityToTournamentRecord',
   'applyDerivedRankings',
   'applyLineUps',
-  'applyTemporalAvailabilityToTournamentRecord',
   'applyTournamentRankingPoints',
   'assignDrawPosition',
   'assignDrawPositionBye',

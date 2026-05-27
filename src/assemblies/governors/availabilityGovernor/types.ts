@@ -1,5 +1,5 @@
 /**
- * Core data types for the Temporal Engine
+ * Core data types for the Availability Engine
  *
  * Following the principle: "Time as a First-Class Object"
  * Courts are modeled as continuous time-based capacity streams, not static assets.

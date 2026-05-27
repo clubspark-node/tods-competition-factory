@@ -11,7 +11,7 @@
  * - CAPACITY: Demand vs available court-hours
  */
 
-import type { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
+import type { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
 import type { DayId } from './types';
 import type { DayPlan } from './planState';
 
@@ -50,7 +50,7 @@ export interface ValidationPipelineResult {
 }
 
 export interface ValidationPipelineParams {
-  engine: TemporalEngine;
+  engine: AvailabilityEngine;
   day?: DayId;
   phases?: ValidationPhase[];
 }
@@ -62,7 +62,7 @@ export interface ValidationPipelineParams {
 /**
  * PRECHECK: Validate that plan items reference valid venues and days.
  */
-function validatePrecheck(engine: TemporalEngine, plans: DayPlan[]): RuleResult[] {
+function validatePrecheck(engine: AvailabilityEngine, plans: DayPlan[]): RuleResult[] {
   const results: RuleResult[] = [];
   const tournamentDays = new Set(engine.getTournamentDays());
   const courts = engine.listCourtMeta();
@@ -122,7 +122,7 @@ function validatePrecheck(engine: TemporalEngine, plans: DayPlan[]): RuleResult[
 /**
  * INTEGRITY: Check for duplicate plan items.
  */
-function validateIntegrity(_engine: TemporalEngine, plans: DayPlan[]): RuleResult[] {
+function validateIntegrity(_engine: AvailabilityEngine, plans: DayPlan[]): RuleResult[] {
   const results: RuleResult[] = [];
   const seenIds = new Set<string>();
 
@@ -148,7 +148,7 @@ function validateIntegrity(_engine: TemporalEngine, plans: DayPlan[]): RuleResul
  * ORDERING: Check that rounds within the same event are scheduled in order.
  * Later rounds should not be scheduled on earlier days than earlier rounds.
  */
-function validateOrdering(_engine: TemporalEngine, plans: DayPlan[]): RuleResult[] {
+function validateOrdering(_engine: AvailabilityEngine, plans: DayPlan[]): RuleResult[] {
   const results: RuleResult[] = [];
 
   // Group items by eventId+drawId
@@ -198,7 +198,7 @@ function validateOrdering(_engine: TemporalEngine, plans: DayPlan[]): RuleResult
 /**
  * CAPACITY: Check if total estimated demand exceeds available court-hours.
  */
-function validateCapacity(engine: TemporalEngine, plans: DayPlan[]): RuleResult[] {
+function validateCapacity(engine: AvailabilityEngine, plans: DayPlan[]): RuleResult[] {
   const results: RuleResult[] = [];
 
   for (const plan of plans) {
@@ -256,7 +256,7 @@ function hhmmToMin(hhmm: string): number {
 
 const PHASE_ORDER: ValidationPhase[] = ['PRECHECK', 'INTEGRITY', 'ORDERING', 'CAPACITY'];
 
-const PHASE_VALIDATORS: Record<ValidationPhase, (engine: TemporalEngine, plans: DayPlan[]) => RuleResult[]> = {
+const PHASE_VALIDATORS: Record<ValidationPhase, (engine: AvailabilityEngine, plans: DayPlan[]) => RuleResult[]> = {
   PRECHECK: validatePrecheck,
   INTEGRITY: validateIntegrity,
   ORDERING: validateOrdering,
@@ -266,7 +266,7 @@ const PHASE_VALIDATORS: Record<ValidationPhase, (engine: TemporalEngine, plans: 
 /**
  * Run the validation pipeline against engine state and plans.
  *
- * @param params.engine - The TemporalEngine instance
+ * @param params.engine - The AvailabilityEngine instance
  * @param params.day - Optional: validate only a specific day's plan
  * @param params.phases - Optional: run only specific phases (default: all)
  * @returns Results array and issue index keyed by planItemId

@@ -2,13 +2,13 @@
 title: Block Types & Algorithms
 ---
 
-This page covers the domain-specific technical details of the TemporalEngine: the inverted availability paradigm, block types, the sweep-line rail derivation algorithm, capacity curves, collision detection, time granularity, and the CODES bridge.
+This page covers the domain-specific technical details of the AvailabilityEngine: the inverted availability paradigm, block types, the sweep-line rail derivation algorithm, capacity curves, collision detection, time granularity, and the CODES bridge.
 
 ## The Inverted Paradigm
 
-The TemporalEngine uses an **inverted model** — instead of tracking when courts are available, it tracks when they are _unavailable_. Available time is whatever remains after all blocks are accounted for.
+The AvailabilityEngine uses an **inverted model** — instead of tracking when courts are available, it tracks when they are _unavailable_. Available time is whatever remains after all blocks are accounted for.
 
-| Aspect                | Traditional Model            | Temporal Engine                               |
+| Aspect                | Traditional Model            | Availability Engine                           |
 | --------------------- | ---------------------------- | --------------------------------------------- |
 | Canonical state       | Available time slots         | Blocks (unavailable time)                     |
 | Adding unavailability | Remove/split available slots | Add a block                                   |
@@ -127,7 +127,7 @@ After merge: segments at `[09:00–10:00]` and `[10:00–11:00]` both have statu
 ### Rail Derivation Functions
 
 ```ts
-// Core derivation — called by TemporalEngine.getCourtRail()
+// Core derivation — called by AvailabilityEngine.getCourtRail()
 deriveRailSegments(blocks: Block[], dayRange: TimeRange, config: EngineConfig): RailSegment[]
 
 // Supporting utilities
@@ -280,7 +280,7 @@ function* iterateDayTicks(startHhmm: string, endHhmm: string, granularity: numbe
 
 ## CODES Bridge
 
-The bridge module provides bidirectional translation between TemporalEngine structures and [CODES](/docs/data-standards#codes) (Competition Open Data Exchange Standards) tournament record structures.
+The bridge module provides bidirectional translation between AvailabilityEngine structures and [CODES](/docs/data-standards#codes) (Competition Open Data Exchange Standards) tournament record structures.
 
 ### Engine → CODES
 
@@ -296,7 +296,7 @@ applyTemporalAvailabilityToTournamentRecord(params: {
   tournamentRecord: any;
   timelines: VenueDayTimeline[];
   config?: BridgeConfig;
-  engine?: TemporalEngine;
+  engine?: AvailabilityEngine;
 }): any
 ```
 
@@ -353,7 +353,7 @@ calculateCourtHours(entries: TodsDateAvailability[]): number
 
 ## Related Documentation
 
-- **[Overview](./temporal-engine-overview)** — Introduction and architecture
-- **[Core API Reference](./temporal-engine-api)** — Complete method reference
+- **[Overview](./availability-engine-overview)** — Introduction and architecture
+- **[Core API Reference](./availability-engine-api)** — Complete method reference
 - **[Event System & Validation](./event-system-and-validation)** — Events, conflict evaluators, and validation pipeline
 - **[UI Integration Scenarios](./ui-integration-scenarios)** — Building UIs with engine data

@@ -1,7 +1,7 @@
 /**
- * Temporal Engine Factory Bridge
+ * Availability Engine Factory Bridge
  *
- * Translation layer between Temporal Engine and Competition Factory TODS.
+ * Translation layer between Availability Engine and Competition Factory TODS.
  * This module is the ONLY place where engine structures touch TODS structures.
  *
  * Key Functions:
@@ -14,7 +14,7 @@
 
 import { BLOCK_TYPES, type BlockType, type CourtRef, type VenueDayTimeline, type RailSegment } from './types';
 import { resolveVenueId, resolveCourtId } from './railDerivation';
-import type { TemporalEngine } from '@Assemblies/engines/temporal/TemporalEngine';
+import type { AvailabilityEngine } from '@Assemblies/engines/availability/AvailabilityEngine';
 
 // ============================================================================
 // TODS Type Definitions
@@ -250,7 +250,7 @@ function aggregateAvailabilityByVenue(entries: TodsDateAvailability[]): TodsDate
 // ============================================================================
 
 /**
- * Apply temporal availability to a tournament record.
+ * Apply court availability to a tournament record.
  * Updates venue dateAvailability fields with data from engine.
  *
  * @param tournamentRecord - TODS tournament record
@@ -258,11 +258,11 @@ function aggregateAvailabilityByVenue(entries: TodsDateAvailability[]): TodsDate
  * @param config - Bridge configuration
  * @returns Updated tournament record (new object, doesn't mutate input)
  */
-export function applyTemporalAvailabilityToTournamentRecord(params: {
+export function applyAvailabilityToTournamentRecord(params: {
   tournamentRecord: any;
   timelines: VenueDayTimeline[];
   config?: BridgeConfig;
-  engine?: TemporalEngine;
+  engine?: AvailabilityEngine;
 }): any {
   const { tournamentRecord, timelines, config = {}, engine } = params;
 

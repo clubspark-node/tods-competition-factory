@@ -18,14 +18,14 @@ import {
   filterCapacityCurve,
   sampleCapacityCurve,
   compareCapacityCurves,
-} from '@Assemblies/governors/temporalGovernor/capacityCurve';
+} from '@Assemblies/governors/availabilityGovernor/capacityCurve';
 import {
   BLOCK_TYPES,
   type VenueDayTimeline,
   type RailSegment,
   type BlockType,
   type CourtRef,
-} from '@Assemblies/governors/temporalGovernor/types';
+} from '@Assemblies/governors/availabilityGovernor/types';
 
 // ============================================================================
 // Test Fixtures & Helpers
@@ -57,9 +57,7 @@ function createTimeline(court: CourtRef, segments: RailSegment[]): VenueDayTimel
 /**
  * Build a VenueDayTimeline containing multiple courts (one rail per court).
  */
-function createMultiCourtTimeline(
-  entries: { court: CourtRef; segments: RailSegment[] }[],
-): VenueDayTimeline {
+function createMultiCourtTimeline(entries: { court: CourtRef; segments: RailSegment[] }[]): VenueDayTimeline {
   return {
     day: TEST_DAY,
     venueId: TEST_VENUE,
@@ -96,9 +94,7 @@ describe('generateCapacityCurve', () => {
   });
 
   it('should show 1 available for a single court that is all AVAILABLE', () => {
-    const timeline = createTimeline(mockCourt1, [
-      createSegment(T08, T18, BLOCK_TYPES.AVAILABLE),
-    ]);
+    const timeline = createTimeline(mockCourt1, [createSegment(T08, T18, BLOCK_TYPES.AVAILABLE)]);
     const curve = generateCapacityCurve(TEST_DAY, [timeline]);
 
     // Two time points: start and end of the segment
@@ -219,17 +215,11 @@ describe('generateCapacityCurve', () => {
     const timeline = createMultiCourtTimeline([
       {
         court: mockCourt1,
-        segments: [
-          createSegment(T08, T10, BLOCK_TYPES.AVAILABLE),
-          createSegment(T10, T12, BLOCK_TYPES.MAINTENANCE),
-        ],
+        segments: [createSegment(T08, T10, BLOCK_TYPES.AVAILABLE), createSegment(T10, T12, BLOCK_TYPES.MAINTENANCE)],
       },
       {
         court: mockCourt2,
-        segments: [
-          createSegment(T09, T11, BLOCK_TYPES.AVAILABLE),
-          createSegment(T11, T13, BLOCK_TYPES.PRACTICE),
-        ],
+        segments: [createSegment(T09, T11, BLOCK_TYPES.AVAILABLE), createSegment(T11, T13, BLOCK_TYPES.PRACTICE)],
       },
     ]);
     const curve = generateCapacityCurve(TEST_DAY, [timeline]);
@@ -560,15 +550,11 @@ describe('compareCapacityCurves', () => {
   it('should show positive softBlockedDelta when soft blocking is added', () => {
     const baseline = {
       day: TEST_DAY,
-      points: [
-        { time: T08, courtsAvailable: 4, courtsSoftBlocked: 0, courtsHardBlocked: 0 },
-      ],
+      points: [{ time: T08, courtsAvailable: 4, courtsSoftBlocked: 0, courtsHardBlocked: 0 }],
     };
     const modified = {
       day: TEST_DAY,
-      points: [
-        { time: T08, courtsAvailable: 2, courtsSoftBlocked: 2, courtsHardBlocked: 0 },
-      ],
+      points: [{ time: T08, courtsAvailable: 2, courtsSoftBlocked: 2, courtsHardBlocked: 0 }],
     };
     const diffs = compareCapacityCurves(baseline, modified);
 
@@ -579,15 +565,11 @@ describe('compareCapacityCurves', () => {
   it('should show positive hardBlockedDelta when hard blocking is added', () => {
     const baseline = {
       day: TEST_DAY,
-      points: [
-        { time: T10, courtsAvailable: 3, courtsSoftBlocked: 0, courtsHardBlocked: 0 },
-      ],
+      points: [{ time: T10, courtsAvailable: 3, courtsSoftBlocked: 0, courtsHardBlocked: 0 }],
     };
     const modified = {
       day: TEST_DAY,
-      points: [
-        { time: T10, courtsAvailable: 1, courtsSoftBlocked: 0, courtsHardBlocked: 2 },
-      ],
+      points: [{ time: T10, courtsAvailable: 1, courtsSoftBlocked: 0, courtsHardBlocked: 2 }],
     };
     const diffs = compareCapacityCurves(baseline, modified);
 
@@ -598,15 +580,11 @@ describe('compareCapacityCurves', () => {
   it('should handle different time points by defaulting missing points to zero', () => {
     const baseline = {
       day: TEST_DAY,
-      points: [
-        { time: T08, courtsAvailable: 2, courtsSoftBlocked: 0, courtsHardBlocked: 0 },
-      ],
+      points: [{ time: T08, courtsAvailable: 2, courtsSoftBlocked: 0, courtsHardBlocked: 0 }],
     };
     const modified = {
       day: TEST_DAY,
-      points: [
-        { time: T10, courtsAvailable: 3, courtsSoftBlocked: 0, courtsHardBlocked: 0 },
-      ],
+      points: [{ time: T10, courtsAvailable: 3, courtsSoftBlocked: 0, courtsHardBlocked: 0 }],
     };
     const diffs = compareCapacityCurves(baseline, modified);
 
