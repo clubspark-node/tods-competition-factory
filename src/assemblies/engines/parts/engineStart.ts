@@ -2,7 +2,7 @@ import { createTournamentRecord } from '@Generators/tournamentRecords/createTour
 import { methodImporter } from '@Assemblies/engines/parts/methodImporter';
 import { processResult } from '@Assemblies/engines/parts/processResult';
 import { factoryVersion } from '@Functions/global/factoryVersion';
-import { buildQueryFacade, createEventBus, inspect } from '@Forge/index';
+import { buildQueryFacade, buildFacade, createEventBus, inspect } from '@Forge/index';
 import {
   setDeepCopy,
   setDevContext,
@@ -102,4 +102,5 @@ export function engineStart(engine: FactoryEngine, engineInvoke: any): void {
   engine.once = bus.once;
   engine.off = bus.off;
   engine.waitFor = bus.waitFor;
+  engine.build = buildFacade(engine);
 }

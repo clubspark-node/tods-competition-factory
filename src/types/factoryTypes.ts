@@ -75,6 +75,22 @@ export type FactoryEngineTyped = Record<FactoryEngineMethod, (...args: any[]) =>
   once: import('../forge').EventBus['once'];
   off: import('../forge').EventBus['off'];
   waitFor: import('../forge').EventBus['waitFor'];
+
+  /**
+   * Developer-JOY fluent builders — see `src/forge/builders/`.
+   *
+   * Chainable composition of addEvent → generateDrawDefinition →
+   * addDrawDefinition → addEventEntries (and addParticipant) into a single
+   * executionQueue dispatch. Pre-assigns `eventId`/`drawId`/`participantId`
+   * so callers can reference them before terminal verbs resolve.
+   *
+   *   const { eventId, drawIds } = engine.build.event({ eventName: 'U16 Singles' })
+   *     .singles().gender('MALE').draw(32, { seedsCount: 8 }).entries(ids).create();
+   *
+   *   const request = engine.build.event(...).singles().draw(8).toRequest();
+   *   socket.send('executionQueue', request);
+   */
+  build: import('../forge').BuildFacade;
 };
 
 export type { FactoryEngineMethod } from './factoryEngineMethods';

@@ -164,6 +164,7 @@ module.exports = {
         'engines/engine-middleware',
         'engines/mutation-engines',
         'engines/subscriptions',
+        'engines/fluent-builders',
         'engines/custom-engines',
         'engines/global-state',
         {

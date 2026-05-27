@@ -7,6 +7,7 @@
  *  - `engine.q.*` — the unwrap query facade (see `q.ts`, #2)
  *  - `engine.inspect()` — the live state snapshot (see `inspect.ts`, #8)
  *  - `engine.on/once/off/waitFor` — the typed event bus (see `bus.ts`, #5)
+ *  - `engine.build.*` — fluent builders (see `builders/`, #6)
  *
  * All are wired onto the engine in `assemblies/engines/parts/engineStart.ts`.
  */
@@ -18,6 +19,17 @@ export type { EngineInspection, EngineInspectionCounts } from './inspect';
 export { createEventBus } from './bus';
 export type { EventBus, EventHandler, EventPredicate, Unsubscribe } from './bus';
 export type { Topic, TopicPayloadMap } from './topicTypes';
+export { buildFacade, EventBuilder, ParticipantBuilder } from './builders';
+export type {
+  BuildFacade,
+  BuildResult,
+  DrawOpts,
+  EntriesOpts,
+  EventSeed,
+  GenderInput,
+  ParticipantBuildResult,
+  PersonInput,
+} from './builders';
 
 // Legacy placeholder export retained for prior consumers.
 export const forge = {};
