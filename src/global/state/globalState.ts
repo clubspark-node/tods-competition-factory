@@ -54,6 +54,8 @@ type GlobalStateTypes = {
   deepCopyAttributes: DeepCopyType;
   devContext?: DevContextType; // devContext is used to control logging
   schemaWriteMode: SchemaWriteMode; // controls extension vs first-class write behavior
+  saveDrawDeletions: boolean; // opt-in: persist drawDeletions audit on the record
+  auditAuthorityServer: boolean; // true on server engines — suppresses local audit writes
   timers: timersType; // timers are used to track elapsed time for methods
   deepCopy: boolean;
   globalLog?: any;
@@ -79,6 +81,8 @@ const globalState: GlobalStateTypes = {
   },
   globalMethods: [],
   schemaWriteMode: NATIVE,
+  saveDrawDeletions: false,
+  auditAuthorityServer: false,
   deepCopy: true,
 };
 
@@ -243,6 +247,34 @@ export function writeNativeEnabled(): boolean {
 
 export function writeLegacyEnabled(): boolean {
   return globalState.schemaWriteMode === LEGACY || globalState.schemaWriteMode === DUAL;
+}
+
+export function setSaveDrawDeletions(flag?: boolean): { success?: boolean; error?: ErrorType } {
+  if (flag === undefined) {
+    globalState.saveDrawDeletions = false;
+    return { ...SUCCESS };
+  }
+  if (typeof flag !== 'boolean') return { error: INVALID_VALUES };
+  globalState.saveDrawDeletions = flag;
+  return { ...SUCCESS };
+}
+
+export function getSaveDrawDeletions(): boolean {
+  return globalState.saveDrawDeletions;
+}
+
+export function setAuditAuthorityServer(flag?: boolean): { success?: boolean; error?: ErrorType } {
+  if (flag === undefined) {
+    globalState.auditAuthorityServer = false;
+    return { ...SUCCESS };
+  }
+  if (typeof flag !== 'boolean') return { error: INVALID_VALUES };
+  globalState.auditAuthorityServer = flag;
+  return { ...SUCCESS };
+}
+
+export function getAuditAuthorityServer(): boolean {
+  return globalState.auditAuthorityServer;
 }
 
 export function disableNotifications() {

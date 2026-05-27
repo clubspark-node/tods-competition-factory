@@ -94,6 +94,7 @@ export type FactoryEngineMethod =
   | 'attachPolicies'
   | 'attachQualifyingStructure'
   | 'attachStructures'
+  | 'auditAuthorityServer'
   | 'automatedPlayoffPositioning'
   | 'automatedPositioning'
   | 'autoSeeding'
@@ -224,6 +225,7 @@ export type FactoryEngineMethod =
   | 'getApplicableAwardProfileLevels'
   | 'getAppliedPolicies'
   | 'getAssignedParticipantIds'
+  | 'getAuditAuthorityServer'
   | 'getAvailableMatchUpsCount'
   | 'getAvailablePlayoffProfiles'
   | 'getAvailableReports'
@@ -317,6 +319,7 @@ export type FactoryEngineMethod =
   | 'getRoundMatchUps'
   | 'getRounds'
   | 'getRoundVisibilityState'
+  | 'getSaveDrawDeletions'
   | 'getScaledEntries'
   | 'getScaleValues'
   | 'getScheduledRoundsDetails'
@@ -506,6 +509,7 @@ export type FactoryEngineMethod =
   | 'reverseScore'
   | 'runValidationPipeline'
   | 'sampleCapacityCurve'
+  | 'saveDrawDeletions'
   | 'scaledTeamAssignment'
   | 'scheduleMatchUps'
   | 'scheduleProfileGrid'
@@ -693,6 +697,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'attachPolicies',
   'attachQualifyingStructure',
   'attachStructures',
+  'auditAuthorityServer',
   'automatedPlayoffPositioning',
   'automatedPositioning',
   'autoSeeding',
@@ -823,6 +828,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'getApplicableAwardProfileLevels',
   'getAppliedPolicies',
   'getAssignedParticipantIds',
+  'getAuditAuthorityServer',
   'getAvailableMatchUpsCount',
   'getAvailablePlayoffProfiles',
   'getAvailableReports',
@@ -916,6 +922,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'getRoundMatchUps',
   'getRounds',
   'getRoundVisibilityState',
+  'getSaveDrawDeletions',
   'getScaledEntries',
   'getScaleValues',
   'getScheduledRoundsDetails',
@@ -1105,6 +1112,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'reverseScore',
   'runValidationPipeline',
   'sampleCapacityCurve',
+  'saveDrawDeletions',
   'scaledTeamAssignment',
   'scheduleMatchUps',
   'scheduleProfileGrid',

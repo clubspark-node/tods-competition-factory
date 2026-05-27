@@ -8,7 +8,7 @@ import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { modifyEventPublishStatus } from './modifyEventPublishStatus';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
-import { addNotice, hasTopic } from '@Global/state/globalState';
+import { addNotice, getAuditAuthorityServer, getSaveDrawDeletions, hasTopic } from '@Global/state/globalState';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
 import { addTimeItem } from '@Mutate/timeItems/addTimeItem';
 import { definedAttributes } from '@Tools/definedAttributes';
@@ -227,15 +227,14 @@ export function deleteDrawDefinitions(params: DeleteDrawDefinitionArgs) {
   }
 
   if (auditTrail.length) {
-    if (hasTopic(AUDIT)) {
-      const tournamentId = tournamentRecord.tournamentId;
-      addNotice({ topic: AUDIT, payload: { tournamentId, detail: auditTrail } });
-      const result = getTimeItem({ element: event, itemType: DRAW_DELETIONS });
-      const itemValue = (result?.timeItem?.itemValue || 0) + 1;
-      addTimeItem({ element: event, timeItem: { itemType: DRAW_DELETIONS, itemValue }, removePriorValues: true });
-    } else {
-      addDrawDeletionTelemetry({ appliedPolicies, event, deletedDrawsDetail, auditData });
-    }
+    dispatchDrawDeletionAudit({
+      tournamentId: tournamentRecord.tournamentId,
+      deletedDrawsDetail,
+      appliedPolicies,
+      auditTrail,
+      auditData,
+      event,
+    });
   }
   if (matchUpIds.length) {
     deleteMatchUpsNotice({
@@ -258,6 +257,33 @@ export function deleteDrawDefinitions(params: DeleteDrawDefinitionArgs) {
   }
 
   return { ...SUCCESS };
+}
+
+function dispatchDrawDeletionAudit({
+  tournamentId,
+  deletedDrawsDetail,
+  appliedPolicies,
+  auditTrail,
+  auditData,
+  event,
+}) {
+  // Always dispatch the AUDIT notice so subscribers (notably the server's
+  // AuditService when auditAuthorityServer is set) can capture the detail.
+  const subscribed = hasTopic(AUDIT);
+  if (subscribed) {
+    addNotice({ topic: AUDIT, payload: { tournamentId, detail: auditTrail } });
+  }
+  // Suppress all local writes when the server is the audit authority or
+  // saveDrawDeletions is off (default in 5.0.0).
+  if (getAuditAuthorityServer() || !getSaveDrawDeletions()) return;
+
+  if (subscribed) {
+    const result = getTimeItem({ element: event, itemType: DRAW_DELETIONS });
+    const itemValue = (result?.timeItem?.itemValue || 0) + 1;
+    addTimeItem({ element: event, timeItem: { itemType: DRAW_DELETIONS, itemValue }, removePriorValues: true });
+  } else {
+    addDrawDeletionTelemetry({ appliedPolicies, event, deletedDrawsDetail, auditData });
+  }
 }
 
 function addDrawDeletionTelemetry({ appliedPolicies, event, deletedDrawsDetail, auditData }) {
