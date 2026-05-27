@@ -417,6 +417,9 @@ export type FactoryEngineMethod =
   | 'modifyTournamentRecord'
   | 'modifyVenue'
   | 'newTournamentRecord'
+  | 'off'
+  | 'on'
+  | 'once'
   | 'orderCollectionDefinitions'
   | 'overlappingRange'
   | 'parse'
@@ -608,6 +611,7 @@ export type FactoryEngineMethod =
   | 'venueDayKey'
   | 'venueKey'
   | 'version'
+  | 'waitFor'
   | 'withdrawParticipantAtDrawPosition';
 
 export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
@@ -1023,6 +1027,9 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'modifyTournamentRecord',
   'modifyVenue',
   'newTournamentRecord',
+  'off',
+  'on',
+  'once',
   'orderCollectionDefinitions',
   'overlappingRange',
   'parse',
@@ -1214,5 +1221,6 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'venueDayKey',
   'venueKey',
   'version',
+  'waitFor',
   'withdrawParticipantAtDrawPosition',
 ] as const;

@@ -59,6 +59,22 @@ export type FactoryEngineTyped = Record<FactoryEngineMethod, (...args: any[]) =>
    * Per-method arg shapes are still `any`; typed signatures are a follow-up.
    */
   q: import('../forge').QueryFacade;
+
+  /**
+   * Developer-JOY typed event bus — see `src/forge/bus.ts`.
+   *
+   * Multi-subscriber ergonomic surface over the legacy `setSubscriptions`
+   * single-callback system. Handlers receive one payload per call (the bus
+   * iterates the underlying notice array); ~12 topics are precisely typed
+   * via `TopicPayloadMap`, the rest fall through to `unknown`.
+   *
+   *   const off = engine.on('addMatchUps', e => relay.publish(e.matchUps));
+   *   const m   = await engine.waitFor('modifyMatchUp', p => p.matchUp.matchUpId === id);
+   */
+  on: import('../forge').EventBus['on'];
+  once: import('../forge').EventBus['once'];
+  off: import('../forge').EventBus['off'];
+  waitFor: import('../forge').EventBus['waitFor'];
 };
 
 export type { FactoryEngineMethod } from './factoryEngineMethods';

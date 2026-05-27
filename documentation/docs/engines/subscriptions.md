@@ -62,3 +62,32 @@ import { globalState: { setSubcriptions } } from 'tods-competition-factory';
 
 setSubscriptions(subscriptions);
 ```
+
+## Typed event bus (`engine.on / once / off / waitFor`)
+
+The forge namespace provides a multi-subscriber ergonomic surface on top of `setSubscriptions`. Handlers receive **one payload per call** (the bus iterates the underlying notice array for you), supports unsubscribe by returned closure, and a Promise-based `waitFor` for tests.
+
+```ts
+// multiple handlers per topic — both fire, each notice triggers one call per handler
+const off1 = tournamentEngine.on('addMatchUps', (e) => relay.publish(e.matchUps));
+const off2 = tournamentEngine.on('addMatchUps', (e) => log.info(`added ${e.matchUps.length} matchUps`));
+
+// fire-once subscriptions
+tournamentEngine.once('publishEvent', (e) => analytics.track('event_published', e.eventData));
+
+// unsubscribe by returned closure …
+off1();
+
+// … or by handler reference, or by topic (omit handler to drop all)
+tournamentEngine.off('addMatchUps', off2 as never); // by reference no longer needed
+tournamentEngine.off('addMatchUps'); // clears any remaining
+
+// promise-based, with optional predicate
+const matchUp = await tournamentEngine.waitFor('modifyMatchUp', (p) => p.matchUp.matchUpId === targetId);
+```
+
+`TopicPayloadMap` (exported from the package as a type) precisely types the highest-traffic topics — `addEvent`, `addDrawDefinition`, `modifyDrawDefinition`, `deletedDrawIds`, `addMatchUps`, `modifyMatchUp`, `deletedMatchUpIds`, `addParticipants`, `modifyParticipants`, `deleteParticipants`, `publishEvent`, `modifyTournamentDetail`. Topics outside the map are still subscribable; their payload arrives as `unknown` and the caller narrows at the call site.
+
+**Interop with `setSubscriptions`:** the bus claims the underlying single-callback slot on first `on()` for a topic. Don't mix the two APIs on the same topic — use one or the other.
+
+See `src/forge/bus.ts` for the implementation and `src/forge/topicTypes.ts` for the payload map.
