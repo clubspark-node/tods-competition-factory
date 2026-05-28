@@ -165,6 +165,8 @@ module.exports = {
         'engines/mutation-engines',
         'engines/subscriptions',
         'engines/fluent-builders',
+        'engines/query-facade',
+        'engines/state-inspection',
         'engines/custom-engines',
         'engines/global-state',
         {
