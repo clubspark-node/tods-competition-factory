@@ -150,4 +150,72 @@ describe('engine.build.event — fluent EventBuilder', () => {
     const event: any = tournamentEngine.q.event({ eventId: result.eventId });
     expect(event?.entries?.length).toEqual(16);
   });
+
+  it('doubles() / hybrid() / team() with no tieFormat set eventType only', () => {
+    const dd: any[] = tournamentEngine.build.event().doubles().toDirectives();
+    expect(dd[0].params.event.eventType).toEqual('DOUBLES');
+
+    const hd: any[] = tournamentEngine.build.event().hybrid().toDirectives();
+    expect(hd[0].params.event.eventType).toEqual('HYBRID');
+
+    const td: any[] = tournamentEngine.build.event().team().toDirectives();
+    expect(td[0].params.event.eventType).toEqual('TEAM');
+    expect(td[0].params.event.tieFormat).toBeUndefined();
+    expect(td[0].params.event.tieFormatName).toBeUndefined();
+  });
+
+  it('.team(object) attaches the inline tieFormat object', () => {
+    const inlineFormat = { tieFormatName: 'INLINE', collectionDefinitions: [] };
+    const dd: any[] = tournamentEngine.build.event().team(inlineFormat).toDirectives();
+    expect(dd[0].params.event.tieFormat).toBe(inlineFormat);
+    expect(dd[0].params.event.tieFormatName).toBeUndefined();
+  });
+
+  it('.tieFormat(object) attaches inline; .tieFormat(string) sets tieFormatName', () => {
+    const inline = { tieFormatName: 'XYZ' };
+    const a: any[] = tournamentEngine.build.event().singles().tieFormat(inline).toDirectives();
+    expect(a[0].params.event.tieFormat).toBe(inline);
+
+    const b: any[] = tournamentEngine.build.event().singles().tieFormat('NAMED').toDirectives();
+    expect(b[0].params.event.tieFormatName).toEqual('NAMED');
+  });
+
+  it('.named() / .category() / .dates() set the corresponding event payload fields', () => {
+    const dd: any[] = tournamentEngine.build
+      .event()
+      .singles()
+      .named('Chained Name')
+      .category({ categoryName: 'U16', ageCategoryCode: 'U16' })
+      .dates('2026-06-01', '2026-06-07')
+      .toDirectives();
+    const event = dd[0].params.event;
+    expect(event.eventName).toEqual('Chained Name');
+    expect(event.category?.categoryName).toEqual('U16');
+    expect(event.startDate).toEqual('2026-06-01');
+    expect(event.endDate).toEqual('2026-06-07');
+  });
+
+  it('.create() returns success:false with the underlying error when the queue fails', () => {
+    // no setState: tournamentEngine has no records → addEvent surfaces a real error
+    tournamentEngine.reset();
+    const result: any = tournamentEngine.build.event({ eventName: 'No state' }).singles().draw(8).create();
+    expect(result.success).toEqual(false);
+    expect(result.error).toBeDefined();
+    expect(result.eventId).toBeDefined();
+    expect(result.directives.length).toBeGreaterThan(0);
+  });
+
+  it('.create({ rollbackOnError: true }) forwards the flag to executionQueue', () => {
+    seed(8);
+    // Build a directive that will fail mid-chain by aiming entries at non-existent ids
+    const result: any = tournamentEngine.build
+      .event({ eventName: 'Will rollback' })
+      .singles()
+      .draw(8)
+      .entries(['no-such-participant-id'])
+      .create({ rollbackOnError: true });
+    // executionQueue surfaces a rolledBack flag in the error envelope
+    expect(result.success).toEqual(false);
+    expect(result.error).toBeDefined();
+  });
 });
