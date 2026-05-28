@@ -33,6 +33,50 @@ export type FactoryEngine = {
 };
 
 /**
+ * Hint keys consumers pass instead of the fully-resolved entities. The
+ * middleware looks these up against state and populates the resolved keys.
+ * Universally accepted (and ignored when irrelevant), so the typed surface
+ * never blocks a call that names a draw / event / matchUp / structure
+ * directly.
+ */
+type EngineHintKeys = {
+  tournamentId?: string;
+  eventId?: string;
+  drawId?: string;
+  matchUpId?: string;
+  structureId?: string;
+};
+
+/**
+ * Transform a source function signature into its engine-call-surface
+ * signature. Source functions declare params from the perspective of "I
+ * receive everything fully resolved" (because the engine guarantees that).
+ * Engine consumers call from the OPPOSITE perspective — "I have IDs in
+ * state; resolve everything for me."
+ *
+ * EngineMethod relaxes the param shape so it matches the contract the
+ * engine actually offers:
+ *   - First param is optional (0-arg calls work for state-only methods)
+ *   - All keys in the first param become optional (`Partial<P>`) because
+ *     the engine populates auto-resolved entities from state and the
+ *     source's own `requireParams()` checks the rest at runtime
+ *   - EngineHintKeys (drawId, eventId, matchUpId, structureId, tournamentId)
+ *     are admitted universally — they're the lookup keys consumers actually
+ *     pass
+ *
+ * Tradeoff: TS no longer flags missing source-required keys at the type
+ * level (e.g. `engine.generateDrawDefinition()` with no drawSize compiles).
+ * The source's `requireParams` / nullability checks surface the same issue
+ * as a runtime error envelope `{ error: MISSING_X }`. This honest contract
+ * matches every documented engine call site in the ecosystem.
+ */
+export type EngineMethod<F> = F extends (firstParam: infer P, ...rest: infer R) => infer Ret
+  ? P extends object
+    ? (params?: Partial<P> & EngineHintKeys, ...rest: R) => Ret
+    : F
+  : F;
+
+/**
  * Names of methods provided by the developer-JOY facades (`engine.q`,
  * `engine.on/once/off/waitFor`, `engine.inspect`, `engine.build`). These
  * names also appear in `FactoryEngineMethod` because `gen:engine-methods`

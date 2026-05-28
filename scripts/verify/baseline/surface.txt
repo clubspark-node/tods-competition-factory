@@ -138,6 +138,7 @@ EngineEvent
 EngineEventType
 EngineInspection
 EngineInspectionCounts
+EngineMethod
 EngineWarning
 EntriesOpts
 Entry
