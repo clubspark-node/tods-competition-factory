@@ -91,13 +91,15 @@ function stringifySet(setObject, preserveRedundant) {
     const setToValue = getNumber(setObject.setTo);
     if (setToValue) {
       const NoAD = (setObject.NoAD && NOAD) || '';
+      const winByValue = getNumber(setObject.winBy);
+      const winByCode = setObject.noTiebreak && winByValue && winByValue !== 2 ? `WB${winByValue}` : '';
       const setTiebreakValue = tiebreakFormat(setObject.tiebreakFormat);
       const setTiebreakCode = (setTiebreakValue && `/${setTiebreakValue}`) || '';
       const tiebreakAtValue = getNumber(setObject.tiebreakAt);
       const tiebreakAtCode =
         (tiebreakAtValue && (tiebreakAtValue !== setToValue || preserveRedundant) && `@${tiebreakAtValue}`) || '';
       if (setTiebreakValue !== false) {
-        return `${setToValue}${NoAD}${setTiebreakCode}${tiebreakAtCode}`;
+        return `${setToValue}${NoAD}${winByCode}${setTiebreakCode}${tiebreakAtCode}`;
       }
     }
   }
