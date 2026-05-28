@@ -359,7 +359,29 @@ export function getMethods(): { [key: string]: any } {
   return { ...globalState.globalMethods, ..._globalStateProvider.getMethods() };
 }
 
-export function getNotices(params: GetNoticesArgs): string[] {
+/**
+ * Returns the buffered payloads for `topic` (one per addNotice call since the
+ * last `deleteNotices`). Despite the historic name, the returned array is NOT
+ * `Notice[]` — each entry is the unwrapped `Notice.payload`. Prefer
+ * `getPayloads` in new code.
+ *
+ * @deprecated Use `getPayloads`.
+ */
+export function getNotices(params: GetNoticesArgs): any[] {
+  return getPayloads(params);
+}
+
+/**
+ * Returns the buffered payloads for `topic`. Each entry is the `payload` field
+ * from a Notice that `addNotice` accumulated since the last `deleteNotices`.
+ *
+ * Falls back to the provider's `getNotices` method when `getPayloads` is not
+ * exposed (back-compat with pre-5.0.0 providers).
+ */
+export function getPayloads(params: GetNoticesArgs): any[] {
+  if (typeof _globalStateProvider.getPayloads === 'function') {
+    return _globalStateProvider.getPayloads(params);
+  }
   return _globalStateProvider.getNotices(params);
 }
 
@@ -383,8 +405,23 @@ export function hasTopic(topic) {
   return getTopics()?.topics?.includes(topic);
 }
 
+/**
+ * Argument shape for the subscription dispatch.
+ *
+ * `payloads` is an array of `payload` values (one per buffered notice for the
+ * topic in this dispatch cycle) — NOT `Notice[]`. Each subscription callback
+ * receives this array as its sole argument; see `callListener` in
+ * `syncGlobalState.ts` for the actual fan-out.
+ *
+ * `notices` is a back-compat alias for `payloads`, retained because external
+ * providers (e.g. competition-factory-server's local async provider) used to
+ * destructure that name. New code should use `payloads`; the deprecated alias
+ * will be removed in a future major.
+ */
 export type CallListenerArgs = {
-  notices: Notice[];
+  payloads: any[];
+  /** @deprecated alias for `payloads`; kept for back-compat with pre-5.0.0 providers. */
+  notices?: any[];
   topic: string;
 };
 export async function callListener(payload) {

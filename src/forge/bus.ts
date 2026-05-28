@@ -45,9 +45,9 @@ export interface EventBus {
   waitFor<T extends Topic>(topic: T, predicate?: EventPredicate<T>): Promise<TopicPayloadMap[T]>;
 }
 
-// `payloads` is what the legacy subscription callback receives — `getNotices`
-// already maps each notice to its `payload` field, so each entry here IS the
-// payload. (Despite the legacy `notices` name in `callListener`.)
+// Each entry in `payloads` is the unwrapped payload from one buffered notice
+// (the `Notice.payload` field). `getNotices` / `getPayloads` already map each
+// stored Notice down to its `payload` before this array is built.
 function dispatchPayloads(topic: string, handlers: AnyHandler[], payloads: any[]): void {
   for (const payload of payloads) {
     for (const handler of handlers) {

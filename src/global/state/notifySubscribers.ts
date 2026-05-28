@@ -36,13 +36,17 @@ export function notifySubscribers(params?: NotifySubscribersArgs) {
   const { topics } = getTopics();
 
   for (const topic of [...topics].sort(topicSort)) {
-    const notices = getNotices({ topic });
-    if (notices?.length) callListener({ topic, notices });
+    const payloads = getNotices({ topic });
+    // Pass both `payloads` (canonical) and `notices` (deprecated alias) so that
+    // legacy providers destructuring `notices` continue to work pre-removal.
+    if (payloads?.length) callListener({ topic, payloads, notices: payloads });
   }
 
   if (mutationStatus && timeStamp && topics.includes(MUTATIONS)) {
+    const mutationPayloads = [{ tournamentId, directives, timeStamp }];
     callListener({
-      notices: [{ tournamentId, directives, timeStamp }],
+      payloads: mutationPayloads,
+      notices: mutationPayloads,
       topic: MUTATIONS,
     });
   }
@@ -55,13 +59,15 @@ export async function notifySubscribersAsync(params?: NotifySubscribersArgs) {
   for (const topic of [...topics].sort(topicSort)) {
     // only tested with packaged version of factory
     // won't show up in test coverage
-    const notices = getNotices({ topic });
-    if (notices) await callListener({ topic, notices });
+    const payloads = getNotices({ topic });
+    if (payloads) await callListener({ topic, payloads, notices: payloads });
   }
 
   if (mutationStatus && timeStamp && topics.includes(MUTATIONS)) {
+    const mutationPayloads = [{ tournamentId, directives, timeStamp }];
     callListener({
-      notices: [{ tournamentId, directives, timeStamp }],
+      payloads: mutationPayloads,
+      notices: mutationPayloads,
       topic: MUTATIONS,
     });
   }

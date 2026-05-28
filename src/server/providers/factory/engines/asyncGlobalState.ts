@@ -69,6 +69,7 @@ export default {
   enableNotifications,
   getMethods,
   getNotices,
+  getPayloads: getNotices, // canonical alias for the deprecated `getNotices`
   getTopics,
   getTournamentId,
   getTournamentRecord,
@@ -233,12 +234,14 @@ function getTopics() {
   return { topics };
 }
 
-async function callListener({ topic, notices }: CallListenerArgs, globalSubscriptions?: any) {
+async function callListener({ topic, payloads, notices }: CallListenerArgs, globalSubscriptions?: any) {
+  // back-compat: accept either `payloads` (canonical) or `notices` (deprecated alias).
+  const data = payloads ?? notices ?? [];
   const instanceState = getInstanceState();
   const method = instanceState.subscriptions[topic];
-  if (method && typeof method === 'function') await method(notices);
+  if (method && typeof method === 'function') await method(data);
   const globalMethod = globalSubscriptions?.[topic];
-  if (globalMethod && typeof globalMethod === 'function') await globalMethod(notices);
+  if (globalMethod && typeof globalMethod === 'function') await globalMethod(data);
 }
 
 export function handleCaughtError({ engineName, methodName, params, err }: HandleCaughtErrorArgs) {
