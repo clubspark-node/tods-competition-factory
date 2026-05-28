@@ -160,6 +160,7 @@ module.exports = {
           id: 'engines/state-engines',
         },
         'engines/engine-methods',
+        'engines/typed-engine',
         'engines/engine-logging',
         'engines/engine-middleware',
         'engines/mutation-engines',

@@ -4,6 +4,7 @@ import { HydratedMatchUp, HydratedParticipant } from './hydrated';
 import { ErrorType } from '@Constants/errorConditionConstants';
 import { ValidPolicyTypes } from '@Constants/policyConstants';
 import type { FactoryEngineMethod } from './factoryEngineMethods';
+import type { MethodSignatures } from './methodSignatures';
 import {
   Category,
   DrawDefinition,
@@ -38,62 +39,67 @@ export type FactoryEngine = {
  * `engine.findEvent(...)` (where `findEvent` is not a registered method)
  * fail at compile time.
  *
- * Per-method param/return shapes are still `any` — this layer catches typo'd
- * method names, not bad argument shapes. Tighter signatures are a follow-up.
+ * Methods listed in `MethodSignatures` carry real param + return types lifted
+ * from the source declaration via `typeof`. Methods NOT listed there fall
+ * through to the `(...args: any[]) => any` fallback so the surface stays
+ * complete during the incremental signature roll-out. Adding a method to
+ * `MethodSignatures` is purely additive and never breaks existing callers.
  *
  * Opt in at the consumer boundary:
  *
  *   import { tournamentEngine, FactoryEngineTyped } from 'tods-competition-factory';
  *   const engine = tournamentEngine as FactoryEngineTyped;
  */
-export type FactoryEngineTyped = Record<FactoryEngineMethod, (...args: any[]) => any> & {
-  /**
-   * Developer-JOY unwrap query facade — see `src/forge/q.ts`.
-   *
-   * Returns the unwrapped primary payload of common queries directly:
-   *
-   *   const events = engine.q.events();          // Event[]
-   *   const event  = engine.q.event({ eventId }); // Event | undefined
-   *
-   * Replaces the `tournamentEngine.getEvents()?.events ?? []` boilerplate.
-   * Per-method arg shapes are still `any`; typed signatures are a follow-up.
-   */
-  q: import('../forge').QueryFacade;
+export type FactoryEngineTyped = MethodSignatures &
+  Record<Exclude<FactoryEngineMethod, keyof MethodSignatures>, (...args: any[]) => any> & {
+    /**
+     * Developer-JOY unwrap query facade — see `src/forge/q.ts`.
+     *
+     * Returns the unwrapped primary payload of common queries directly:
+     *
+     *   const events = engine.q.events();          // Event[]
+     *   const event  = engine.q.event({ eventId }); // Event | undefined
+     *
+     * Replaces the `tournamentEngine.getEvents()?.events ?? []` boilerplate.
+     * Per-method arg shapes are still `any`; typed signatures are a follow-up.
+     */
+    q: import('../forge').QueryFacade;
 
-  /**
-   * Developer-JOY typed event bus — see `src/forge/bus.ts`.
-   *
-   * Multi-subscriber ergonomic surface over the legacy `setSubscriptions`
-   * single-callback system. Handlers receive one payload per call (the bus
-   * iterates the underlying notice array); ~12 topics are precisely typed
-   * via `TopicPayloadMap`, the rest fall through to `unknown`.
-   *
-   *   const off = engine.on('addMatchUps', e => relay.publish(e.matchUps));
-   *   const m   = await engine.waitFor('modifyMatchUp', p => p.matchUp.matchUpId === id);
-   */
-  on: import('../forge').EventBus['on'];
-  once: import('../forge').EventBus['once'];
-  off: import('../forge').EventBus['off'];
-  waitFor: import('../forge').EventBus['waitFor'];
+    /**
+     * Developer-JOY typed event bus — see `src/forge/bus.ts`.
+     *
+     * Multi-subscriber ergonomic surface over the legacy `setSubscriptions`
+     * single-callback system. Handlers receive one payload per call (the bus
+     * iterates the underlying notice array); ~12 topics are precisely typed
+     * via `TopicPayloadMap`, the rest fall through to `unknown`.
+     *
+     *   const off = engine.on('addMatchUps', e => relay.publish(e.matchUps));
+     *   const m   = await engine.waitFor('modifyMatchUp', p => p.matchUp.matchUpId === id);
+     */
+    on: import('../forge').EventBus['on'];
+    once: import('../forge').EventBus['once'];
+    off: import('../forge').EventBus['off'];
+    waitFor: import('../forge').EventBus['waitFor'];
 
-  /**
-   * Developer-JOY fluent builders — see `src/forge/builders/`.
-   *
-   * Chainable composition of addEvent → generateDrawDefinition →
-   * addDrawDefinition → addEventEntries (and addParticipant) into a single
-   * executionQueue dispatch. Pre-assigns `eventId`/`drawId`/`participantId`
-   * so callers can reference them before terminal verbs resolve.
-   *
-   *   const { eventId, drawIds } = engine.build.event({ eventName: 'U16 Singles' })
-   *     .singles().gender('MALE').draw(32, { seedsCount: 8 }).entries(ids).create();
-   *
-   *   const request = engine.build.event(...).singles().draw(8).toRequest();
-   *   socket.send('executionQueue', request);
-   */
-  build: import('../forge').BuildFacade;
-};
+    /**
+     * Developer-JOY fluent builders — see `src/forge/builders/`.
+     *
+     * Chainable composition of addEvent → generateDrawDefinition →
+     * addDrawDefinition → addEventEntries (and addParticipant) into a single
+     * executionQueue dispatch. Pre-assigns `eventId`/`drawId`/`participantId`
+     * so callers can reference them before terminal verbs resolve.
+     *
+     *   const { eventId, drawIds } = engine.build.event({ eventName: 'U16 Singles' })
+     *     .singles().gender('MALE').draw(32, { seedsCount: 8 }).entries(ids).create();
+     *
+     *   const request = engine.build.event(...).singles().draw(8).toRequest();
+     *   socket.send('executionQueue', request);
+     */
+    build: import('../forge').BuildFacade;
+  };
 
 export type { FactoryEngineMethod } from './factoryEngineMethods';
+export type { MethodSignatures } from './methodSignatures';
 
 export type TournamentRecords = {
   [key: string]: Tournament;

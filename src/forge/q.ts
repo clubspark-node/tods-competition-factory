@@ -29,6 +29,10 @@
  * call the same underlying method.
  */
 
+import type { DrawDefinition, Event, Extension, TimeItem, Tournament, Venue } from '@Types/tournamentTypes';
+import type { HydratedMatchUp, HydratedParticipant } from '@Types/hydrated';
+import type { FlightProfile, MatchUpsMap, PolicyDefinitions } from '@Types/factoryTypes';
+
 type QueryRegistryEntry = {
   /** factory engine method name to invoke */
   method: string;
@@ -98,61 +102,65 @@ const QUERY_REGISTRY: Record<string, QueryRegistryEntry> = {
 
 /**
  * Typed facade surface. Hand-maintained to give consumers IDE-discoverable
- * methods with real return types. Per-method arg shapes are still `any`
- * because the underlying engine methods are `any`-typed — tightening that
- * is the natural follow-up (the joy-research "#1 typed signatures" item).
+ * methods with real return types.
+ *
+ * Per-method arg shapes are still `any` because the underlying engine methods
+ * accept varied input shapes — tightening the arg side is part of the broader
+ * #1 typed-signatures work (see `src/types/methodSignatures.ts`), which threads
+ * `typeof <method>` for direct engine methods. Returns here are typed against
+ * TODS shapes so consumers stop casting at the call site.
  *
  * IMPORTANT: Each method here MUST have a matching entry in QUERY_REGISTRY
  * with the same key. The unit tests assert this invariant.
  */
 export interface QueryFacade {
   // tournament-level
-  tournament(args?: any): any;
-  tournamentInfo(args?: any): any;
-  tournamentTimeItem(args?: any): any;
+  tournament(args?: any): Tournament | undefined;
+  tournamentInfo(args?: any): any; // composite shape; not yet a single TODS type
+  tournamentTimeItem(args?: any): TimeItem | undefined;
   linkedTournamentIds(args?: any): string[] | undefined;
-  policyDefinitions(args?: any): any;
-  participants(args?: any): any[];
+  policyDefinitions(args?: any): PolicyDefinitions | undefined;
+  participants(args?: any): HydratedParticipant[];
 
   // event-level
-  event(args?: any): any;
-  events(args?: any): any[];
-  eventData(args?: any): any;
+  event(args?: any): Event | undefined;
+  events(args?: any): Event[];
+  eventData(args?: any): any; // hydrated composite — typed as `any` until #1 covers it
   eventRankingPoints(args?: any): any;
-  flightProfile(args?: any): any;
+  flightProfile(args?: any): FlightProfile | undefined;
 
   // draw-level
-  drawDefinition(args?: any): any;
+  drawDefinition(args?: any): DrawDefinition | undefined;
   draftState(args?: any): any;
   publishState(args?: any): any;
   availablePlayoffProfiles(args?: any): any[];
-  validGroupSizes(args?: any): any[];
+  validGroupSizes(args?: any): number[];
   assignedParticipantIds(args?: any): string[];
   swissChart(args?: any): any;
   structureSeedAssignments(args?: any): any[];
   positionAssignments(args?: any): any[];
 
   // matchUps
-  matchUp(args?: any): any;
-  matchUps(args?: any): any[];
-  drawMatchUps(args?: any): any[];
-  eventMatchUps(args?: any): any[];
-  competitionMatchUps(args?: any): any[];
-  matchUpsMap(args?: any): any;
+  matchUp(args?: any): HydratedMatchUp | undefined;
+  matchUps(args?: any): HydratedMatchUp[];
+  drawMatchUps(args?: any): HydratedMatchUp[];
+  eventMatchUps(args?: any): HydratedMatchUp[];
+  competitionMatchUps(args?: any): HydratedMatchUp[];
+  matchUpsMap(args?: any): MatchUpsMap | undefined;
 
   // venues / courts
-  venue(args?: any): any;
-  venuesAndCourts(args?: any): any[];
+  venue(args?: any): Venue | undefined;
+  venuesAndCourts(args?: any): Venue[];
 
   // PositionAssignment-level
   tally(args?: any): any;
 
   // extension passthrough
-  extension(args?: any): any;
+  extension(args?: any): Extension | undefined;
 
   // competition engine surface
-  competitionVenues(args?: any): any[];
-  competitionParticipants(args?: any): any[];
+  competitionVenues(args?: any): Venue[];
+  competitionParticipants(args?: any): HydratedParticipant[];
 }
 
 /**
