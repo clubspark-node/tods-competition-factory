@@ -202,6 +202,12 @@ export interface DrawDefinition {
   draftState?: any;
   // CODES first-class: previously stored as `flightProfile` extension
   flightProfile?: any;
+  // Per-flight ordering number, sourced from the parent event's flightProfile
+  // (`flightProfile.flights[].flightNumber`) when a draw was generated as part
+  // of a multi-flight event. Optional because legacy + single-flight draws
+  // don't carry it. Consumers (TMX draws table/grid) use it for display
+  // ordering.
+  flightNumber?: number;
   isMock?: boolean;
   // CODES first-class: previously stored as `lineUps` extension
   lineUps?: any;
