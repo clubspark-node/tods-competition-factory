@@ -83,8 +83,12 @@ export { sanctioningEngine } from './assemblies/engines/sanctioning';
 export { officiatingEngine } from './assemblies/engines/officiating';
 
 // ENGINES - For backwards compatibility ---------------------------------
-export { competitionEngine } from './tests/engines/syncEngine';
-export { tournamentEngine } from './tests/engines/syncEngine';
+// Typed defaults — see `tests/engines/syncEngine/index.ts` for the rationale
+// and for the `Untyped` opt-out variants for consumers still on the pre-5.x
+// open shape (e.g. third-party packages without TypeScript or with implicit-any
+// reliance — same runtime singleton, looser type).
+export { competitionEngine, tournamentEngine } from './tests/engines/syncEngine';
+export { competitionEngineUntyped, tournamentEngineUntyped } from './tests/engines/syncEngine';
 
 // FIXTURES --------------------------------------------------------------
 export { fixtures } from './fixtures';
