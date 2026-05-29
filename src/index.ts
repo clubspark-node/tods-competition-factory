@@ -12,6 +12,8 @@ export * as tools from './assemblies/tools';
 // GLOBAL STATE ---------------------------------------------------------
 export * as globalState from './global/state/globalState';
 export { policyRegistry } from './global/policyRegistry';
+export { policyComposer } from './global/policyComposer';
+export type { PolicyComposer } from './global/policyComposer';
 
 // ERRORS - rich, typed error hierarchy ---------------------------------
 // Class-based errors carrying code + cause + suggestions + path + context.
