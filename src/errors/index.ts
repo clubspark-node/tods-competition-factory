@@ -1,4 +1,4 @@
-export { FactoryError, type FactoryErrorOptions } from './FactoryError';
+export { FactoryError, FactoryErrorOptions } from './FactoryError';
 export {
   EventNotFoundError,
   InvalidDateError,

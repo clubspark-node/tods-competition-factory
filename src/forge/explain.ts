@@ -28,7 +28,7 @@
  * skip mutation execution + diff) is future work; ships when the engine
  * exposes per-method validator metadata.
  */
-import { dryRun, type DryRunResult } from './dryRun';
+import { dryRun, DryRunResult } from './dryRun';
 
 // constants and types
 import { FactoryEngine } from '@Types/factoryTypes';

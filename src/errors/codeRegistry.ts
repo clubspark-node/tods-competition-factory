@@ -25,7 +25,7 @@ import {
   ParticipantNotFoundError,
   StructureNotFoundError,
 } from './subclasses';
-import { FactoryError, type FactoryErrorOptions } from './FactoryError';
+import { FactoryError, FactoryErrorOptions } from './FactoryError';
 
 type FactoryErrorConstructor = new (opts?: FactoryErrorOptions) => FactoryError;
 

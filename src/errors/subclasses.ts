@@ -25,7 +25,7 @@
  * so consumers that pattern-match on `error.message` are unaffected. The
  * `code` strings are byte-for-byte identical to the legacy `code` field.
  */
-import { FactoryError, type FactoryErrorOptions } from './FactoryError';
+import { FactoryError, FactoryErrorOptions } from './FactoryError';
 
 // Sentinel codes — must stay identical to the legacy constants in
 // `src/constants/errorConditionConstants.ts` so the registry round-trips and

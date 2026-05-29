@@ -2,21 +2,21 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import tournamentEngine from '../tests/engines/syncEngine';
 import { mocksEngine } from '../assemblies/engines/mock';
-import { dryRun } from './dryRun';
 import { explain } from './explain';
+import { dryRun } from './dryRun';
 
 describe('dryRun', () => {
   beforeEach(() => {
     // Generate a small tournament and load it into engine state. Each test
     // re-seeds so they're independent.
-    const { tournamentRecord } = mocksEngine.generateTournamentRecord({
+    mocksEngine.generateTournamentRecord({
       drawProfiles: [{ drawSize: 4, eventType: 'SINGLES' }],
+      setState: true,
     });
-    tournamentEngine.setState(tournamentRecord);
   });
 
   it('returns wouldSucceed=true for a no-op directive list', () => {
-    const result = dryRun(tournamentEngine, []);
+    let result: any = dryRun(tournamentEngine, []);
     expect(result.wouldSucceed).toBe(true);
     expect(result.patch).toEqual([]);
     expect(result.willEmitNotices).toEqual([]);
@@ -24,18 +24,18 @@ describe('dryRun', () => {
   });
 
   it('returns INVALID_VALUES error when directives is not an array', () => {
-    const result = dryRun(tournamentEngine, 'nope' as any);
+    let result: any = dryRun(tournamentEngine, 'nope' as any);
     expect(result.wouldSucceed).toBe(false);
     expect(result.error?.code).toBeDefined();
   });
 
   it('does NOT persist state — running the same dryRun twice yields the same patch', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
     const directives = [{ method: 'modifyEvent', params: { eventId, eventUpdates: { eventName: 'Brand New Name' } } }];
-    const first = dryRun(tournamentEngine, directives);
-    const second = dryRun(tournamentEngine, directives);
+    const first: any = dryRun(tournamentEngine, directives);
+    const second: any = dryRun(tournamentEngine, directives);
 
     expect(first.wouldSucceed).toBe(true);
     expect(first.patch.length).toBeGreaterThan(0);
@@ -47,15 +47,15 @@ describe('dryRun', () => {
   });
 
   it('rolledBack is always true', () => {
-    const result = dryRun(tournamentEngine, []);
+    let result: any = dryRun(tournamentEngine, []);
     expect(result.rolledBack).toBe(true);
   });
 
   it('captures emitted notices into willEmitNotices', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
-    const result = dryRun(tournamentEngine, [
+    let result: any = dryRun(tournamentEngine, [
       { method: 'modifyEvent', params: { eventId, eventUpdates: { eventName: 'Test Name' } } },
     ]);
 
@@ -70,10 +70,10 @@ describe('dryRun', () => {
   });
 
   it('emits an RFC 6902-shaped patch for actual changes', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
-    const result = dryRun(tournamentEngine, [
+    let result: any = dryRun(tournamentEngine, [
       { method: 'modifyEvent', params: { eventId, eventUpdates: { eventName: 'New Name' } } },
     ]);
 
@@ -86,7 +86,7 @@ describe('dryRun', () => {
   });
 
   it('returns wouldSucceed=false + reason when a directive errors', () => {
-    const result = dryRun(tournamentEngine, [
+    let result: any = dryRun(tournamentEngine, [
       { method: 'modifyEvent', params: { eventId: 'does-not-exist', eventUpdates: { eventName: 'X' } } },
     ]);
     expect(result.wouldSucceed).toBe(false);
@@ -98,7 +98,7 @@ describe('dryRun', () => {
   });
 
   it('returns method-not-found error for an unknown directive', () => {
-    const result = dryRun(tournamentEngine, [{ method: 'noSuchMethod' as any, params: {} }]);
+    let result: any = dryRun(tournamentEngine, [{ method: 'noSuchMethod' as any, params: {} }]);
     expect(result.wouldSucceed).toBe(false);
     expect(result.error?.message).toMatch(/noSuchMethod/);
   });
@@ -106,17 +106,17 @@ describe('dryRun', () => {
 
 describe('explain', () => {
   beforeEach(() => {
-    const { tournamentRecord } = mocksEngine.generateTournamentRecord({
+    mocksEngine.generateTournamentRecord({
       drawProfiles: [{ drawSize: 4, eventType: 'SINGLES' }],
+      setState: true,
     });
-    tournamentEngine.setState(tournamentRecord);
   });
 
   it('returns wouldSucceed=true for a valid mutation', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
-    const result = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'New Name' } });
+    let result: any = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'New Name' } });
     expect(result.wouldSucceed).toBe(true);
     expect(result.reason).toBeUndefined();
     expect(Array.isArray(result.willEmitTopics)).toBe(true);
@@ -125,25 +125,25 @@ describe('explain', () => {
   });
 
   it('returns wouldSucceed=false + reason for an invalid mutation', () => {
-    const result = explain(tournamentEngine, 'modifyEvent', { eventId: 'nope', eventUpdates: { eventName: 'X' } });
+    let result: any = explain(tournamentEngine, 'modifyEvent', { eventId: 'nope', eventUpdates: { eventName: 'X' } });
     expect(result.wouldSucceed).toBe(false);
     expect(result.reason?.code).toBeDefined();
   });
 
   it('does not persist state — call twice, second yields same touchesPaths', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
-    const first = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'A' } });
-    const second = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'A' } });
+    const first: any = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'A' } });
+    const second: any = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'A' } });
     expect(second.touchesPaths).toEqual(first.touchesPaths);
   });
 
   it('exposes the full dryRun result under `detail`', () => {
-    const eventResult = tournamentEngine.getEvents();
+    const eventResult: any = tournamentEngine.getEvents();
     const eventId = eventResult.events[0].eventId;
 
-    const result = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'X' } });
+    let result: any = explain(tournamentEngine, 'modifyEvent', { eventId, eventUpdates: { eventName: 'X' } });
     expect(result.detail).toBeDefined();
     expect(result.detail.patch).toEqual(
       result.touchesPaths.map((p) => result.detail.patch.find((op) => op.path === p)!),
