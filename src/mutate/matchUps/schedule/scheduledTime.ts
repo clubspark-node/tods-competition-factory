@@ -11,7 +11,6 @@ import { MUTUALLY_EXCLUSIVE_TIME_MODIFIERS, SCHEDULED_TIME, TIME_MODIFIERS } fro
 import { INVALID_TIME, INVALID_VALUES, MISSING_MATCHUP_ID } from '@Constants/errorConditionConstants';
 import { DrawDefinition, MatchUp, Tournament } from '@Types/tournamentTypes';
 import { SUCCESS } from '@Constants/resultConstants';
-import { HydratedMatchUp } from '@Types/hydrated';
 
 type AddScheduleAttributeArgs = {
   tournamentRecord?: Tournament;
@@ -94,7 +93,7 @@ export function addMatchUpTimeModifiers({
   matchUpId,
   matchUp,
 }: AddScheduleAttributeArgs & {
-  matchUp?: HydratedMatchUp;
+  matchUp?: MatchUp;
   timeModifiers: any[];
 }) {
   const stack = 'addMatchUpTimeModifiers';

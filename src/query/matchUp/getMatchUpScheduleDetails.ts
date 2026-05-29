@@ -80,8 +80,9 @@ export function getMatchUpScheduleDetails(params: GetMatchUpScheduleDetailsArgs)
       }));
     }
 
-    const structure =
-      matchUp.structureId && drawDefinition?.structures?.find(({ structureId }) => structureId === matchUp.structureId);
+    const structure = matchUp.structureId
+      ? drawDefinition?.structures?.find(({ structureId }) => structureId === matchUp.structureId)
+      : undefined;
 
     matchUpType =
       params.matchUpType ||

@@ -23,7 +23,6 @@ import { DrawDefinition, Event, MatchUp, TieFormat, Tournament } from '@Types/to
 import { COMPLETED, IN_PROGRESS } from '@Constants/matchUpStatusConstants';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { SUCCESS } from '@Constants/resultConstants';
-import { HydratedMatchUp } from '@Types/hydrated';
 import { TEAM } from '@Constants/matchUpTypes';
 import {
   ErrorType,
@@ -65,7 +64,10 @@ export function removeCollectionDefinition({
   matchUp,
   event,
 }: RemoveCollectionDefinitionArgs): {
-  targetMatchUps?: HydratedMatchUp[];
+  // Produced by `filterTargetMatchUps` which returns `MatchUp[]`; the
+  // function doesn't add hydration before returning, so `MatchUp[]` is the
+  // honest type.
+  targetMatchUps?: MatchUp[];
   deletedMatchUpIds?: string[];
   tieFormat?: TieFormat;
   success?: boolean;

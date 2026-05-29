@@ -12,7 +12,6 @@ import { BYE, TO_BE_PLAYED } from '@Constants/matchUpStatusConstants';
 import { MatchUp, EventTypeUnion, TieFormat } from '@Types/tournamentTypes';
 import { ROUND_TARGET } from '@Constants/extensionConstants';
 import { SUCCESS } from '@Constants/resultConstants';
-import { HydratedMatchUp } from '@Types/hydrated';
 
 type GenerateRoundRobinArgs = {
   playoffAttributes?: PlayoffAttributes;
@@ -71,7 +70,7 @@ export function generateRoundRobin(params: GenerateRoundRobinArgs) {
   let maxRoundNumber;
 
   const structures = generateRange(1, groupCount + 1).map((structureOrder) => {
-    const matchUps: HydratedMatchUp[] = roundRobinMatchUps({
+    const matchUps: MatchUp[] = roundRobinMatchUps({
       groupSize: groupSize,
       structureOrder,
       matchUpType,
@@ -195,7 +194,7 @@ function roundRobinMatchUps({
   idPrefix,
   isMock,
   uuids,
-}: RoundRobinMatchUpsArgs): HydratedMatchUp[] {
+}: RoundRobinMatchUpsArgs): MatchUp[] {
   const drawPositionOffset = (structureOrder - 1) * groupSize;
   const drawPositions = generateRange(1 + drawPositionOffset, groupSize + 1 + drawPositionOffset);
 
