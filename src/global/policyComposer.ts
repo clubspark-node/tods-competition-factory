@@ -49,11 +49,8 @@
  *   consumer; composer's primitive is "deep merge with array replace".
  */
 
-import { policyRegistry } from './policyRegistry';
+import { policyRegistry, PolicyDefinition } from './policyRegistry';
 import { deepMerge } from '@Tools/deepMerge';
-
-// constants and types
-import type { PolicyDefinition } from './policyRegistry';
 
 /**
  * Split a dot-path into segments. Numeric segments are kept as strings;
