@@ -332,7 +332,7 @@ module.exports = {
     {
       type: 'category',
       label: 'Migration',
-      items: ['whats-new-5.0.0', 'migration-5.0.0', 'migration'],
+      items: ['whats-new-5.0.0', 'migration-5.0.0', 'migration-4.0.0', 'migration-3.0.0', 'migration'],
     },
   ],
 };
