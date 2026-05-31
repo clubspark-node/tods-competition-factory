@@ -47,6 +47,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
+      - run: corepack enable
+
       - run: npm install --legacy-peer-deps --ignore-scripts
 
       - run: npm run lint
