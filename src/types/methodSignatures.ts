@@ -224,6 +224,7 @@ import type { pruneDrawDefinition } from '@Mutate/drawDefinitions/pruneDrawDefin
 import type { removePracticeRegistration } from '@Mutate/practice/removePracticeRegistration';
 import type { resetDrawDefinition } from '@Mutate/drawDefinitions/resetDrawDefinition';
 import type { setDelegatedOutcome } from '@Mutate/drawDefinitions/setDelegatedOutcome';
+import type { setPracticeDefaultCapacity } from '@Mutate/practice/setPracticeDefaultCapacity';
 import type { swapDrawPositionAssignments } from '@Mutate/matchUps/drawPositions/positionSwap';
 import type { updatePracticeRegistration } from '@Mutate/practice/updatePracticeRegistration';
 import type { assignDrawPosition } from '@Mutate/drawDefinitions/assignDrawPosition';
@@ -1029,6 +1030,7 @@ export interface MethodSignatures {
   setParticipantScaleItem: EngineMethod<typeof setParticipantScaleItem>;
   setParticipantScaleItems: EngineMethod<typeof setParticipantScaleItems>;
   setPositionAssignments: EngineMethod<typeof setPositionAssignments>;
+  setPracticeDefaultCapacity: EngineMethod<typeof setPracticeDefaultCapacity>;
   setRegistrationProfile: EngineMethod<typeof setRegistrationProfile>;
   setSchedulingProfile: EngineMethod<typeof setSchedulingProfile>;
   setStructureOrder: EngineMethod<typeof setStructureOrder>;

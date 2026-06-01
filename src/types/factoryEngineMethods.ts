@@ -547,6 +547,7 @@ export type FactoryEngineMethod =
   | 'setParticipantScaleItem'
   | 'setParticipantScaleItems'
   | 'setPositionAssignments'
+  | 'setPracticeDefaultCapacity'
   | 'setRegistrationProfile'
   | 'setSchedulingProfile'
   | 'setState'
@@ -1164,6 +1165,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'setParticipantScaleItem',
   'setParticipantScaleItems',
   'setPositionAssignments',
+  'setPracticeDefaultCapacity',
   'setRegistrationProfile',
   'setSchedulingProfile',
   'setState',
