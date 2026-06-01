@@ -41,8 +41,8 @@ importers:
         specifier: ^19.2.6
         version: 19.2.6(react@19.2.6)
       tods-competition-factory:
-        specifier: ^4.0.0
-        version: 4.2.0
+        specifier: ^5.0.0
+        version: 5.0.0
 
 packages:
 
