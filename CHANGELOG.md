@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.0](https://github.com/CourtHive/competition-factory/compare/v5.1.0...v5.2.0) (2026-06-02)
+
+
+### Features
+
+* **lucky-draw:** customLuckyDraw generator with explicit roundProfile ([cc4bd23](https://github.com/CourtHive/competition-factory/commit/cc4bd23dad6baf5ac9085b8d53fe59f585f698a9))
+
 ## [5.1.0](https://github.com/CourtHive/competition-factory/compare/v5.0.0...v5.1.0) (2026-06-01)
 
 
