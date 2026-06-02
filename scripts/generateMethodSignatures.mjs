@@ -225,9 +225,16 @@ for (const path of sortedPaths) {
   if (uniq.length === 1) {
     lines.push(`import type { ${uniq[0].sourceName} } from '${path}';`);
   } else {
-    lines.push(`import type {`);
-    for (const e of uniq) lines.push(`  ${e.sourceName},`);
-    lines.push(`} from '${path}';`);
+    // Mirror Prettier's collapse behavior (printWidth 120 in .prettierrc.json)
+    // so prebuild output stays clean without a follow-up `prettier --write`.
+    const single = `import type { ${uniq.map((e) => e.sourceName).join(', ')} } from '${path}';`;
+    if (single.length <= 120) {
+      lines.push(single);
+    } else {
+      lines.push(`import type {`);
+      for (const e of uniq) lines.push(`  ${e.sourceName},`);
+      lines.push(`} from '${path}';`);
+    }
   }
 }
 
