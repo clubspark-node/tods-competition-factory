@@ -1,3 +1,4 @@
+import { POLICY_MATCHUP_ACTIONS_DEFAULT } from '@Fixtures/policies/POLICY_MATCHUP_ACTIONS_DEFAULT';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { xa } from '@Tools/extractAttributes';
@@ -29,6 +30,15 @@ it('can enforce collection gender', () => {
   });
   let result = tournamentEngine.setState(tournamentRecord);
   expect(result.success).toEqual(true);
+
+  // Defensive: tournamentEngine is a singleton, and matchUpActions consults
+  // the global matchUpActionsPolicy. setState() resets tournament state but
+  // NOT policy state, so an upstream test (e.g. one that disables
+  // ASSIGN_PARTICIPANT via attachPolicies) can leak into this test on CI
+  // where vitest worker scheduling differs from local. Reattaching the
+  // default policy here guarantees `matchUpActions().validActions` contains
+  // ASSIGN_PARTICIPANT regardless of suite order.
+  tournamentEngine.attachPolicies({ policyDefinitions: POLICY_MATCHUP_ACTIONS_DEFAULT });
 
   const participants = tournamentEngine.getParticipants({
     withGroupings: true,
