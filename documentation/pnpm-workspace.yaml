@@ -1,5 +1,19 @@
 packages: []
 
+# Supply-chain freshness: keep a 1-day floor for third-party packages but
+# exempt every CourtHive-published package so cross-repo release cascades
+# (factory -> components -> docs consuming both) don't trip the policy.
+# Mirrors the root pnpm-workspace.yaml — documentation is its own pnpm
+# context so the setting has to be duplicated here.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - 'tods-competition-factory'
+  - 'courthive-*'
+  - '@courthive/*'
+  - 'pdf-factory'
+  - 'scoring-visualizations'
+  - 'tabulator-scorecards'
+
 # Security overrides for transitive deps of the Docusaurus docs build (not
 # part of the published package). pnpm v11 reads overrides from here, not from
 # `pnpm.overrides` in package.json when this workspace file is present.
