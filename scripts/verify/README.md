@@ -1,6 +1,8 @@
 # Factory verification suite
 
-`pnpm verify` is the gate before every publish. It chains 12 checks that together cover compile, runtime, dist integrity, consumer impact, and security awareness. If any link in the chain fails, the suite exits non-zero and `prepublishOnly` blocks the release.
+`pnpm verify` is the gate before every publish. It chains 11 checks that together cover compile, runtime, dist integrity, and security awareness. If any link in the chain fails, the suite exits non-zero and `prepublishOnly` blocks the release.
+
+A 12th check, `verify:ecosystem`, runs downstream consumer tests against the in-tree factory but is **not** part of the chained `verify` script — it depends on sibling repos being checked out on disk, which isn't the case on CI runners. Run it explicitly (`pnpm verify:ecosystem`) when working locally, or use `pnpm verify:all` (= `pnpm verify && pnpm verify:ecosystem`) for the full sweep.
 
 ## What each check catches
 
@@ -17,9 +19,10 @@
 | `verify:bundle-size` | a file in `dist/` grew beyond +10 % vs baseline                                                                                                                           | ~1 s   |
 | `verify:surface`     | a public export was removed (breaking) or signature drifted                                                                                                               | ~1 s   |
 | `verify:pack`        | the published `.d.ts` references an internal path that didn't get packed; runtime `require()` smoke after `npm install` of the tarball                                    | ~30 s  |
-| `verify:ecosystem`   | downstream consumer tests pass against the in-tree factory                                                                                                                | ~60 s  |
 
-Total: ~4 minutes warm. The chain is ordered so cheap fail-fast checks run first.
+Total: ~3 minutes warm. The chain is ordered so cheap fail-fast checks run first.
+
+`verify:ecosystem` (~60 s) sits outside the chain and is documented in [Opt-in checks](#opt-in-checks) below.
 
 ## When to run
 
@@ -53,14 +56,6 @@ node scripts/verify/surface.mjs --baseline=npm@4.2.0     # vs a specific tag
 
 This is the right mode for "did my upcoming release break a previously published surface?"
 
-### `verify:ecosystem` filtering
-
-```sh
-node scripts/verify/ecosystem.mjs --only=TMX,courthive-public
-node scripts/verify/ecosystem.mjs --skip=tidyScore
-node scripts/verify/ecosystem.mjs --build-factory      # rebuild dist before sweeping
-```
-
 ### `verify:pack` debugging
 
 If a packaged-tarball failure isn't immediately reproducible:
@@ -71,9 +66,25 @@ VERIFY_PACK_KEEP=1 pnpm verify:pack
 
 leaves the staged directory in `/tmp` so you can inspect what was actually installed + what `tsc` saw.
 
+## Opt-in checks
+
+### `verify:ecosystem`
+
+Walks sibling consumer repos (TMX, courthive-components, pdf-factory, …) and runs each one's test suite against the in-tree factory build. Only meaningful when the siblings are checked out next to `factory/` on disk; on a CI runner all consumers report "missing" and the script no-ops. Kept out of the chained `verify` script for that reason.
+
+```sh
+pnpm verify:ecosystem
+pnpm verify:all                                          # = verify + verify:ecosystem
+node scripts/verify/ecosystem.mjs --only=TMX,courthive-public
+node scripts/verify/ecosystem.mjs --skip=tidyScore
+node scripts/verify/ecosystem.mjs --build-factory        # rebuild dist before sweeping
+```
+
 ## CI
 
-`.github/workflows/verify.yml` runs the full suite on every PR + push to main, across the Node version matrix declared in `package.json#engines.node`. Failures block merge; the surface and bundle-size baselines participate in the same diff so updates are reviewable.
+`.github/workflows/verify.yml` runs the 11-step chain on every PR + push to master, across the Node version matrix declared in `package.json#engines.node`. The job is skipped on release-please merge commits (CHANGELOG/version-only changes that don't need re-verification). The surface and bundle-size baselines participate in the same diff so updates are reviewable.
+
+`.github/workflows/npm-publish.yml` runs `lint` + `check-types` + `build` at tag-time, then `npm publish` triggers `prepublishOnly` (= `pinst --disable && pnpm verify`) which re-runs the 11-step chain against the exact tagged commit before anything ships to npm.
 
 ## Adding a new check
 
