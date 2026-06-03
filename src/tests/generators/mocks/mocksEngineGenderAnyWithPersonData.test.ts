@@ -20,7 +20,7 @@
  * Storybook story showed no data per player (discovered 2026-06-03).
  */
 import { SINGLE_ELIMINATION } from '@Constants/drawDefinitionConstants';
-import { ANY } from '@Constants/genderConstants';
+import { ANY, MIXED } from '@Constants/genderConstants';
 import tournamentEngine from '@Engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
 import { expect, it, describe } from 'vitest';
@@ -67,6 +67,40 @@ describe('mocksEngine — gender:ANY + participantsProfile.personData', () => {
     expect(assignedCount).toBe(32);
 
     // MatchUps should complete (this is the regression — was 0/31 before).
+    tournamentEngine.setState(tournamentRecord);
+    const { matchUps } = tournamentEngine.allTournamentMatchUps();
+    const completed = (matchUps ?? []).filter((m: any) => m.winningSide).length;
+    expect(completed).toBe(31);
+  });
+
+  it('treats gender:MIXED on SINGLES as no constraint at the individual level', () => {
+    // MIXED on a SINGLES event is semantically meaningless (an individual can't
+    // be mixed-sex). The filter used to literal-compare person.sex === 'MIXED'
+    // and reject everyone — same shape of bug as ANY, separate symptom.
+    // MIXED on DOUBLES/TEAM (mixed pair / mixed team) has real meaning and is
+    // enforced by a separate generator-level path; this fix is INDIVIDUAL-only.
+    const personData = makePersonData(32);
+    const { tournamentRecord } = mocksEngine.generateTournamentRecord({
+      tournamentAttributes: { tournamentName: 'Mixed singles', endDate: '2026-01-15' },
+      participantsProfile: { participantsCount: 32, participantType: 'INDIVIDUAL', personData },
+      drawProfiles: [
+        {
+          drawSize: 32,
+          drawType: SINGLE_ELIMINATION,
+          eventType: 'SINGLES',
+          eventName: 'Open Singles',
+          gender: MIXED,
+        },
+      ],
+      completeAllMatchUps: true,
+      randomWinningSide: true,
+      nonRandom: 11,
+    });
+
+    const structure = tournamentRecord.events?.[0]?.drawDefinitions?.[0]?.structures?.[0];
+    const assignedCount = (structure?.positionAssignments ?? []).filter((pa: any) => pa.participantId).length;
+    expect(assignedCount).toBe(32);
+
     tournamentEngine.setState(tournamentRecord);
     const { matchUps } = tournamentEngine.allTournamentMatchUps();
     const completed = (matchUps ?? []).filter((m: any) => m.winningSide).length;

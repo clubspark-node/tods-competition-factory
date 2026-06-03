@@ -38,7 +38,7 @@ import { FORMAT_STANDARD } from '@Fixtures/scoring/matchUpFormats';
 import { isAdHocType } from '@Query/drawDefinition/isAdHocType';
 import { COMPLETED } from '@Constants/matchUpStatusConstants';
 import { ALTERNATE } from '@Constants/entryStatusConstants';
-import { ANY, FEMALE, MALE } from '@Constants/genderConstants';
+import { ANY, FEMALE, MALE, MIXED } from '@Constants/genderConstants';
 import { COMPETITOR } from '@Constants/participantRoles';
 import { SEEDING } from '@Constants/timeItemConstants';
 import { OBJECT } from '@Constants/attributeConstants';
@@ -1071,6 +1071,12 @@ function filterConsideredParticipants({
     // Without this, the literal-equality check below filters everyone out
     // (no participant has person.sex === 'ANY'), leaving the draw empty.
     if (drawProfile.gender === ANY) return true;
+    // `gender: MIXED` on an INDIVIDUAL is meaningless — an individual can't
+    // be mixed-sex. Treat as no constraint at the individual level. (For
+    // PAIR/TEAM events MIXED is the "mixed-sex pair/team" constraint and
+    // remains enforced by member-composition checks elsewhere — at the
+    // generator level, not in this filter.)
+    if (drawProfile.gender === MIXED && participant.participantType === INDIVIDUAL) return true;
     if (participant.person?.sex === drawProfile.gender) return true;
     return participant.individualParticipantIds?.some((participantId) => {
       const individualParticipant = targetParticipants.find((p) => p.participantId === participantId);
