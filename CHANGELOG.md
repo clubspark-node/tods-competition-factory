@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.2.4](https://github.com/CourtHive/competition-factory/compare/v5.2.3...v5.2.4) (2026-06-04)
+
+
+### Bug Fixes
+
+* **mocksEngine:** generate balanced M+F PAIRs for MIXED DOUBLES ([576d9b1](https://github.com/CourtHive/competition-factory/commit/576d9b12c5bb1b3393ee2ba2c304e5fe75af54ad))
+* **mocksEngine:** treat gender:ANY as no-op constraint when synthesizing draws ([05fe8a5](https://github.com/CourtHive/competition-factory/commit/05fe8a5bb96b4893f4f11953785c4ea8de90806b))
+* **mocksEngine:** treat gender:MIXED on SINGLES as no individual-level constraint ([7feabdc](https://github.com/CourtHive/competition-factory/commit/7feabdc0885a7eeedac8165935e26d1a54afc0ef))
+* **scales:** make doublesAttribution a single-owner choice — pair OR individuals, never both ([d92d1a0](https://github.com/CourtHive/competition-factory/commit/d92d1a0de2dea3e790b923bb8a4127a0973a39ef))
+
+
+### Documentation
+
+* **scale-engine:** align doubles attribution page with single-owner contract ([d60f224](https://github.com/CourtHive/competition-factory/commit/d60f22425060326377adb9a644784c1bd7a7fe99))
+
 ## [5.2.3](https://github.com/CourtHive/competition-factory/compare/v5.2.2...v5.2.3) (2026-06-03)
 
 
