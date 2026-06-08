@@ -5,8 +5,8 @@ import { allEventMatchUps } from '@Query/matchUps/getAllEventMatchUps';
 import { getParticipants } from '@Query/participants/getParticipants';
 import { categoryCanContain } from '@Query/event/categoryCanContain';
 import { decorateResult } from '@Functions/global/decorateResult';
-import { validateCategory } from '@Validators/validateCategory';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
+import { validateCategory } from '@Validators/validateCategory';
 import { setEventDates } from './setEventDates';
 import { isMixed } from '@Validators/isMixed';
 import { isAny } from '@Validators/isAny';
@@ -14,10 +14,10 @@ import { unique } from '@Tools/arrays';
 
 // constants and types
 import { Category, Event, Tournament, EventTypeUnion, GenderUnion, TieFormat } from '@Types/tournamentTypes';
-import type { competitionFormat } from '@Types/competitionFormat';
 import { ALTERNATE, STRUCTURE_SELECTED_STATUSES } from '@Constants/entryStatusConstants';
 import { DOUBLES, HYBRID, SINGLES, TEAM } from '@Constants/eventConstants';
 import { INDIVIDUAL, PAIR } from '@Constants/participantConstants';
+import { competitionFormat } from '@Types/competitionFormat';
 import { OBJECT } from '@Constants/attributeConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 import { ResultType } from '@Types/factoryTypes';

@@ -1,22 +1,22 @@
+import { checkRequiredParameters } from '@Helpers/parameters/checkRequiredParameters';
 import { getEventPublishStatus } from '@Query/event/getEventPublishStatus';
+import { getDrawIsPublished } from '@Query/publishing/getDrawIsPublished';
 import { getTournamentInfo } from '@Query/tournaments/getTournamentInfo';
 import { getParticipants } from '@Query/participants/getParticipants';
 import { getPublishState } from '@Query/publishing/getPublishState';
+import { isVisiblyPublished } from '@Query/publishing/isEmbargoed';
 import { getDrawData } from '@Query/drawDefinition/getDrawData';
 import { isAdHocType } from '@Query/drawDefinition/isAdHocType';
 import { getVenueData } from '@Query/venues/getVenueData';
 import { findExtension } from '@Acquire/findExtension';
 import { isConvertableInteger } from '@Tools/math';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
-import { generateRange } from '@Tools/arrays';
 import { findEvent } from '@Acquire/findEvent';
+import { generateRange } from '@Tools/arrays';
 
 // constants and types
 import { ParticipantsProfile, PolicyDefinitions, StructureSortConfig } from '@Types/factoryTypes';
-import { checkRequiredParameters } from '@Helpers/parameters/checkRequiredParameters';
 import { EVENT_NOT_FOUND, ErrorType } from '@Constants/errorConditionConstants';
-import { isVisiblyPublished } from '@Query/publishing/isEmbargoed';
-import { getDrawIsPublished } from '@Query/publishing/getDrawIsPublished';
 import { Event, Tournament } from '@Types/tournamentTypes';
 import { DISPLAY } from '@Constants/extensionConstants';
 import { ANY_OF } from '@Constants/attributeConstants';

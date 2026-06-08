@@ -4,8 +4,8 @@ import { logMethodNotFound } from '@Assemblies/engines/parts/logMethodNotFound';
 import { executeFunction } from '@Assemblies/engines/parts/executeMethod';
 import { notifySubscribers } from '@Global/state/notifySubscribers';
 import { setState } from '@Assemblies/engines/parts/stateMethods';
-import { createSeededRandom } from '@Tools/prng';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
+import { createSeededRandom } from '@Tools/prng';
 
 // constants and types
 import { INVALID_VALUES } from '@Constants/errorConditionConstants';

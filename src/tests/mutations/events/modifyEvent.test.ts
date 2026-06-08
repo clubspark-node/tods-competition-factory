@@ -1,15 +1,17 @@
 import { stringSort } from '@Functions/sorters/stringSort';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
+import { addDays } from '@Tools/dateTime';
 import { unique } from '@Tools/arrays';
 import { expect, it } from 'vitest';
 
-// constants
+// constants and types
 import { EVENT_NOT_FOUND, INVALID_VALUES } from '@Constants/errorConditionConstants';
 import { FEMALE, MALE, ANY } from '@Constants/genderConstants';
 import { DOUBLES, SINGLES } from '@Constants/eventConstants';
+
+// Fixtures
 import { competitionFormats } from '@Fixtures/scoring/competitionFormats';
-import { addDays } from '@Tools/dateTime';
 
 it('supports modifying event gender, name and eventType', () => {
   const drawSize = 16;

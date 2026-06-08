@@ -2,13 +2,15 @@ import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { expect, it, test } from 'vitest';
 
-// Constants and Fixtures
-import { INVALID_VALUES } from '@Constants/errorConditionConstants';
+// constants and types
 import { COMPASS, CURTIS_CONSOLATION } from '@Constants/drawDefinitionConstants';
+import { INVALID_VALUES } from '@Constants/errorConditionConstants';
 import { TEAM } from '@Constants/participantConstants';
 import { DOUBLES } from '@Constants/eventConstants';
-import { countries } from '@Fixtures/countryData';
 import { SINGLES } from '@Constants/matchUpTypes';
+
+// Fixtures
+import { countries } from '@Fixtures/countryData';
 
 it('returns eventData with expected drawsData', () => {
   const drawProfiles = [{ drawSize: 4, drawType: COMPASS }];

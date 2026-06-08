@@ -6,8 +6,8 @@ import { notifySubscribers } from '@Global/state/notifySubscribers';
 import { setState } from '@Assemblies/engines/parts/stateMethods';
 import { isFunction, isObject, isString } from '@Tools/objects';
 import { getMethods } from '@Global/state/syncGlobalState';
-import { createSeededRandom } from '@Tools/prng';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
+import { createSeededRandom } from '@Tools/prng';
 
 // constants
 import { INVALID_VALUES, METHOD_NOT_FOUND } from '@Constants/errorConditionConstants';
