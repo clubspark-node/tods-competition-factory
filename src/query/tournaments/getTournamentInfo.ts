@@ -36,6 +36,7 @@ export function getTournamentInfo(params?: {
     tournamentId,
     tournamentRank,
     tournamentStatus,
+    tournamentTier,
 
     formalName,
     tournamentName,
@@ -58,6 +59,7 @@ export function getTournamentInfo(params?: {
     tournamentId,
     tournamentRank,
     tournamentStatus,
+    tournamentTier,
 
     formalName,
     tournamentName,
