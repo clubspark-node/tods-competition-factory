@@ -18,6 +18,7 @@ import { coercedGender } from '@Helpers/coercedGender';
 export function anonymizeTournamentRecord({
   keepExtensions = [],
   anonymizeParticipantNames = true,
+  parentOrganisation,
   tournamentRecord,
   tournamentName,
   personIds = [],
@@ -39,7 +40,14 @@ export function anonymizeTournamentRecord({
 
   const idMap = {};
 
-  anonymizeTournamentHeader({ tournamentRecord, filterExtensions, idMap, tournamentId, tournamentName });
+  anonymizeTournamentHeader({
+    tournamentRecord,
+    filterExtensions,
+    idMap,
+    parentOrganisation,
+    tournamentId,
+    tournamentName,
+  });
   anonymizeParticipantIds({ tournamentRecord, filterExtensions, idMap });
   anonymizeVenues({ tournamentRecord, filterExtensions, idMap });
   anonymizeEvents({ tournamentRecord, filterExtensions, idMap });
@@ -76,7 +84,14 @@ function anonymizeFlightProfileFlights(flightProfile: any, idMap: any) {
   }
 }
 
-function anonymizeTournamentHeader({ tournamentRecord, filterExtensions, idMap, tournamentId, tournamentName }) {
+function anonymizeTournamentHeader({
+  tournamentRecord,
+  filterExtensions,
+  idMap,
+  parentOrganisation,
+  tournamentId,
+  tournamentName,
+}) {
   tournamentRecord.extensions = filterExtensions(tournamentRecord);
 
   const newTournamentId = tournamentId || UUID();
@@ -87,7 +102,16 @@ function anonymizeTournamentHeader({ tournamentRecord, filterExtensions, idMap, 
   tournamentRecord.tournamentName = tournamentName || `Anonymized: ${formatDate(new Date())}`;
   tournamentRecord.isMock = true;
 
-  delete tournamentRecord.parentOrganisation;
+  // Caller passes a mock provider when multi-tournament anonymization pipelines
+  // need provider grouping to survive (e.g. "all tournaments for provider X"
+  // queries on the anonymized corpus). Keep a map of real → mock provider on
+  // the caller side and pass the consistent mock per real provider. Absent any
+  // mock, drop the field entirely — the real org would leak otherwise.
+  if (parentOrganisation) {
+    tournamentRecord.parentOrganisation = parentOrganisation;
+  } else {
+    delete tournamentRecord.parentOrganisation;
+  }
 }
 
 function anonymizeParticipantIds({ tournamentRecord, filterExtensions, idMap }) {
