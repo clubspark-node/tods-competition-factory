@@ -20,6 +20,13 @@ it('can enforce collection gender', () => {
   // 4. Mixed Doubles will filter on 2nd participant placement (UI modal must filter independently?)
 
   const { tournamentRecord } = mocksEngine.generateTournamentRecord({
+    // Seed the generator (mocksEngine threads a numeric `nonRandom` into a
+    // deterministic PRNG) so the generated team rosters have a fixed gender
+    // composition. The assertions below require BOTH genders on side 2 (the
+    // opposite-gender slot picked at `side2incorrectGenderedIndividuals[0]`);
+    // a purely random roster could rarely leave a side single-gendered, which
+    // flaked the suite intermittently on CI (node 24).
+    nonRandom: 1,
     drawProfiles: [
       {
         tieFormatName: USTA_GOLD_TEAM_CHALLENGE,
