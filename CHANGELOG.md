@@ -1,5 +1,14 @@
 # Changelog
 
+## [5.7.1](https://github.com/CourtHive/competition-factory/compare/v5.7.0...v5.7.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **deps:** update courthive-components to 3.4.4 in documentation ([7efaaf3](https://github.com/CourtHive/competition-factory/commit/7efaaf336241f36cab1494de5e9616223e2b00c5))
+* FMLC walkover propagated against a consolation BYE advances the WO player ([#4455](https://github.com/CourtHive/competition-factory/issues/4455)) ([7ca7973](https://github.com/CourtHive/competition-factory/commit/7ca7973679f327960d8a3f3631754ed9547fd8fc))
+* guard getExitWinningSide against bye positions and drop dead double-exit code ([#4456](https://github.com/CourtHive/competition-factory/issues/4456)) ([92eae1e](https://github.com/CourtHive/competition-factory/commit/92eae1e377fd3ad0dd3fc336d76381722b2ea277))
+
 ## [5.7.0](https://github.com/CourtHive/competition-factory/compare/v5.6.0...v5.7.0) (2026-06-23)
 
 
