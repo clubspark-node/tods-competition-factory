@@ -6,7 +6,7 @@ import { expect, it } from 'vitest';
 
 // constants
 import { MODIFY_DRAW_DEFINITION, MODIFY_MATCHUP } from '@Constants/topicConstants';
-import { INVALID_DATE, INVALID_VALUES } from '@Constants/errorConditionConstants';
+import { INVALID_DATE, INVALID_VALUES, MATCHUPS_SCHEDULED_OUTSIDE_DATES } from '@Constants/errorConditionConstants';
 import { MON } from '@Constants/weekdayConstants';
 
 it('will remove court.dateAvailabiilty items that fall outside of tournament dates', () => {
@@ -86,7 +86,7 @@ it('will remove court.dateAvailabiilty items that fall outside of tournament dat
   expect(result.venue.courts[0].dateAvailability.length).toEqual(3);
 });
 
-it('will remove scheduling detail for matchUps which have been scheduled outside of tournament dates', () => {
+it('blocks tournament date changes when matchUps are scheduled outside the new dates', () => {
   const eventId = 'eventId';
   const venueId = 'venueId';
   const drawId = 'drawId';
@@ -166,45 +166,95 @@ it('will remove scheduling detail for matchUps which have been scheduled outside
 
   setSubscriptions({ subscriptions });
   expect(matchUpModifyNotices.length).toEqual(0);
-  let result = tournamentEngine.setTournamentDates({ endDate: addDays(startDate, 1) });
-  expect(result.unscheduledMatchUpIds).toEqual(schedulerResult.scheduledMatchUpIds[result.datesRemoved[0]]);
-  expect(result.unscheduledMatchUpIds.length).toEqual(12);
-  expect(matchUpModifyNotices.length).toEqual(12);
-  expect(result.datesRemoved.length).toEqual(1);
-  expect(result.success).toEqual(true);
 
-  result = tournamentEngine.setTournamentDates({ endDate: startDate });
-  expect(result.unscheduledMatchUpIds).toEqual(schedulerResult.scheduledMatchUpIds[result.datesRemoved[0]]);
-  expect(result.unscheduledMatchUpIds.length).toEqual(16);
-  expect(matchUpModifyNotices.length).toEqual(28);
-  expect(result.datesRemoved.length).toEqual(1);
+  // day0 has 32 matchUps (round 1), day1 has 16 (round 2), day2 has 12 (rounds 3 & 4) => 60 total
+  const day0 = startDate;
+  const day1 = addDays(startDate, 1);
+  const day2 = addDays(startDate, 2);
 
-  result = tournamentEngine.setTournamentDates({ endDate: addDays(startDate, 2) });
-  expect(result.datesAdded.length).toEqual(2);
+  // narrowing endDate to exclude day2 matchUps is BLOCKED (not silently unscheduled)
+  let result = tournamentEngine.setTournamentDates({ endDate: day1 });
+  expect(result.error.code).toEqual(MATCHUPS_SCHEDULED_OUTSIDE_DATES.code);
+  expect(result.outOfRangeDates).toEqual([day2]);
+  expect(result.outOfRangeMatchUpIds.length).toEqual(12);
 
-  result = tournamentEngine.setTournamentDates({ startDate: addDays(startDate, -1) });
-  expect(result.datesAdded.length).toEqual(1);
+  // narrowing startDate past day0 matchUps is BLOCKED
+  result = tournamentEngine.setTournamentDates({ startDate: day1 });
+  expect(result.error.code).toEqual(MATCHUPS_SCHEDULED_OUTSIDE_DATES.code);
+  expect(result.outOfRangeDates).toEqual([day0]);
+  expect(result.outOfRangeMatchUpIds.length).toEqual(32);
 
+  // rejected changes mutate nothing and emit no MODIFY notices
+  expect(matchUpModifyNotices.length).toEqual(0);
+  expect(drawModifyNotices.length).toEqual(0);
   result = tournamentEngine.getTournamentInfo();
-  expect(result.tournamentInfo.startDate).toEqual(addDays(startDate, -1));
-  expect(result.tournamentInfo.endDate).toEqual(endDate);
-  const eventInfo = result.tournamentInfo.eventInfo.find((info) => info.eventId === eventId);
-  // expect the event start and end dates to be equivalent because they were changed when the tournament dates were reduced
-  expect(eventInfo.startDate).toEqual(startDate);
-  expect(eventInfo.endDate).toEqual(startDate);
+  expect(result.tournamentInfo.startDate).toEqual(day0);
+  expect(result.tournamentInfo.endDate).toEqual(day2);
 
-  // the event was not published so it should not appear when usePublishState is true
-  result = tournamentEngine.getTournamentInfo({ usePublishState: true });
-  expect(result.tournamentInfo.eventInfo).toEqual([]);
+  // matchUps remain scheduled — no silent data loss
+  const stillScheduled = tournamentEngine.allTournamentMatchUps().matchUps.filter((m) => m.schedule?.scheduledDate);
+  expect(stillScheduled.length).toEqual(60);
 
-  result = tournamentEngine.publishEvent({ eventId });
+  // widening the range is allowed — nothing falls outside the new range
+  result = tournamentEngine.setTournamentDates({ endDate: addDays(startDate, 5) });
   expect(result.success).toEqual(true);
-  // eventInfo appears when event is published and usePublishState is true
-  result = tournamentEngine.getTournamentInfo({ usePublishState: true });
-  expect(result.tournamentInfo.eventInfo.length).toEqual(1);
+  expect(result.datesAdded.length).toEqual(3);
+  expect(tournamentEngine.getTournamentInfo().tournamentInfo.endDate).toEqual(addDays(startDate, 5));
+});
 
-  // since notices were not cleared between "transactions" there will be one for each date change
-  expect(drawModifyNotices.length).toEqual(2);
+it('force: true unschedules matchUps outside the new dates instead of blocking', () => {
+  const drawId = 'drawId';
+  const eventId = 'eventId';
+  const startDate = '2026-06-01';
+  const endDate = addDays(startDate, 2);
+
+  const venueProfiles = [
+    {
+      courtNames: ['One', 'Two', 'Three'],
+      courtIds: ['c1', 'c2', 'c3'],
+      venueAbbreviation: 'VNU',
+      venueName: 'Venue',
+      courtsCount: 4,
+      startTime: '08:00',
+      endTime: '21:00',
+      venueId: 'venueId',
+    },
+  ];
+  const schedulingProfile = [
+    { venues: [{ venueId: 'venueId', rounds: [{ drawId, roundNumber: 1 }] }], scheduleDate: startDate },
+    { venues: [{ venueId: 'venueId', rounds: [{ drawId, roundNumber: 2 }] }], scheduleDate: addDays(startDate, 1) },
+  ];
+  mocksEngine.generateTournamentRecord({
+    autoSchedule: true,
+    schedulingProfile,
+    setState: true,
+    venueProfiles,
+    drawProfiles: [{ idPrefix: 'm', drawId, eventId, drawSize: 32 }],
+    startDate,
+    endDate,
+  });
+
+  const day1 = addDays(startDate, 1);
+
+  // without force => blocked
+  let result = tournamentEngine.setTournamentDates({ startDate: day1 });
+  expect(result.error.code).toEqual(MATCHUPS_SCHEDULED_OUTSIDE_DATES.code);
+
+  const day0Count = tournamentEngine
+    .allTournamentMatchUps()
+    .matchUps.filter((m) => m.schedule?.scheduledDate === startDate).length;
+  expect(day0Count).toBeGreaterThan(0);
+
+  // with force => date change proceeds and the day0 matchUps are unscheduled
+  result = tournamentEngine.setTournamentDates({ startDate: day1, force: true });
+  expect(result.success).toEqual(true);
+  expect(result.unscheduledMatchUpIds.length).toEqual(day0Count);
+  expect(tournamentEngine.getTournamentInfo().tournamentInfo.startDate).toEqual(day1);
+
+  const stillOnDay0 = tournamentEngine
+    .allTournamentMatchUps()
+    .matchUps.filter((m) => m.schedule?.scheduledDate === startDate);
+  expect(stillOnDay0.length).toEqual(0);
 });
 
 it('can set activeDates for a tournament', () => {

@@ -15,6 +15,7 @@ import {
   INVALID_STOP_TIME,
   INVALID_TIME,
   INVALID_VALUES,
+  MATCHUPS_SCHEDULED_OUTSIDE_DATES,
   MISSING_MATCHUP_ID,
   MISSING_PARTICIPANT_ID,
   MISSING_TOURNAMENT_RECORD,
@@ -339,11 +340,13 @@ it('can add events, venues, and schedule matchUps', () => {
   });
   expect(result.error).toEqual(INVALID_VALUES);
 
+  // moving the start date past a scheduled matchUp is blocked (not silently unscheduled)
   startDate = '2020-01-02';
   result = tournamentEngine.setTournamentStartDate({ startDate });
-  expect(result.unscheduledMatchUpIds.length).toEqual(1);
+  expect(result.error.code).toEqual(MATCHUPS_SCHEDULED_OUTSIDE_DATES.code);
+  expect(result.outOfRangeMatchUpIds.length).toEqual(1);
   result = tournamentEngine.getTournamentInfo();
-  expect(result.tournamentInfo.startDate).toEqual(startDate);
+  expect(result.tournamentInfo.startDate).not.toEqual(startDate);
 });
 
 it('can schedule many attributes at once', () => {
