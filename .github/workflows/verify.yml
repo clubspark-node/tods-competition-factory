@@ -47,7 +47,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [22, 24]
+        # PRs verify on Node 24 only for fast feedback; pushes to master and
+        # manual (workflow_dispatch) runs verify the full supported matrix
+        # ([22, 24]) before anything lands — so a Node-22 regression is still
+        # caught pre-merge-to-master while `engines: ">=22"` holds.
+        node-version: ${{ github.event_name == 'pull_request' && fromJSON('[24]') || fromJSON('[22, 24]') }}
     name: verify (node ${{ matrix.node-version }})
 
     steps:
