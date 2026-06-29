@@ -112,3 +112,38 @@ it('attached delegated outcomes to matchUps', () => {
   result = tournamentEngine.removeDelegatedOutcome({ drawId, matchUpId });
   expect(result.success).toEqual(true);
 });
+
+it('accepts a canonical (sets-based) delegated outcome and derives side strings', () => {
+  const {
+    drawIds: [drawId],
+    tournamentRecord,
+  } = mocksEngine.generateTournamentRecord({ drawProfiles: [{ drawSize: 8 }] });
+
+  const {
+    matchUps: [{ matchUpId }],
+  } = tournamentEngine.setState(tournamentRecord).allDrawMatchUps({ drawId });
+
+  // Canonical outcome — sets only, no pre-derived score strings.
+  const outcome = {
+    winningSide: 1,
+    score: {
+      sets: [
+        { setNumber: 1, side1Score: 6, side2Score: 1, winningSide: 1 },
+        { setNumber: 2, side1Score: 6, side2Score: 1, winningSide: 1 },
+      ],
+    },
+  };
+
+  let result: any = tournamentEngine.setDelegatedOutcome({ matchUpId, outcome, drawId });
+  expect(result.success).toEqual(true);
+
+  const {
+    matchUps: [matchUp],
+  } = tournamentEngine.allDrawMatchUps({ inContext: true, drawId });
+
+  // The factory derived the per-side strings from sets and stored them.
+  expect(matchUp._delegatedOutcome.score.scoreStringSide1).toEqual('6-1 6-1');
+  expect(matchUp._delegatedOutcome.score.scoreStringSide2).toEqual('1-6 1-6');
+  // The canonical sets are preserved.
+  expect(matchUp._delegatedOutcome.score.sets).toHaveLength(2);
+});
