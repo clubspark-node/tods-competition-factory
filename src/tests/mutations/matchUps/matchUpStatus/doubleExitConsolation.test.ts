@@ -140,7 +140,13 @@ const scenarios = [
   {
     skip: false,
     devContext: false,
-    modifiedMatchUpsCount: 8,
+    // 10 (was 8): the propagated exit advances a participant into consolation
+    // matchUps whose drawPositions were pre-seeded by the BYE feed (a feed-in BYE
+    // match and the consolation semifinal). Those slots are filled via the
+    // structure-level positionAssignment path, which previously emitted only a
+    // modifyPositionAssignments notice — the per-matchUp modifyMatchUp notice for
+    // each was missing, leaving a notice-driven consumer stale until a full reload.
+    modifiedMatchUpsCount: 10,
     updates: [
       {
         matchUpStatus: DOUBLE_WALKOVER,

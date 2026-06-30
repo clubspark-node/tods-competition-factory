@@ -4,6 +4,7 @@ import { updateMatchUpStatusCodes } from '@Mutate/drawDefinitions/matchUpGoverno
 import { getExitWinningSide } from '@Mutate/drawDefinitions/matchUpGovernor/getExitWinningSide';
 import { getMappedStructureMatchUps, getMatchUpsMap } from '@Query/matchUps/getMatchUpsMap';
 import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
+import { getInitialRoundNumber } from '@Query/matchUps/getInitialRoundNumber';
 import { updateSideLineUp } from '@Mutate/matchUps/lineUps/updateSideLineUp';
 import { modifyMatchUpNotice } from '@Mutate/notifications/drawNotifications';
 import { isLuckyBasedDraw } from '@Query/drawDefinition/isLuckyBasedDraw';
@@ -99,6 +100,38 @@ export function assignMatchUpDrawPosition({
   //are we going to a match already marked as a WO becuase it was propagated from the main draw?
   const isPropagatedExit = !!(isExit(matchUp?.matchUpStatus) && matchUp?.winningSide);
 
+  // A drawPosition slot can already be present in this matchUp's drawPositions
+  // (e.g. pre-seeded by a consolation BYE feed) while the underlying
+  // positionAssignment is only now being filled by a participant ADVANCING from an
+  // earlier round. In that case positionAdded is false, so applyPositionToMatchUp —
+  // and the modifyMatchUp notice it emits — is skipped, and the matchUp mutates
+  // silently (only a structure-level modifyPositionAssignments notice fires).
+  // Detect the newly-occupied slot so the per-matchUp notice still fires; otherwise
+  // consumers that render from modifyMatchUp don't update until a full reload.
+  const drawPositionParticipantId = positionAssignments?.find(
+    (assignment) => assignment.drawPosition === drawPosition,
+  )?.participantId;
+  const previousSideParticipantId = inContextMatchUp?.sides?.find(
+    (side) => side.drawPosition === drawPosition,
+  )?.participantId;
+  // Restrict to advancement targets: a matchUp in a LATER round than where this
+  // drawPosition first appears. Initial-round placement (filling pre-allocated
+  // first-round slots) is already announced via applyPositionToMatchUp and must
+  // not be re-noticed here.
+  const slotFilledByParticipant =
+    !positionAdded && !!drawPositionParticipantId && drawPositionParticipantId !== previousSideParticipantId;
+  const { initialRoundNumber } = slotFilledByParticipant
+    ? getInitialRoundNumber({
+        matchUps: getMappedStructureMatchUps({ structureId: structure.structureId, matchUpsMap }),
+        drawPosition,
+      })
+    : { initialRoundNumber: undefined };
+  const slotNewlyOccupied =
+    slotFilledByParticipant &&
+    !!matchUp?.roundNumber &&
+    !!initialRoundNumber &&
+    matchUp.roundNumber > initialRoundNumber;
+
   if (matchUp && positionAdded) {
     applyPositionToMatchUp({
       updatedDrawPositions,
@@ -115,6 +148,14 @@ export function assignMatchUpDrawPosition({
       matchUpId,
       matchUp,
       stack,
+    });
+  } else if (matchUp && positionAssigned && slotNewlyOccupied) {
+    modifyMatchUpNotice({
+      tournamentId: tournamentRecord?.tournamentId,
+      eventId: inContextMatchUp?.eventId,
+      context: stack,
+      drawDefinition,
+      matchUp,
     });
   }
 
@@ -391,9 +432,7 @@ function propagateConsolationBye({
   const firstRoundMatchUps = structureMatchUps.filter(
     ({ drawPositions, roundNumber }) => roundNumber === 1 && overlap(drawPositions, updatedDrawPositions),
   );
-  const byePropagation = firstRoundMatchUps.every(({ matchUpStatus }) =>
-    [COMPLETED, RETIRED].includes(matchUpStatus),
-  );
+  const byePropagation = firstRoundMatchUps.every(({ matchUpStatus }) => [COMPLETED, RETIRED].includes(matchUpStatus));
   if (byePropagation && loserMatchUp) {
     const { structureId } = loserMatchUp;
     const result = assignDrawPositionBye({

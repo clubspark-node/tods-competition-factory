@@ -1,4 +1,5 @@
 import { removeAssignment } from '../../drawDefinitions/testingUtilities';
+import { setSubscriptions } from '@Global/state/globalState';
 import tournamentEngine from '@Tests/engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
 import { unique } from '@Tools/arrays';
@@ -587,9 +588,9 @@ test('FMLC: propagated WO against consolation BYE advances the WO player (not th
   expect(consolationFeedInMatchUp?.matchUpStatus).toEqual(WALKOVER);
 
   // The WO player's participantId is at the WINNING side
-  const winningSideParticipantId =
-    consolationFeedInMatchUp?.sides?.find((s) => s.sideNumber === consolationFeedInMatchUp.winningSide)
-      ?.participantId;
+  const winningSideParticipantId = consolationFeedInMatchUp?.sides?.find(
+    (s) => s.sideNumber === consolationFeedInMatchUp.winningSide,
+  )?.participantId;
   expect(winningSideParticipantId).toBeDefined();
 
   // The consolation R3 match must NOT be BYE — it should be TO_BE_PLAYED awaiting the other R2 winner
@@ -601,4 +602,72 @@ test('FMLC: propagated WO against consolation BYE advances the WO player (not th
     (s) => s.participantId === winningSideParticipantId,
   );
   expect(consolationR3HasWoPlayer).toEqual(true);
+});
+
+test('FMLC: WO player advanced into a pre-seeded consolation slot fires a modifyMatchUp notice', () => {
+  // Regression for the notice gap exposed by the WO-vs-consolation-BYE fix.
+  // The WO player advances into the consolation match (R3) whose drawPositions slot
+  // was pre-seeded by the consolation BYE feed. That advancement goes through the
+  // structure-level position-assignment path, which emits modifyPositionAssignments
+  // but previously skipped the per-matchUp modifyMatchUp notice (positionAdded=false).
+  // Consumers that render from modifyMatchUp then showed a stale bracket until reload.
+  // This asserts the consolation match the WO player lands in is announced via modifyMatchUp.
+  const noticedMatchUpIds = new Set<string>();
+  setSubscriptions({
+    subscriptions: {
+      modifyMatchUp: (payload: any) => {
+        if (Array.isArray(payload))
+          payload.forEach(({ matchUp }) => matchUp?.matchUpId && noticedMatchUpIds.add(matchUp.matchUpId));
+      },
+    },
+  });
+
+  const idPrefix = 'm';
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix }],
+    setState: true,
+  });
+
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+
+  removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition: 2, replaceWithBye: true });
+  removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition: 4, replaceWithBye: true });
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-3', outcome, drawId });
+  tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-4', outcome, drawId });
+
+  // Capture notices only for the propagated WALKOVER mutation under test
+  noticedMatchUpIds.clear();
+  const result = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: 'm-2-1',
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  const matchUps = tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps;
+  const consolationMatchUps = matchUps.filter((m) => m.structureId === consolationStructure.structureId);
+
+  const consolationFeedInMatchUp = consolationMatchUps.find((m) => m.roundNumber === 2 && m.roundPosition === 1);
+  const woPlayerId = consolationFeedInMatchUp?.sides?.find(
+    (s) => s.sideNumber === consolationFeedInMatchUp.winningSide,
+  )?.participantId;
+
+  // The consolation R3 match the WO player advanced into
+  const consolationR3MatchUp = consolationMatchUps.find(
+    (m) => m.roundNumber === 3 && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(consolationR3MatchUp?.matchUpId).toBeDefined();
+
+  // It must have fired a modifyMatchUp notice (not just a structure-level position-assignment notice)
+  expect(noticedMatchUpIds.has(consolationR3MatchUp?.matchUpId)).toEqual(true);
+
+  setSubscriptions({ subscriptions: {} });
 });
