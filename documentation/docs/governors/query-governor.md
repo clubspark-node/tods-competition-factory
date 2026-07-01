@@ -478,6 +478,33 @@ When `usePublishState: true`, this method enforces [embargo](../concepts/publish
 
 ---
 
+## getStructureInconsistencies
+
+Read-only audit that scans a draw's structures for internal inconsistencies — decided
+matchUps whose derived fields have drifted out of agreement. Returns `valid` plus an
+`inconsistencies` array (empty when consistent). Intended for tests (assert zero
+inconsistencies after mutations), CI fixture sweeps, and operator-facing audits of a
+loaded tournament.
+
+```js
+const { valid, inconsistencies } = engine.getStructureInconsistencies({
+  drawId, // required — resolved to drawDefinition by the engine
+  structureId, // optional — restrict the scan to a single structure
+});
+// inconsistencies: [{ issueType, message, matchUpId, structureId, winningSide, ... }]
+```
+
+Checks (each a distinct `issueType`):
+
+- `WINNING_SIDE_WITHOUT_PARTICIPANT` — a non-exit decided matchUp whose winning side
+  holds no participant. Legitimately pending propagated exits (a `WALKOVER`/`DEFAULTED`
+  whose winner slot is still an empty feed) are not flagged.
+- `WINNING_SIDE_ADVANCEMENT_MISMATCH` — the losing-side participant advanced into the
+  `winnerMatchUp` while the winning-side participant did not (the
+  `winningSide`/`drawPositions` drift class).
+- `EXIT_CODE_ON_WINNER_SIDE` — on a single `WALKOVER`/`DEFAULTED`, a status code sits on
+  the winning side rather than the exiting (loser) side.
+
 ## getTimeItem
 
 ```js

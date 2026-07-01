@@ -7,6 +7,7 @@ export { predictDrawCompetitiveBands } from '@Query/drawDefinition/predictDrawCo
 export { getAvailablePlayoffProfiles } from '@Query/drawDefinition/getAvailablePlayoffProfiles';
 export { getParticipantIdFinishingPositions } from '@Query/drawDefinition/finishingPositions';
 export { getAssignedParticipantIds } from '@Query/drawDefinition/getAssignedParticipantIds';
+export { getStructureInconsistencies } from '@Query/drawDefinition/getStructureInconsistencies';
 export { getStructureSeedAssignments } from '@Query/structure/getStructureSeedAssignments';
 export { publicFindDrawDefinition as findDrawDefinition } from '@Acquire/findDrawDefinition';
 export { positionActions } from '@Query/drawDefinition/positionActions/positionActions';
