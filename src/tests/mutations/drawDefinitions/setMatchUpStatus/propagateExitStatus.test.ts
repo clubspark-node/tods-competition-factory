@@ -898,3 +898,58 @@ test('FMLC — DEFAULT: the active-downstream block generalizes across exit type
 
   expectResolvedExitUnchanged(consolationMatchUp, consolationMatchUps, exitMatchUpId, advPlayerId, DEFAULTED);
 });
+
+test('FMLC: resetting a source while its propagated exit is still PENDING is allowed and clears cleanly', () => {
+  setSubscriptions({});
+  const drawId = 'pendingUndo';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    structureMatchUpAt(drawId, mainStructure.structureId, roundNumber, roundPosition);
+  const consolationMatchUps = () => structureMatchUps(drawId, consolationStructure.structureId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  const woMatchUp = mainMatchUp(2, 2);
+  const woPlayerId = woMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  // ONLY the WALKOVER (no later fall-through) → the consolation exit stays PENDING
+  tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  const pending = consolationMatchUps().find(
+    (m) => m.matchUpStatus === WALKOVER && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(pending).toBeDefined();
+  // pending: the WINNING side is still an empty feed slot (not active), so the reset is allowed
+  expect(pending.sides.find((s) => s.sideNumber === pending.winningSide)?.participantId).toBeUndefined();
+
+  const result = tournamentEngine.setMatchUpStatus({
+    matchUpStatus: TO_BE_PLAYED,
+    winningSide: undefined,
+    score: { sets: [] },
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  // the pending exit clears cleanly: no participant, no stale winningSide, no stale codes
+  const cleared = consolationMatchUps().find((m) => m.matchUpId === pending.matchUpId);
+  expect(cleared.matchUpStatus).toEqual(TO_BE_PLAYED);
+  expect(cleared.winningSide).toBeUndefined();
+  expect((cleared.matchUpStatusCodes ?? []).filter(Boolean).length).toEqual(0);
+  expect(cleared.sides.some((s) => s.participantId === woPlayerId)).toEqual(false);
+});

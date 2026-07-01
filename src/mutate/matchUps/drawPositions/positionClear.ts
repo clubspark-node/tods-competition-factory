@@ -486,14 +486,16 @@ function updateMatchUpStatusAfterRemoval({
   );
   const matchUpContainsBye = matchUpAssignments.filter((assignment) => assignment.bye).length;
 
-  // Collapse to BYE (when a BYE remains) or TO_BE_PLAYED. This path never has a single
-  // exit to preserve: clearDrawPosition refuses active positions (DRAW_POSITION_ACTIVE),
-  // so it only ever clears BYEs / inactive positions, whose downstream matchUps are
-  // BYE / TO_BE_PLAYED — never a WALKOVER/DEFAULTED. Exit-status handling on removal
-  // lives elsewhere: removeDoubleExit (DOUBLE_WALKOVER -> WALKOVER) and the sibling
-  // removeSubsequentRoundsParticipant (un-advancing a directed winner off a WALKOVER,
-  // where the exit-preservation + winningSide clearing actually run).
+  // Collapse to BYE (when a BYE remains) or TO_BE_PLAYED. Exit-status REDUCTION on
+  // removal (DOUBLE_WALKOVER -> WALKOVER) lives elsewhere — removeDoubleExit and the
+  // sibling removeSubsequentRoundsParticipant. What CAN reach here is the removal of a
+  // still-pending propagated exit (its exit participant is cleared while its winner slot
+  // is still empty): the matchUp collapses to TO_BE_PLAYED, so drop the leftover
+  // winningSide and carried exit codes — neither a BYE nor a TO_BE_PLAYED matchUp is
+  // decided.
   targetMatchUp.matchUpStatus = (matchUpContainsBye && BYE) || TO_BE_PLAYED;
+  targetMatchUp.winningSide = undefined;
+  if (targetMatchUp.matchUpStatusCodes?.length) targetMatchUp.matchUpStatusCodes = [];
 
   const removedDrawPosition = initialDrawPositions?.find(
     (position) => !targetMatchUp.drawPositions?.includes(position),
