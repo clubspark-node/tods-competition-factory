@@ -118,7 +118,6 @@ export function modifyParticipant(params) {
   };
 }
 
-
 function updateIndividualParticipantIds({
   individualParticipantIds,
   updateParticipantName,
@@ -170,7 +169,7 @@ function generatePairParticipantName({ individualParticipants, newValues }) {
 
 function updatePerson({ updateParticipantName, existingParticipant, newValues, person }) {
   const newPersonValues: any = {};
-  const { standardFamilyName, standardGivenName, nationalityCode, personId, birthdate, tennisId, sex } = person;
+  const { standardFamilyName, standardGivenName, nationalityCode, personId, birthDate, tennisId, sex } = person;
   if (sex && Object.keys(genderConstants).includes(sex)) newPersonValues.sex = sex;
 
   let personNameModified;
@@ -201,17 +200,18 @@ function updatePerson({ updateParticipantName, existingParticipant, newValues, p
       newValues.participantName = `${givenName} ${familyName}`;
     } else {
       const nameParts = [givenName, familyName].filter(Boolean).join(' ');
-      newValues.participantName = nameParts || existingParticipant.participantOtherName || existingParticipant.participantName;
+      newValues.participantName =
+        nameParts || existingParticipant.participantOtherName || existingParticipant.participantName;
     }
   }
 
-  if (birthdate) {
-    if (!isValidDateString(birthdate)) return { error: INVALID_DATE };
-    const birthYear = new Date(birthdate).getFullYear();
-    if (new Date(birthdate) > new Date() || birthYear < 1900) {
-      return { error: INVALID_DATE, info: 'birthdate must be a past date' };
+  if (birthDate) {
+    if (!isValidDateString(birthDate)) return { error: INVALID_DATE };
+    const birthYear = new Date(birthDate).getFullYear();
+    if (new Date(birthDate) > new Date() || birthYear < 1900) {
+      return { error: INVALID_DATE, info: 'birthDate must be a past date' };
     }
-    newPersonValues.birthdate = birthdate;
+    newPersonValues.birthDate = birthDate;
   }
 
   if (tennisId && isString(tennisId)) {
