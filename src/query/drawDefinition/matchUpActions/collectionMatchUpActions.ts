@@ -55,12 +55,6 @@ export function collectionMatchUpActions({
   drawId: string;
 }) {
   const validActions: any = [];
-  const firstFoundSide: any = inContextMatchUp.sides?.find((side: any) => side.participant);
-  const assignedGender =
-    isMixed(inContextMatchUp.gender) &&
-    inContextMatchUp.sideNumber &&
-    inContextMatchUp.sides?.filter((side: any) => side.participantId).length === 1 &&
-    firstFoundSide?.participant?.person?.sex;
   const matchUpType = inContextMatchUp.matchUpType;
   const genderEnforced = (enforceGender ?? matchUpActionsPolicy?.participants?.enforceGender) !== false;
 
@@ -76,6 +70,15 @@ export function collectionMatchUpActions({
     .flatMap((side: any) => side.participant?.individualParticipants || side.participant)
     .filter(Boolean);
   const existingParticipantIds = existingParticipants?.map(getParticipantId);
+
+  // Mixed doubles: once one member of the target side's pair is placed, the second
+  // slot must be the opposite gender. `assignedGender` is that placed member's sex.
+  // (Requires a sideNumber so `existingParticipants` is scoped to the side being built.)
+  const assignedGender =
+    isMixed(inContextMatchUp.gender) &&
+    !!sideNumber &&
+    existingParticipants?.length === 1 &&
+    existingParticipants[0]?.person?.sex;
 
   const inContextDualMatchUp = inContextDrawMatchUps?.find(
     (drawMatchUp) => drawMatchUp.matchUpId === inContextMatchUp.matchUpTieId,

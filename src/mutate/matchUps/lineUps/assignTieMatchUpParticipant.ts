@@ -35,6 +35,7 @@ import {
 } from '@Constants/errorConditionConstants';
 import { isGendered } from '@Validators/isGendered';
 import { coercedGender } from '@Helpers/coercedGender';
+import { isMixed } from '@Validators/isMixed';
 
 type AssignMatchUpSideParticipantIdArgs = {
   policyDefinitions?: PolicyDefinitions;
@@ -97,15 +98,15 @@ export function assignTieMatchUpParticipantId(
     return decorateResult({ result: { error: PARTICIPANT_NOT_FOUND }, stack });
   }
 
-  const genderError = checkGenderEnforcement({
+  const genderEnforced = resolveGenderEnforced({
     policyDefinitions: params.policyDefinitions,
-    inContextTieMatchUp,
-    participantToAssign,
+    enforceGender: params.enforceGender,
     tournamentRecord,
     drawDefinition,
-    enforceGender: params.enforceGender,
     event,
   });
+
+  const genderError = checkGenderEnforcement({ inContextTieMatchUp, participantToAssign, genderEnforced });
   if (genderError) return genderError;
 
   const { individualParticipantIds, participantType } = participantToAssign;
@@ -133,6 +134,14 @@ export function assignTieMatchUpParticipantId(
     dualMatchUp,
     sideNumber: params.sideNumber,
   });
+
+  const mixedError = checkMixedDoublesPairing({
+    targetSide: inContextTieMatchUp?.sides?.find((side) => side.sideNumber === sideNumber),
+    gender: inContextTieMatchUp?.gender,
+    participantToAssign,
+    genderEnforced,
+  });
+  if (mixedError) return decorateResult({ result: mixedError, stack });
 
   if (!tieFormat) {
     return { error: MISSING_TIE_FORMAT };
@@ -163,19 +172,14 @@ export function assignTieMatchUpParticipantId(
       drawDefinition,
     })?.lineUp;
 
-  const targetAssignments = lineUp?.filter((participantAssignment) =>
-    participantAssignment.collectionAssignments?.find(
-      (assignment) =>
-        assignment.collectionPosition === collectionPosition &&
-        assignment.collectionId === collectionId &&
-        !assignment.previousParticipantId,
-    ),
-  );
-  const assignedParticipantIds = targetAssignments?.map((assignment) => assignment?.participantId);
-
-  const participantIds =
-    (assignedParticipantIds?.length > 1 && assignedParticipantIds) ||
-    (participantType === PAIR ? participantToAssign.individualParticipantIds : [participantId]);
+  const participantIds = resolveAssignmentParticipantIds({
+    participantToAssign,
+    collectionPosition,
+    participantType,
+    participantId,
+    collectionId,
+    lineUp,
+  });
 
   const removeResult = removeCollectionAssignments({
     collectionPosition,
@@ -256,15 +260,7 @@ function resolveTeamParticipantId({ teamParticipantId, inContextDualMatchUp, sid
   return inContextDualMatchUp?.sides?.find((side) => side.sideNumber === sideNumber)?.participantId;
 }
 
-function checkGenderEnforcement({
-  policyDefinitions,
-  inContextTieMatchUp,
-  participantToAssign,
-  tournamentRecord,
-  drawDefinition,
-  enforceGender,
-  event,
-}) {
+function resolveGenderEnforced({ policyDefinitions, enforceGender, tournamentRecord, drawDefinition, event }) {
   const { appliedPolicies } = getAppliedPolicies({
     tournamentRecord,
     drawDefinition,
@@ -276,8 +272,10 @@ function checkGenderEnforcement({
     appliedPolicies?.[POLICY_TYPE_MATCHUP_ACTIONS] ??
     POLICY_MATCHUP_ACTIONS_DEFAULT[POLICY_TYPE_MATCHUP_ACTIONS];
 
-  const genderEnforced = (enforceGender ?? matchUpActionsPolicy?.participants?.enforceGender) !== false;
+  return (enforceGender ?? matchUpActionsPolicy?.participants?.enforceGender) !== false;
+}
 
+function checkGenderEnforcement({ inContextTieMatchUp, participantToAssign, genderEnforced }) {
   if (
     genderEnforced &&
     isGendered(inContextTieMatchUp?.gender) &&
@@ -287,6 +285,45 @@ function checkGenderEnforcement({
   }
 
   return undefined;
+}
+
+// Mixed doubles: a pair needs one participant of each gender. Once one member of the
+// target side is placed, reject a second individual of the same sex.
+function checkMixedDoublesPairing({ targetSide, gender, participantToAssign, genderEnforced }) {
+  if (!genderEnforced || !isMixed(gender)) return undefined;
+
+  const placedMembers = targetSide?.participant?.individualParticipants ?? [];
+  const assignedSex = participantToAssign.person?.sex;
+
+  if (placedMembers.length === 1 && assignedSex && placedMembers[0]?.person?.sex === assignedSex) {
+    return { error: INVALID_PARTICIPANT, info: 'Mixed doubles pair requires one participant of each gender' };
+  }
+
+  return undefined;
+}
+
+function resolveAssignmentParticipantIds({
+  participantToAssign,
+  collectionPosition,
+  participantType,
+  participantId,
+  collectionId,
+  lineUp,
+}) {
+  const targetAssignments = lineUp?.filter((participantAssignment) =>
+    participantAssignment.collectionAssignments?.find(
+      (assignment) =>
+        assignment.collectionPosition === collectionPosition &&
+        assignment.collectionId === collectionId &&
+        !assignment.previousParticipantId,
+    ),
+  );
+  const assignedParticipantIds = targetAssignments?.map((assignment) => assignment?.participantId);
+
+  return (
+    (assignedParticipantIds?.length > 1 && assignedParticipantIds) ||
+    (participantType === PAIR ? participantToAssign.individualParticipantIds : [participantId])
+  );
 }
 
 function resolveSideNumber({

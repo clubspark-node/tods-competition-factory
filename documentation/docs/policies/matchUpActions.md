@@ -253,6 +253,16 @@ const genderedTeamPolicy = {
 // - Cross-category assignments
 ```
 
+#### Mixed doubles pairing
+
+When `enforceGender` is active and a collection matchUp's gender is `MIXED`, gender
+enforcement also applies to the **second member** of each pair. Once one participant
+has been assigned to a side, `matchUpActions` offers only opposite-gender participants
+for that side's remaining slot, and `assignTieMatchUpParticipant` rejects a same-gender
+second member with `INVALID_PARTICIPANT` ("Mixed doubles pair requires one participant
+of each gender"). A `MIXED` collection therefore always resolves to one participant of
+each gender per side.
+
 ### Flexible Club Team Event
 
 ```js
