@@ -1,7 +1,9 @@
 import {
   getStructureInconsistencies,
   WINNING_SIDE_ADVANCEMENT_MISMATCH,
+  DRAW_POSITIONS_NOT_SORTED,
   EXIT_CODE_ON_WINNER_SIDE,
+  EXIT_WITHOUT_LOSER,
 } from '@Query/drawDefinition/getStructureInconsistencies';
 import { removeAssignment } from '../mutations/drawDefinitions/testingUtilities';
 import { setSubscriptions } from '@Global/state/globalState';
@@ -16,6 +18,11 @@ import {
   SINGLE_ELIMINATION,
 } from '@Constants/drawDefinitionConstants';
 import { WALKOVER } from '@Constants/matchUpStatusConstants';
+
+const matchUpAt = (drawId, roundNumber, roundPosition) =>
+  tournamentEngine
+    .allDrawMatchUps({ drawId, inContext: true })
+    .matchUps.find((m) => m.roundNumber === roundNumber && m.roundPosition === roundPosition);
 
 test.for([[SINGLE_ELIMINATION], [FIRST_MATCH_LOSER_CONSOLATION], [COMPASS], [ROUND_ROBIN_WITH_PLAYOFF]])(
   'reports no inconsistencies for a fully-completed %s draw',
@@ -68,21 +75,17 @@ test('detects an exit code sitting on the winning side', () => {
     drawProfiles: [{ drawId, drawSize: 8, drawType: SINGLE_ELIMINATION, idPrefix: 'm' }],
     setState: true,
   });
-  const mm = (r, p) =>
-    tournamentEngine
-      .allDrawMatchUps({ drawId, inContext: true })
-      .matchUps.find((m) => m.roundNumber === r && m.roundPosition === p);
   // a normal WALKOVER: winner side has no code, loser side carries the code
   tournamentEngine.setMatchUpStatus({
     outcome: { matchUpStatus: WALKOVER, winningSide: 1, matchUpStatusCodes: ['', 'W1'] },
-    matchUpId: mm(1, 1).matchUpId,
+    matchUpId: matchUpAt(drawId, 1, 1).matchUpId,
     drawId,
   });
   expect(tournamentEngine.getStructureInconsistencies({ drawId }).valid).toEqual(true);
 
   // corrupt: move the code onto the winning side (side 1) on the deep-copied drawDefinition
   const { drawDefinition } = tournamentEngine.getEvent({ drawId });
-  const stored = drawDefinition.structures[0].matchUps.find((m) => m.matchUpId === mm(1, 1).matchUpId);
+  const stored = drawDefinition.structures[0].matchUps.find((m) => m.matchUpId === matchUpAt(drawId, 1, 1).matchUpId);
   stored.matchUpStatusCodes = ['W1', ''];
 
   const result: any = getStructureInconsistencies({ drawDefinition });
@@ -117,5 +120,73 @@ test('a legitimately PENDING propagated exit is NOT reported as inconsistent', (
   });
 
   const result: any = tournamentEngine.getStructureInconsistencies({ drawId });
+  expect(result.valid).toEqual(true);
+});
+
+test('detects unsorted drawPositions', () => {
+  setSubscriptions({});
+  const drawId = 'unsorted';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: SINGLE_ELIMINATION, idPrefix: 'm' }],
+    completeAllMatchUps: true,
+    setState: true,
+  });
+  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
+  const target = drawDefinition.structures[0].matchUps.find(
+    (m) => (m.drawPositions ?? []).filter(Boolean).length === 2,
+  );
+  target.drawPositions = [...target.drawPositions].sort((a, b) => b - a); // descending
+
+  const result: any = getStructureInconsistencies({ drawDefinition });
+  const issue = result.inconsistencies.find((i) => i.matchUpId === target.matchUpId);
+  expect(issue?.issueType).toEqual(DRAW_POSITIONS_NOT_SORTED);
+});
+
+test('detects an exit with no participant on the losing side', () => {
+  setSubscriptions({});
+  const drawId = 'noloser';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: SINGLE_ELIMINATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const woMatchUp = matchUpAt(drawId, 1, 1);
+  const loserDrawPosition = woMatchUp.sides.find((s) => s.sideNumber === 2).drawPosition;
+  tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 1, matchUpStatusCodes: ['', 'W1'] },
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  expect(tournamentEngine.getStructureInconsistencies({ drawId }).valid).toEqual(true);
+
+  // corrupt: clear the losing participant's assignment (a walkover with nobody who walked over)
+  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
+  const assignment = drawDefinition.structures[0].positionAssignments.find((a) => a.drawPosition === loserDrawPosition);
+  delete assignment.participantId;
+
+  const result: any = getStructureInconsistencies({ drawDefinition });
+  const issue = result.inconsistencies.find((i) => i.matchUpId === woMatchUp.matchUpId);
+  expect(issue?.issueType).toEqual(EXIT_WITHOUT_LOSER);
+});
+
+// Corpus sweep: no legitimately-generated, fully-completed draw should report any
+// inconsistency. Guards against false positives in every check across draw types/sizes.
+test.for([
+  [SINGLE_ELIMINATION, 8],
+  [SINGLE_ELIMINATION, 32],
+  [FIRST_MATCH_LOSER_CONSOLATION, 16],
+  [FIRST_MATCH_LOSER_CONSOLATION, 32],
+  [COMPASS, 16],
+  [COMPASS, 32],
+  [ROUND_ROBIN_WITH_PLAYOFF, 16],
+])('corpus sweep: %s drawSize %d completes with zero inconsistencies', ([drawType, drawSize]) => {
+  setSubscriptions({});
+  const drawId = `sweep-${drawType}-${drawSize}`;
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize, drawType }],
+    completeAllMatchUps: true,
+    setState: true,
+  });
+  const result: any = tournamentEngine.getStructureInconsistencies({ drawId });
+  expect(result.inconsistencies).toEqual([]);
   expect(result.valid).toEqual(true);
 });

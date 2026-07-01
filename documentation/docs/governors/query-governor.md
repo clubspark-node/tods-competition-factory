@@ -502,8 +502,14 @@ Checks (each a distinct `issueType`):
 - `WINNING_SIDE_ADVANCEMENT_MISMATCH` — the losing-side participant advanced into the
   `winnerMatchUp` while the winning-side participant did not (the
   `winningSide`/`drawPositions` drift class).
+- `DRAW_POSITIONS_NOT_SORTED` — a matchUp's `drawPositions` are not stored in ascending
+  order (the sort invariant the engine relies on to derive sides, fed positions, and
+  rendering).
 - `EXIT_CODE_ON_WINNER_SIDE` — on a single `WALKOVER`/`DEFAULTED`, a status code sits on
   the winning side rather than the exiting (loser) side.
+- `EXIT_WITHOUT_LOSER` — a single `WALKOVER`/`DEFAULTED` with a `winningSide` whose losing
+  side holds no participant (an orphaned exit — nobody who walked over). A pending exit is
+  not flagged: there the loser side holds the exit carrier.
 
 ## getTimeItem
 
