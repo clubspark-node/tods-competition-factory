@@ -5,6 +5,7 @@
  * Drift guard:  pnpm check:engine-methods
  */
 export type FactoryEngineMethod =
+  | 'abandonTournamentMatchUps'
   | 'addAdHocMatchUps'
   | 'addCertification'
   | 'addCertificationRequirement'
@@ -624,6 +625,7 @@ export type FactoryEngineMethod =
   | 'withdrawParticipantAtDrawPosition';
 
 export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
+  'abandonTournamentMatchUps',
   'addAdHocMatchUps',
   'addCertification',
   'addCertificationRequirement',

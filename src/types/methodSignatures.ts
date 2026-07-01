@@ -173,6 +173,7 @@ import type { getSwissStandings } from '@Query/drawDefinitions/swiss/getSwissSta
 import type { setMatchUpState } from '@Mutate/matchUps/matchUpStatus/setMatchUpState';
 import type { transitionAssignmentStatus } from '@Mutate/officiating/transitionAssignmentStatus';
 import type { transitionEvaluationStatus } from '@Mutate/officiating/transitionEvaluationStatus';
+import type { abandonTournamentMatchUps } from '@Mutate/tournaments/abandonTournamentMatchUps';
 import type { checkInParticipant } from '@Mutate/timeItems/matchUps/checkInParticipant';
 import type { generateBookings } from '@Generators/scheduling/utils/generateBookings';
 import type { getApplicableAwardProfileLevels } from '@Query/scales/getApplicableAwardProfileLevels';
@@ -550,6 +551,7 @@ import type { findPolicy } from '@Acquire/findPolicy';
 import type { credits } from '@Fixtures/credits';
 
 export interface MethodSignatures {
+  abandonTournamentMatchUps: EngineMethod<typeof abandonTournamentMatchUps>;
   addAdHocMatchUps: EngineMethod<typeof addAdHocMatchUps>;
   addCertification: EngineMethod<typeof addCertification>;
   addCertificationRequirement: EngineMethod<typeof addCertificationRequirement>;
