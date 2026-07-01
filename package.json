@@ -133,7 +133,8 @@
     "verify:surface": "node scripts/verify/surface.mjs",
     "verify:bundle-size": "node scripts/verify/bundle-size.mjs",
     "verify:runtime": "node scripts/verify/runtime.mjs",
-    "verify:ecosystem": "node scripts/verify/ecosystem.mjs"
+    "verify:ecosystem": "node scripts/verify/ecosystem.mjs",
+    "attr-audit": "node scripts/attr-audit.mjs"
   },
   "husky": {
     "hooks": {

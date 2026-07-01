@@ -1,0 +1,3 @@
+# Vendored dev tool — single source of truth in Mentat/tools/attr-audit
+# (installed via `node install.mjs`; do not reformat or it drifts from the template)
+scripts/attr-audit.mjs
