@@ -8,6 +8,7 @@ import { expect, test } from 'vitest';
 // constants
 import { COMPASS, CURTIS_CONSOLATION, FIRST_MATCH_LOSER_CONSOLATION } from '@Constants/drawDefinitionConstants';
 import {
+  BYE,
   COMPLETED,
   DEFAULTED,
   DOUBLE_DEFAULT,
@@ -139,8 +140,12 @@ test(`it sets the correct status codes in a consolation match when a WO is propa
   //get the updated loser matchup
   let loserMatchUp = matchUps?.find((mU) => mU.matchUpId === matchUp?.loserMatchUpId);
   expect(loserMatchUp?.matchUpStatus).toEqual(WALKOVER);
-  //this should have the status codes set
-  expect(loserMatchUp?.matchUpStatusCodes).toEqual(['W2']);
+  // matchUpStatusCodes are position-dependent: the propagated WO participant feeds
+  // in on side 2 here, so the code sits at index 1 → ['', 'W2'] (not ['W2'], which
+  // would mis-map the walkover to the opponent on side 1).
+  expect(loserMatchUp?.matchUpStatusCodes).toEqual(['', 'W2']);
+  // the present opponent (side 1) takes the walkover win
+  expect(loserMatchUp?.winningSide).toEqual(1);
 });
 
 test.for([
@@ -537,13 +542,14 @@ test('can automatically progress the winner in a feed in round that already had 
   expect(round3ConsolationMatchUp?.sides?.[1].participantId).toEqual(winnerParticipantId);
 });
 
-test('FMLC: propagated WO against consolation BYE advances the WO player (not the BYE) to the next round', () => {
+test('FMLC: propagated WO against a consolation BYE stays a BYE and the exit cascades to the next round', () => {
   // Scenario: FMLC 8-player draw where positions 2 and 4 are BYEs.
-  // - Player at position 1 and player at position 3 both advance to R2P1 via BYE in R1 (validForConsolation).
-  // - The R1 losers (BYEs) produce a double-BYE in consolation R1P1, which auto-cascades to consolation R2P1.
-  // - When R2P1 is set as WALKOVER (propagated), the WO player is fed into consolation R2P1 against that BYE.
-  // - With the fix: the WO player wins consolation R2P1 (not the BYE) and advances to consolation R3.
-  // - Without the fix: the BYE wins consolation R2P1, giving consolation R3 BYE status and blocking the other player.
+  // - The R1 losers (BYEs) produce a double-BYE in consolation R1P1, which auto-cascades a BYE into consolation R2P1.
+  // - When R2P1 is set as WALKOVER (propagated), the WO participant is fed into consolation R2P1 against that BYE.
+  // Spec: a BYE is not a walkover. The feed-in matchUp stays a BYE, the participant
+  // advances through it, and the WALKOVER (exit) is applied at the next round where
+  // the participant lands — with the non-exit side winning and the code on the
+  // participant's side (position-aware).
   const idPrefix = 'm';
   const drawId = 'drawId';
   mocksEngine.generateTournamentRecord({
@@ -569,8 +575,6 @@ test('FMLC: propagated WO against consolation BYE advances the WO player (not th
   tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-3', outcome, drawId });
   tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-4', outcome, drawId });
 
-  // Set R2P1: player3 (winningSide=2, side 1 is player1) wins via WALKOVER (propagated).
-  // Player1 had 0 scored wins (won R1 via BYE) → validForConsolation.
   const result = tournamentEngine.setMatchUpStatus({
     outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
     propagateExitStatus: true,
@@ -582,26 +586,26 @@ test('FMLC: propagated WO against consolation BYE advances the WO player (not th
   const matchUps = tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps;
   const consolationMatchUps = matchUps.filter((m) => m.structureId === consolationStructure.structureId);
 
-  // The feed-in consolation match (R2) for the WO player should be WALKOVER
-  // and the WO player (player1) should be the WINNER (not the BYE)
+  // The feed-in consolation match (R2) is a BYE — the WO participant advances
+  // through it rather than the matchUp becoming a WALKOVER.
   const consolationFeedInMatchUp = consolationMatchUps.find((m) => m.roundNumber === 2 && m.roundPosition === 1);
-  expect(consolationFeedInMatchUp?.matchUpStatus).toEqual(WALKOVER);
+  expect(consolationFeedInMatchUp?.matchUpStatus).toEqual(BYE);
+  const woPlayerId = consolationFeedInMatchUp?.sides?.find((s) => s.participantId)?.participantId;
+  expect(woPlayerId).toBeDefined();
 
-  // The WO player's participantId is at the WINNING side
-  const winningSideParticipantId = consolationFeedInMatchUp?.sides?.find(
-    (s) => s.sideNumber === consolationFeedInMatchUp.winningSide,
-  )?.participantId;
-  expect(winningSideParticipantId).toBeDefined();
-
-  // The consolation R3 match must NOT be BYE — it should be TO_BE_PLAYED awaiting the other R2 winner
-  const consolationR3MatchUp = consolationMatchUps.find((m) => m.roundNumber === 3);
-  expect(consolationR3MatchUp?.matchUpStatus).toEqual(TO_BE_PLAYED);
-
-  // The WO player must be in consolation R3, ready to play their opponent
-  const consolationR3HasWoPlayer = consolationR3MatchUp?.sides?.some(
-    (s) => s.participantId === winningSideParticipantId,
+  // The exit (WALKOVER) cascades onto the next round where the participant landed.
+  const consolationR3MatchUp = consolationMatchUps.find(
+    (m) => m.roundNumber === 3 && m.sides?.some((s) => s.participantId === woPlayerId),
   );
-  expect(consolationR3HasWoPlayer).toEqual(true);
+  expect(consolationR3MatchUp?.matchUpStatus).toEqual(WALKOVER);
+
+  // The side WITHOUT the exit (the empty slot awaiting the other R2 winner) wins.
+  const woSideNumber = consolationR3MatchUp?.sides?.find((s) => s.participantId === woPlayerId)?.sideNumber;
+  expect(consolationR3MatchUp?.winningSide).toEqual(woSideNumber === 1 ? 2 : 1);
+
+  // The carried code is position-aware: it sits on the participant's side.
+  const expectedCodes = woSideNumber === 1 ? ['W1'] : ['', 'W1'];
+  expect(consolationR3MatchUp?.matchUpStatusCodes).toEqual(expectedCodes);
 });
 
 test('FMLC: WO player advanced into a pre-seeded consolation slot fires a modifyMatchUp notice', () => {
@@ -670,4 +674,93 @@ test('FMLC: WO player advanced into a pre-seeded consolation slot fires a modify
   expect(noticedMatchUpIds.has(consolationR3MatchUp?.matchUpId)).toEqual(true);
 
   setSubscriptions({ subscriptions: {} });
+});
+
+test('FMLC: propagated WO cascades through a consolation BYE, then a later fall-through auto-resolves the pending walkover', () => {
+  // Reproduces the ClubSpark drawSize-32 scenario:
+  // - Two first-round BYE winners meet in main R2P2; a WALKOVER there feeds the
+  //   loser into the consolation where it advances through a BYE to a later round,
+  //   leaving a pending WALKOVER whose winning side is an empty feed slot.
+  // - A later main completion (R2P1) sends a second-match loser through as a BYE,
+  //   which advances the consolation opponent INTO that empty winning slot. They
+  //   take the walkover (auto-resolve): keep WALKOVER, they win, the exiting player
+  //   keeps the position-aware code, and only the winner advances (no loser leak).
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.find(
+        (m) =>
+          m.structureId === mainStructure.structureId &&
+          m.roundNumber === roundNumber &&
+          m.roundPosition === roundPosition,
+      );
+  const consolationMatchUps = () =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.filter((m) => m.structureId === consolationStructure.structureId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  // complete main R1P2 so its winner is present in main R2P1
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  // WALKOVER in main R2P2 (two BYE winners) — side 1 loses and is valid for consolation
+  const woMatchUp = mainMatchUp(2, 2);
+  const woPlayerId = woMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  const woResult = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  expect(woResult.success).toEqual(true);
+
+  // the exit cascades to a pending consolation WALKOVER: WO player present, opponent empty
+  let pendingWo = consolationMatchUps().find(
+    (m) => m.matchUpStatus === WALKOVER && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(pendingWo).toBeDefined();
+  const woSide = pendingWo.sides.find((s) => s.participantId === woPlayerId).sideNumber;
+  // the empty (no-exit) side is the winner while it awaits the fall-through participant
+  expect(pendingWo.winningSide).toEqual(woSide === 1 ? 2 : 1);
+  expect(pendingWo.matchUpStatusCodes[woSide - 1]).toEqual('W1');
+  // only the exiting participant is present; the winning side is still an empty feed slot
+  expect(pendingWo.sides.filter((s) => s.participantId).length).toEqual(1);
+
+  // a later main completion (R2P1) drops a second-match loser through as a BYE
+  const completeResult = tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(2, 1).matchUpId, outcome, drawId });
+  expect(completeResult.success).toEqual(true);
+
+  // AUTO-RESOLVE: the advancing opponent now occupies the winning slot and wins the walkover
+  const resolvedWo = consolationMatchUps().find((m) => m.matchUpId === pendingWo.matchUpId);
+  expect(resolvedWo.matchUpStatus).toEqual(WALKOVER);
+  const resolvedWoSide = resolvedWo.sides.find((s) => s.participantId === woPlayerId).sideNumber;
+  const winnerParticipantId = resolvedWo.sides.find((s) => s.sideNumber === resolvedWo.winningSide)?.participantId;
+  // the exiting WO player did NOT win; the fall-through participant did
+  expect(resolvedWo.winningSide).not.toEqual(resolvedWoSide);
+  expect(winnerParticipantId).toBeDefined();
+  expect(winnerParticipantId).not.toEqual(woPlayerId);
+  // the exiting player keeps the position-aware code on their side
+  expect(resolvedWo.matchUpStatusCodes[resolvedWoSide - 1]).toEqual('W1');
+
+  // no leak: the next consolation round holds only the walkover winner, not the WO player
+  const nextRound = consolationMatchUps().find(
+    (m) =>
+      m.roundNumber === resolvedWo.roundNumber + 1 && m.sides?.some((s) => s.participantId === winnerParticipantId),
+  );
+  expect(nextRound).toBeDefined();
+  expect(nextRound.sides.some((s) => s.participantId === woPlayerId)).toEqual(false);
 });
