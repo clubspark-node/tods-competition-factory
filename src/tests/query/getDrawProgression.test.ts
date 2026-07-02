@@ -4,12 +4,15 @@ import tournamentEngine from '@Tests/engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
 import { expect, test } from 'vitest';
 
+import { TO_BE_PLAYED } from '@Constants/matchUpStatusConstants';
 import {
   COMPASS,
   CURTIS_CONSOLATION,
   DOUBLE_ELIMINATION,
   FIRST_MATCH_LOSER_CONSOLATION,
   OLYMPIC,
+  PLAY_OFF,
+  WINNER,
 } from '@Constants/drawDefinitionConstants';
 
 // Corpus sweep — the primary false-positive guard for the eligibility-gated DROPPED_PROGRESSION.
@@ -22,6 +25,7 @@ test.for([
   [COMPASS, 32, undefined],
   [CURTIS_CONSOLATION, 32, undefined],
   [OLYMPIC, 32, undefined],
+  [DOUBLE_ELIMINATION, 8, undefined], // WINNER-link feed-back (consolation-final + decider)
   [DOUBLE_ELIMINATION, 16, undefined],
 ])('corpus: completed %s size %d (participants %s) reports no DROPPED_PROGRESSION', ([drawType, drawSize, count]) => {
   setSubscriptions({});
@@ -94,4 +98,73 @@ test('an INELIGIBLE round-2 loser (won round 1) is not expected in consolation �
   const result: any = tournamentEngine.getDrawInconsistencies({ drawId });
   expect(result.inconsistencies.filter((i) => i.issueType === DROPPED_PROGRESSION)).toEqual([]);
   expect(result.valid).toEqual(true);
+});
+
+test('detects a dropped WINNER progression (double-elimination cross-structure feed-back)', () => {
+  // WINNER-linked feeds are unconditional: a source-round winner must appear in the linked target.
+  setSubscriptions({});
+  const drawId = 'prog-winner';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: DOUBLE_ELIMINATION, idPrefix: 'pw' }],
+    completeAllMatchUps: true,
+    setState: true,
+  });
+  expect(tournamentEngine.getDrawInconsistencies({ drawId }).valid).toEqual(true);
+
+  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
+  const matchUps = tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps;
+  const winnerLink = drawDefinition.links.find((l) => l.linkType === WINNER);
+  const sourceWinnerMatchUp = matchUps.find(
+    (m) =>
+      m.structureId === winnerLink.source.structureId &&
+      m.winningSide &&
+      (!winnerLink.source.roundNumber || m.roundNumber === winnerLink.source.roundNumber),
+  );
+  const winnerId = sourceWinnerMatchUp.sides.find(
+    (s) => s.sideNumber === sourceWinnerMatchUp.winningSide,
+  ).participantId;
+
+  // erase the fed winner from the linked target structure
+  const targetStructure = drawDefinition.structures.find((s) => s.structureId === winnerLink.target.structureId);
+  delete targetStructure.positionAssignments.find((a) => a.participantId === winnerId).participantId;
+
+  const result: any = getDrawInconsistencies({ drawDefinition });
+  const dropped = result.inconsistencies.find(
+    (i) => i.issueType === DROPPED_PROGRESSION && i.participantId === winnerId,
+  );
+  expect(dropped).toBeTruthy();
+  expect(dropped.direction).toEqual(WINNER);
+  expect(dropped.matchUpId).toEqual(sourceWinnerMatchUp.matchUpId);
+});
+
+test('double-elimination reset not needed (decider unplayed) is not a false positive', () => {
+  // The reset/decider conditional (main-final → PLAY_OFF fires only when the losers-bracket champion
+  // wins the grand final) governs whether the decider MATCH is played — not whether the finalist is
+  // ASSIGNED to it. directWinner assigns unconditionally at grand-final completion, and the check
+  // inspects positionAssignments, so an unplayed decider (no reset needed) must not be flagged.
+  setSubscriptions({});
+  const drawId = 'prog-noreset';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: DOUBLE_ELIMINATION, idPrefix: 'nr' }],
+    completeAllMatchUps: true,
+    setState: true,
+  });
+  const { drawDefinition } = tournamentEngine.getEvent({ drawId });
+  const playoff = drawDefinition.structures.find((s) => s.stage === PLAY_OFF);
+
+  // un-play the decider while keeping the assignments the engine made at grand-final completion
+  let unplayed = 0;
+  (playoff?.matchUps ?? []).forEach((m) => {
+    if (m.winningSide) {
+      delete m.winningSide;
+      delete m.score;
+      m.matchUpStatus = TO_BE_PLAYED;
+      unplayed++;
+    }
+  });
+  expect(unplayed).toBeGreaterThan(0);
+  expect((playoff?.positionAssignments ?? []).filter((a) => a.participantId).length).toBeGreaterThan(0);
+
+  const result: any = getDrawInconsistencies({ drawDefinition });
+  expect(result.inconsistencies.filter((i) => i.issueType === DROPPED_PROGRESSION)).toEqual([]);
 });

@@ -1,15 +1,15 @@
+import { finalize, Inconsistency } from '@Query/integrity/inconsistency';
+import { isFedLoserEligible } from '@Query/matchUp/isFedLoserEligible';
+import { getAllDrawMatchUps } from '@Query/matchUps/drawMatchUps';
 import {
   exitProducedByPropagation,
   getStructureInconsistencies,
 } from '@Query/drawDefinition/getStructureInconsistencies';
-import { finalize, Inconsistency } from '@Query/integrity/inconsistency';
-import { isFedLoserEligible } from '@Query/matchUp/isFedLoserEligible';
-import { getAllDrawMatchUps } from '@Query/matchUps/drawMatchUps';
 
 // constants and types
 import { DrawDefinition, Event, Structure, Tournament } from '@Types/tournamentTypes';
+import { LOSER, QUALIFYING, WINNER } from '@Constants/drawDefinitionConstants';
 import { MISSING_DRAW_DEFINITION } from '@Constants/errorConditionConstants';
-import { LOSER, WINNER } from '@Constants/drawDefinitionConstants';
 import { MatchUpsMap, ResultType } from '@Types/factoryTypes';
 import { SUCCESS } from '@Constants/resultConstants';
 
@@ -27,17 +27,19 @@ import { SUCCESS } from '@Constants/resultConstants';
 //    determine which round feeds the target (getTargetLink treats this as INVALID_VALUES). (error)
 //  - SCAN_ERROR: structure-level derivation threw on this draw (corrupt state the leaf could not
 //    read). Surfaced rather than allowed to crash the scan. (error)
-//  - DROPPED_PROGRESSION: a LOSER-linked source matchUp whose loser is ELIGIBLE to feed the target
-//    structure (per the engine's own feed predicate, isFedLoserEligible) but does not appear anywhere
-//    in that target structure's positionAssignments. (error)
+//  - DROPPED_PROGRESSION: a LOSER- or WINNER-linked source matchUp whose feeding participant is
+//    ELIGIBLE to feed the target structure but does not appear anywhere in that structure's
+//    positionAssignments. The `direction` field records LOSER vs WINNER. (error)
 //
-// The eligibility gate is what makes DROPPED_PROGRESSION sound: whether a given loser actually feeds
-// depends on feed-eligibility the LINK alone does not encode — a FIRST_MATCH_LOSER_CONSOLATION round-2
-// LOSER link exists but feeds only players whose first match was round 2 (zero prior scored wins). We
-// reuse isFedLoserEligible, which shares getDrawPositionWinCount with directLoser (the mutation path),
-// so the check and the engine cannot diverge. WINNER-linked progression (double-elimination
-// consolation-final feed-back, qualifying → main) is still deferred — its eligibility (loss count) is
-// not a cleanly extractable predicate yet. See planning/DATA_INTEGRITY_HIERARCHY_AND_ALERTING.md.
+// Eligibility is what makes DROPPED_PROGRESSION sound — the LINK alone over-approximates feeding.
+// LOSER: a FIRST_MATCH_LOSER_CONSOLATION round-2 link exists but feeds only players whose first match
+// was round 2 (zero prior scored wins); we reuse isFedLoserEligible, which shares getDrawPositionWinCount
+// with directLoser (the mutation path) so check and engine cannot diverge. WINNER: directWinner places
+// the winner into any open target position UNCONDITIONALLY (verified — 0 absent across many completed
+// double-elimination draws), so no predicate is needed; the sole exception is a QUALIFYING source, whose
+// winners are placed by a separate deferred qualifier mutation and are therefore not asserted here.
+// Qualifier-slot resolution (qualifying → main) is the remaining deferred sub-phase. See
+// planning/DATA_INTEGRITY_HIERARCHY_AND_ALERTING.md.
 export const DANGLING_LINK = 'DANGLING_LINK';
 export const LINK_MISSING_SOURCE_ROUND = 'LINK_MISSING_SOURCE_ROUND';
 export const SCAN_ERROR = 'SCAN_ERROR';
@@ -118,9 +120,21 @@ function safeInContextMatchUps(drawDefinition: DrawDefinition, matchUpsMap: Matc
   }
 }
 
-// For a single LOSER link, flag every source-round loser that is ELIGIBLE to feed the target (per the
-// shared feed predicate) yet is absent from the target structure's positionAssignments.
-function droppedLosersForLink(link: any, sourceStructureMatchUps: any[], targetStructure: Structure): any[] {
+// For a single LOSER or WINNER link, flag every source-round participant that is ELIGIBLE to feed the
+// target yet is absent from the target structure's positionAssignments. LOSER-link eligibility uses the
+// engine's own predicate (isFedLoserEligible — a FIRST_MATCHUP loser feeds only with zero prior wins);
+// WINNER-link feeds are UNCONDITIONAL (directWinner places the winner into any open target position),
+// EXCEPT from a QUALIFYING source, where placement is a separate deferred mutation (qualifier slots) and
+// so is not asserted here.
+function droppedProgressionForLink(
+  link: any,
+  sourceStructure: Structure | undefined,
+  sourceStructureMatchUps: any[],
+  targetStructure: Structure,
+): any[] {
+  const isLoserLink = link.linkType === LOSER;
+  if (!isLoserLink && sourceStructure?.stage === QUALIFYING) return []; // qualifier placement is deferred (B2b)
+
   const targetParticipantIds = new Set(
     (targetStructure.positionAssignments ?? []).map((assignment) => assignment.participantId).filter(Boolean),
   );
@@ -134,47 +148,53 @@ function droppedLosersForLink(link: any, sourceStructureMatchUps: any[], targetS
   const inconsistencies: any[] = [];
   for (const matchUp of roundMatchUps) {
     if (exitProducedByPropagation(matchUp.matchUpStatusCodes)) continue;
-    const loserSide = (matchUp.sides ?? []).find((side) => side.sideNumber === (matchUp.winningSide === 1 ? 2 : 1));
-    const loserParticipantId = loserSide?.participantId;
-    if (!loserParticipantId || loserSide?.bye || typeof loserSide?.drawPosition !== 'number') continue;
+    const loserSideNumber = matchUp.winningSide === 1 ? 2 : 1;
+    const sideNumber = isLoserLink ? loserSideNumber : matchUp.winningSide;
+    const side = (matchUp.sides ?? []).find((candidate) => candidate.sideNumber === sideNumber);
+    const participantId = side?.participantId;
+    if (!participantId || side?.bye || typeof side?.drawPosition !== 'number') continue;
 
-    const eligible = isFedLoserEligible({
-      sourceMatchUps: sourceStructureMatchUps,
-      loserDrawPosition: loserSide.drawPosition,
-      loserTargetLink: link,
-    });
-    if (eligible && !targetParticipantIds.has(loserParticipantId)) {
+    const eligible = isLoserLink
+      ? isFedLoserEligible({
+          sourceMatchUps: sourceStructureMatchUps,
+          loserDrawPosition: side.drawPosition,
+          loserTargetLink: link,
+        })
+      : true;
+    if (eligible && !targetParticipantIds.has(participantId)) {
       inconsistencies.push({
         issueType: DROPPED_PROGRESSION,
-        message: 'a loser eligible to feed the linked target structure is absent from it',
+        message: `a ${isLoserLink ? 'loser' : 'winner'} eligible to feed the linked target structure is absent from it`,
         severity: 'error',
+        direction: isLoserLink ? LOSER : WINNER,
         structureId: link.source?.structureId,
         matchUpId: matchUp.matchUpId,
         targetStructureId: targetStructure.structureId,
-        participantId: loserParticipantId,
+        participantId,
       });
     }
   }
   return inconsistencies;
 }
 
-// DROPPED_PROGRESSION — reuse the engine's own loser-feed predicate to verify eligible losers landed
-// in their linked target structure. Empty inContext matchUps (e.g. when a dangling link suppressed the
-// scan) yield no source matchUps and therefore no findings.
-function getLoserProgressionInconsistencies(
+// DROPPED_PROGRESSION — reuse the engine's own feed logic to verify eligible losers (and unconditionally
+// fed winners) landed in their linked target structure. Empty inContext matchUps (e.g. when a dangling
+// link suppressed the scan) yield no source matchUps and therefore no findings.
+function getProgressionInconsistencies(
   drawDefinition: DrawDefinition,
   inContextDrawMatchUps: any[],
   structureById: Map<string, Structure>,
 ): any[] {
-  const loserLinks = (drawDefinition.links ?? []).filter((link) => link?.linkType === LOSER);
-  return loserLinks.flatMap((link) => {
+  const progressionLinks = (drawDefinition.links ?? []).filter((link) => ROUND_LINK_TYPES.includes(link?.linkType));
+  return progressionLinks.flatMap((link) => {
     const sourceStructureId = link.source?.structureId;
     const targetStructure = structureById.get(link.target?.structureId);
     if (!sourceStructureId || !targetStructure) return []; // dangling links reported separately
+    const sourceStructure = structureById.get(sourceStructureId);
     const sourceStructureMatchUps = inContextDrawMatchUps.filter(
       (matchUp) => matchUp.structureId === sourceStructureId,
     );
-    return droppedLosersForLink(link, sourceStructureMatchUps, targetStructure);
+    return droppedProgressionForLink(link, sourceStructure, sourceStructureMatchUps, targetStructure);
   });
 }
 
@@ -201,7 +221,7 @@ export function getDrawInconsistencies(
     : scanStructures({ drawDefinition, tournamentRecord, matchUpsMap, event });
 
   const inContextDrawMatchUps = hasDanglingLink ? [] : safeInContextMatchUps(drawDefinition, matchUpsMap);
-  const progressionInconsistencies = getLoserProgressionInconsistencies(
+  const progressionInconsistencies = getProgressionInconsistencies(
     drawDefinition,
     inContextDrawMatchUps,
     structureById,
