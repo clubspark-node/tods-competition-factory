@@ -762,6 +762,59 @@ const { complete, completeness } = engine.getTournamentCompleteness();
 // completeness: { tournamentId, unassignedPositionCount, unplayedMatchUpCount, byEvent: [...] }
 ```
 
+## getMatchUpFormatVariance
+
+Reports where a draw's `matchUpFormat` (scoring format) is **not uniform**, grouped by structure
+and round. Two kinds of variance mean very different things to a tournament director, and the query
+separates them:
+
+- **Within-structure** variance — a structure's own matchUps do not all share one format. A round
+  that departs from the structure's dominant format and then a later round that **returns** to it
+  (`revertPattern`) is the fingerprint of an in-tournament format change: e.g. a weather event that
+  shortened a day's matches, then a return to the original format the next day. This is the notable
+  signal.
+- **Cross-structure** variance — different structures use different formats (MAIN plays best-of-3,
+  CONSOLATION plays a match tiebreak). Expected and deliberate; reported informationally, never
+  flagged as within-structure variance.
+
+```js
+const { hasVariance, variance } = engine.getMatchUpFormatVariance({
+  drawId, // required — resolved to drawDefinition by the engine
+  structureId, // optional — restrict the scan to a single structure
+});
+// hasVariance: true when any structure has within-structure variance
+// variance: {
+//   structures: [{
+//     structureId, structureName, stage,
+//     baselineFormat,          // the structure's dominant (most common) format
+//     distinctFormats,         // every format seen in the structure
+//     rounds: [{ roundNumber, formats, differsFromBaseline }],
+//     withinStructureVariance, // true
+//     revertPattern,           // departed from baseline then returned (weather signal)
+//   }],
+//   crossStructureVariance,    // structures use different dominant formats (informational)
+//   crossStructureFormats,     // the distinct dominant formats across structures
+// }
+```
+
+Variance is measured on the **raw `matchUpFormat` string** — nothing is parsed, normalized or
+collapsed. Any difference in the string is a real difference in the format: a change in set count,
+games per set, no-ad, the final-set spec (`-F:TB10` = a match-tiebreak deciding set, shorter if the
+match goes the distance) or the tiebreak trigger point are all deliberate scoring choices. Only
+matchUps that carry format **evidence** participate — an explicit matchUp-level `matchUpFormat` or a
+played result — so a future, unplayed, format-less matchUp (which merely inherits the current
+default) cannot manufacture false variance against rounds that carry stamped formats. Team ties
+(`collectionId` matchUps, which carry a `tieFormat` rather than a `matchUpFormat`) are excluded.
+
+Like the integrity queries it reads stored structure state, so it also runs directly against a
+hand-built `drawDefinition`:
+
+```js
+import { drawsGovernor } from 'tods-competition-factory';
+
+const { hasVariance, variance } = drawsGovernor.getMatchUpFormatVariance({ drawDefinition });
+```
+
 ## getTimeItem
 
 ```js
