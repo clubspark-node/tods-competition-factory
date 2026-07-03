@@ -12,6 +12,7 @@ import { findParticipant } from '@Acquire/findParticipant';
 import { parse } from '@Helpers/matchUpFormatCode/parse';
 import { isConvertableInteger } from '@Tools/math';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
+import { extractDate } from '@Tools/dateTime';
 import { unique } from '@Tools/arrays';
 import { getSide } from './getSide';
 
@@ -86,9 +87,31 @@ function applyEmbargoFilter({ publishStatus, drawDefinition, structure, matchUp,
   if (!isConvertableInteger(rn)) return schedule;
 
   const roundDetail = structDetail.scheduledRounds?.[rn!];
-  if (roundDetail && isEmbargoed(roundDetail)) return undefined;
+  if (roundDetail && isEmbargoed(roundDetail)) {
+    // Embargo hides the time/court but the match still appears on its date (its
+    // existence-on-date is already implied by the date-grouped order of play).
+    // Preserve ONLY the date so date filtering / grouping still works — in NATIVE
+    // there is no timeItem fallback, so zeroing the whole schedule made embargoed
+    // rounds vanish from the published OoP. All time/court/venue detail is stripped.
+    const scheduledDate = schedule?.scheduledDate || (schedule?.scheduledTime && extractDate(schedule.scheduledTime));
+    return scheduledDate ? { scheduledDate } : undefined;
+  }
 
   return schedule;
+}
+
+// The hydrated `schedule` already has publish-state redactions applied (embargo +
+// scheduleVisibilityFilters). Take it as authoritative and pull ONLY the source-side first-class
+// fields the hydrator doesn't produce (calledAt / scoredTime). A blind `{ ...sourceSchedule,
+// ...schedule }` spread leaked redacted placement fields in NATIVE, where `sourceSchedule` is the
+// full first-class schedule (in LEGACY it's undefined, so it never did).
+function mergeSourceScheduleFields(schedule, sourceSchedule) {
+  if (!schedule) return schedule;
+  const merged = { ...schedule };
+  for (const key of ['calledAt', 'scoredTime']) {
+    if (sourceSchedule?.[key] !== undefined && merged[key] === undefined) merged[key] = sourceSchedule[key];
+  }
+  return merged;
 }
 
 function resolveProcessCodes({ matchUp, collectionDefinition, structure, drawDefinition, event, tournamentRecord }) {
@@ -265,7 +288,7 @@ export function addMatchUpContext({
   const sourceMatchUp = makeDeepCopy(onlyDefined(matchUp), true, true);
   const sourceSchedule = sourceMatchUp.schedule;
   delete sourceMatchUp.schedule;
-  const mergedSchedule = schedule ? { ...(sourceSchedule ?? {}), ...schedule } : schedule;
+  const mergedSchedule = mergeSourceScheduleFields(schedule, sourceSchedule);
 
   const matchUpWithContext = {
     ...onlyDefined(context),
