@@ -74,6 +74,17 @@ export function filterParticipants({
     }, true);
   };
 
+  // Membership sets — built once so the per-participant checks below are O(1)
+  // rather than O(n). The original arrays are kept for the `!array` presence
+  // guards (an absent filter differs from an empty set).
+  const genderSet = genders && new Set(genders);
+  const participantTypeSet = participantTypes && new Set(participantTypes);
+  const participantRoleSet = participantRoles && new Set(participantRoles);
+  const participantIdSet = participantIds && new Set(participantIds);
+  const drawEnteredSet = drawEnteredParticipantIds && new Set(drawEnteredParticipantIds);
+  const eventEnteredSet = eventEnteredParticipantIds && new Set(eventEnteredParticipantIds);
+  const positionedSet = positionedParticipantIds && new Set(positionedParticipantIds);
+
   participants = participants?.filter((participant) => {
     const participantSignInStatus = getTimeItem({
       element: participant,
@@ -87,25 +98,25 @@ export function filterParticipants({
       person,
     } = participant;
 
-    const hasGender = Array.isArray(genders) && genders?.length && person?.sex && genders.includes(person.sex);
+    const hasGender = Array.isArray(genders) && genders?.length && person?.sex && genderSet?.has(person.sex);
 
     if (enableOrFiltering) {
       return (
         (genders && hasGender) ||
-        (positionedParticipants && positionedParticipantIds.includes(participantId)) ||
-        (positionedParticipants === false && !positionedParticipantIds.includes(participantId)) ||
-        drawEnteredParticipantIds?.includes(participantId) ||
-        eventEnteredParticipantIds?.includes(participantId) ||
-        participantIds?.includes(participantId) ||
+        (positionedParticipants && positionedSet.has(participantId)) ||
+        (positionedParticipants === false && !positionedSet.has(participantId)) ||
+        drawEnteredSet?.has(participantId) ||
+        eventEnteredSet?.has(participantId) ||
+        participantIdSet?.has(participantId) ||
         (signInStatus && participantSignInStatus === signInStatus) ||
         (participantTypes &&
           participantType &&
           isValidFilterArray(participantTypes) &&
-          participantTypes.includes(participantType)) ||
+          participantTypeSet?.has(participantType)) ||
         (participantRoles &&
           participantRole &&
           isValidFilterArray(participantRoles) &&
-          participantRoles.includes(participantRole)) ||
+          participantRoleSet?.has(participantRole)) ||
         (participantRoleResponsibilities &&
           isValidFilterArray(responsibilities) &&
           isValidFilterArray(participantRoleResponsibilities) &&
@@ -116,16 +127,16 @@ export function filterParticipants({
       return (
         (!genders || hasGender) &&
         (positionedParticipants === undefined ||
-          (positionedParticipants && positionedParticipantIds.includes(participantId)) ||
-          (positionedParticipants === false && !positionedParticipantIds.includes(participantId))) &&
-        (!drawEnteredParticipantIds || drawEnteredParticipantIds.includes(participantId)) &&
-        (!eventEnteredParticipantIds || eventEnteredParticipantIds.includes(participantId)) &&
-        (!participantIds || participantIds.includes(participantId)) &&
+          (positionedParticipants && positionedSet.has(participantId)) ||
+          (positionedParticipants === false && !positionedSet.has(participantId))) &&
+        (!drawEnteredParticipantIds || drawEnteredSet?.has(participantId)) &&
+        (!eventEnteredParticipantIds || eventEnteredSet?.has(participantId)) &&
+        (!participantIds || participantIdSet?.has(participantId)) &&
         (!signInStatus || participantSignInStatus === signInStatus) &&
         (!participantTypes ||
-          (participantType && isValidFilterArray(participantTypes) && participantTypes.includes(participantType))) &&
+          (participantType && isValidFilterArray(participantTypes) && participantTypeSet?.has(participantType))) &&
         (!participantRoles ||
-          (participantRole && isValidFilterArray(participantRoles) && participantRoles.includes(participantRole))) &&
+          (participantRole && isValidFilterArray(participantRoles) && participantRoleSet?.has(participantRole))) &&
         (!participantRoleResponsibilities ||
           (isValidFilterArray(responsibilities) &&
             isValidFilterArray(participantRoleResponsibilities) &&
