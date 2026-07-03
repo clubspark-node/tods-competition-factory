@@ -1,5 +1,6 @@
 import { generateMatchUpOutcome } from '@Tests/helpers/generateMatchUpOutcome';
 import { getPositionAssignments } from '@Query/drawDefinition/positionsGetter';
+import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { setsValues } from './roundRobinSetsValues';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
@@ -14,6 +15,7 @@ import POLICY_SEEDING_DEFAULT from '@Fixtures/policies/POLICY_SEEDING_DEFAULT';
 import { FORMAT_STANDARD } from '@Fixtures/scoring/matchUpFormats';
 import { toBePlayed } from '@Fixtures/scoring/outcomes/toBePlayed';
 import { LUCKY_LOSER } from '@Constants/entryStatusConstants';
+import { TALLY } from '@Constants/extensionConstants';
 import { SINGLES } from '@Constants/eventConstants';
 
 const goldFlight = 'Gold Flight';
@@ -212,8 +214,9 @@ it('Playoff drawPosition assignment includes group winners who lost no matchUps'
   });
 
   const firstAssignment = positionAssignments?.[0];
-  expect(firstAssignment?.extensions?.[0].value.matchUpsWon).toEqual(3);
-  expect(firstAssignment?.extensions?.[0].value.matchUpsLost).toEqual(0);
+  const firstTally = firstClassOrExtension({ element: firstAssignment, attribute: 'tally', name: TALLY });
+  expect(firstTally.matchUpsWon).toEqual(3);
+  expect(firstTally.matchUpsLost).toEqual(0);
   const participantId = firstAssignment?.participantId;
 
   const structureId = playoffStructureIds[0];
