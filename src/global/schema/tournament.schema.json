@@ -206,6 +206,7 @@
     "Event": {
       "type": "object",
       "properties": {
+        "flightProfile": { "type": "object" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -486,6 +487,10 @@
     "DrawDefinition": {
       "type": "object",
       "properties": {
+        "flightProfile": { "type": "object" },
+        "lineUps": { "type": "object" },
+        "draftState": { "type": "object" },
+        "competitionState": { "type": "object" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -619,6 +624,7 @@
     "Entry": {
       "type": "object",
       "properties": {
+        "roundTarget": { "type": "integer" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -873,6 +879,8 @@
     "MatchUp": {
       "type": "object",
       "properties": {
+        "delegatedOutcome": { "type": "object" },
+        "disableAutoCalc": { "type": "boolean" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -1806,6 +1814,7 @@
     "Structure": {
       "type": "object",
       "properties": {
+        "roundTarget": { "type": "integer" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -1924,6 +1933,9 @@
     "PositionAssignment": {
       "type": "object",
       "properties": {
+        "tally": { "type": "object" },
+        "subOrder": { "type": "integer" },
+        "disableLinks": { "type": "boolean" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
@@ -3385,6 +3397,7 @@
     "Court": {
       "type": "object",
       "properties": {
+        "disabled": { "type": "boolean" },
         "createdAt": {
           "type": ["string", "object"],
           "format": "date-time"
