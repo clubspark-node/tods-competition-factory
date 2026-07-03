@@ -32,8 +32,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1
       courthive-components:
-        specifier: 3.4.5
-        version: 3.4.5(@tiptap/pm@3.27.1)
+        specifier: 3.4.6
+        version: 3.4.6(@tiptap/pm@3.27.1)
       react:
         specifier: ^19.2.6
         version: 19.2.7
@@ -2452,8 +2452,8 @@ packages:
       typescript:
         optional: true
 
-  courthive-components@3.4.5:
-    resolution: {integrity: sha512-lVhBYws9QY70n8OVFXUDpLdF83fMqR59GPQSoMBLteCnZQ/6D2zP3WYRwR8SPTPV545qV4omWVyzd/Hc7mryaQ==}
+  courthive-components@3.4.6:
+    resolution: {integrity: sha512-lGXxLukhwhF73tnaFnrIoNBQ6zXhnMtT0+aieJKmWJyiGivmjR7+MuNPDazprGliiqSup3q1VQzQqxZQKfdwnQ==}
     engines: {node: '>=22'}
 
   cross-spawn@7.0.6:
@@ -5286,10 +5286,6 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
-
-  tods-competition-factory@5.7.1:
-    resolution: {integrity: sha512-ALr8KXndN1wPh56BDGu2tAboIBZaM2t7Lo8pqS+kmOTpBkV66AZn+Y7GfV+aep3poZnBJ1fcJgXujFBgroLtSg==}
-    engines: {node: '>=22'}
 
   tods-competition-factory@5.9.0:
     resolution: {integrity: sha512-aaZYExgH0eaAfSR3B58YZ3kpN756dCrCv6DiqiSQI5+8YcbX1o6oca8YtDfbzr9t5L9JgUcM0iLd1vIeNOOSBg==}
@@ -9270,7 +9266,7 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
 
-  courthive-components@3.4.5(@tiptap/pm@3.27.1):
+  courthive-components@3.4.6(@tiptap/pm@3.27.1):
     dependencies:
       '@tiptap/core': 3.27.1(@tiptap/pm@3.27.1)
       '@tiptap/extension-color': 3.27.1(@tiptap/extension-text-style@3.27.1(@tiptap/core@3.27.1(@tiptap/pm@3.27.1)))
@@ -9287,7 +9283,7 @@ snapshots:
       focus-trap: 8.2.2
       timepicker-ui: 4.4.0
       tippy.js: 6.3.7
-      tods-competition-factory: 5.7.1
+      tods-competition-factory: 5.9.0
       vanillajs-datepicker: 1.3.4
     transitivePeerDependencies:
       - '@tiptap/pm'
@@ -12632,8 +12628,6 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
-
-  tods-competition-factory@5.7.1: {}
 
   tods-competition-factory@5.9.0: {}
 
