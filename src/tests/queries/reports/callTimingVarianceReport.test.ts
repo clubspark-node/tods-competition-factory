@@ -158,6 +158,32 @@ describe('call timing variance report', () => {
     expect(result.summary.matchUpsWithCallData).toBe(1);
   });
 
+  it('reports variance at whole-minute resolution so it matches the shown clock', () => {
+    const [first] = seedTwoScheduledMatchUps();
+
+    // Called at 15:05:45 — displays as 15:05, so vs a 15:00 plan the variance
+    // must read 5 (truncated), not 6 (which a seconds-aware round would give).
+    tournamentEngine.addMatchUpScheduleItems({
+      matchUpId: first.matchUpId,
+      drawId: first.drawId,
+      schedule: { scheduledDate: SCHEDULED_DATE, scheduledTime: '15:00' },
+    });
+    tournamentEngine.setMatchUpCalledAt({
+      matchUpId: first.matchUpId,
+      drawId: first.drawId,
+      calledAt: '2026-01-15T15:05:45.000Z',
+    });
+
+    const result: any = tournamentEngine.generateReport({
+      reportId: CALL_TIMING_VARIANCE_REPORT,
+      parameters: { utcOffsetMinutes: 0 },
+    });
+
+    expect(result.rows.length).toBe(1);
+    expect(result.rows[0].calledAt).toBe('15:05');
+    expect(result.rows[0].varianceMinutes).toBe(5);
+  });
+
   it('excludes a called matchUp that has no scheduled time', () => {
     const [first] = seedTwoScheduledMatchUps();
 

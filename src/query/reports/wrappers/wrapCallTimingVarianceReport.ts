@@ -74,7 +74,11 @@ function buildRow(
   drawNameMap: Record<string, string>,
 ) {
   const schedule = matchUp.schedule ?? {};
-  const varianceMinutes = Math.round((Date.parse(schedule.calledAt) - planned) / MS_PER_MINUTE);
+  // Whole-minute resolution so the number agrees with the HH:mm shown for
+  // calledAt (which truncates seconds): a call at 15:05:45 displays as 15:05,
+  // so 15:00 → 15:05 reads as 5, not 6.
+  const varianceMinutes =
+    Math.floor(Date.parse(schedule.calledAt) / MS_PER_MINUTE) - Math.floor(planned / MS_PER_MINUTE);
   const parts = localClockParts(schedule.calledAt, utcOffsetMinutes);
   return {
     eventId: matchUp.eventId,
