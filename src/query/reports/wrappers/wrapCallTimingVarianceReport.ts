@@ -81,6 +81,11 @@ function buildRow(
     Math.floor(Date.parse(schedule.calledAt) / MS_PER_MINUTE) - Math.floor(planned / MS_PER_MINUTE);
   const parts = localClockParts(schedule.calledAt, utcOffsetMinutes);
   return {
+    // Location IDs (not shown as columns) so a consumer can navigate from a row
+    // to the matchUp in its draw structure.
+    matchUpId: matchUp.matchUpId,
+    drawId: matchUp.drawId,
+    structureId: matchUp.structureId,
     eventId: matchUp.eventId,
     eventName: eventNameMap[matchUp.eventId] || matchUp.eventId || '',
     drawName: drawNameMap[matchUp.drawId] || matchUp.drawId || '',

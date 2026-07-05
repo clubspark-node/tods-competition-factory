@@ -63,6 +63,13 @@ describe('call timing variance report', () => {
     expect(result.rows[0].scheduledTime).toBe('10:00');
     expect(result.rows[0].calledAtIso).toBe('2026-01-15T10:25:00.000Z');
 
+    // Location IDs travel with each row so a consumer can navigate to the matchUp
+    // in its draw structure.
+    expect(result.rows[0].matchUpId).toBe(first.matchUpId);
+    expect(result.rows[0].drawId).toBe(first.drawId);
+    expect(result.rows[0].eventId).toBe(first.eventId);
+    expect(typeof result.rows[0].structureId).toBe('string');
+
     expect(result.summary.matchUpsWithCallData).toBe(2);
     expect(result.summary.calledLateCount).toBe(1);
     expect(result.summary.calledLatePercentage).toBe(50);
