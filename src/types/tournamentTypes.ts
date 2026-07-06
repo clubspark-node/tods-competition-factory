@@ -1,5 +1,5 @@
-import { ABANDONED, ACTIVE, CANCELLED, COMPLETED } from '@Constants/tournamentConstants';
 import { DOUBLES, HYBRID, SINGLES, TEAM } from '@Constants/eventConstants';
+import { tournamentStatuses } from '@Constants/tournamentConstants';
 import type { competitionFormat } from './competitionFormat';
 
 export interface Tournament {
@@ -57,9 +57,10 @@ export interface Tournament {
   weekdays?: WeekdayUnion[];
 }
 
-// Derived from tournamentConstants so the type cannot drift from the canonical
-// string values (a hand-written literal here previously read 'ABANDONDED').
-export type TournamentStatusUnion = typeof ABANDONED | typeof CANCELLED | typeof ACTIVE | typeof COMPLETED;
+// Derived from the canonical tournamentStatuses tuple so the type, the constants, and the
+// setTournamentStatus validator share one source of truth (previously the hand-written union
+// read 'ABANDONDED' and omitted IN_PROGRESS, which the validator nonetheless accepted).
+export type TournamentStatusUnion = (typeof tournamentStatuses)[number];
 
 export interface Organisation {
   onlineResources?: OnlineResource[];
