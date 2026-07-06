@@ -3,6 +3,7 @@
   "exclude": ["/scratch/", "/examples/"],
   "schema": ["src/global/schema/tournament.schema.json", "src/global/schema/rankingPolicy.schema.json"],
   "types": ["src/types"],
+  "constants": ["src/constants"],
   "ignore": [
     "minute",
     "weekday",
