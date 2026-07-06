@@ -20,7 +20,7 @@ function seedTwoScheduledMatchUps() {
 }
 
 describe('call timing variance report', () => {
-  it('computes signed variance between scheduledTime and calledAt (worst-late first)', () => {
+  it('computes signed variance between scheduledTime and calledAt (most recently called first)', () => {
     const [first, second] = seedTwoScheduledMatchUps();
 
     // First matchUp: called 25 minutes after its scheduled time (running late).
@@ -54,20 +54,22 @@ describe('call timing variance report', () => {
 
     expect(result.reportId).toBe(CALL_TIMING_VARIANCE_REPORT);
     expect(result.rows.length).toBe(2);
-    expect(result.rows[0].varianceMinutes).toBe(25);
-    expect(result.rows[1].varianceMinutes).toBe(-5);
+    // Same scheduled day, so the most recently called matchUp (10:55) sorts above
+    // the earlier one (10:25) regardless of variance sign.
+    expect(result.rows[0].varianceMinutes).toBe(-5);
+    expect(result.rows[1].varianceMinutes).toBe(25);
 
     // Called At displays as a bare clock when it shares the scheduled date;
     // scheduledTime stays HH:mm and the full ISO is retained for export.
-    expect(result.rows[0].calledAt).toBe('10:25');
-    expect(result.rows[0].scheduledTime).toBe('10:00');
-    expect(result.rows[0].calledAtIso).toBe('2026-01-15T10:25:00.000Z');
+    expect(result.rows[0].calledAt).toBe('10:55');
+    expect(result.rows[0].scheduledTime).toBe('11:00');
+    expect(result.rows[0].calledAtIso).toBe('2026-01-15T10:55:00.000Z');
 
     // Location IDs travel with each row so a consumer can navigate to the matchUp
     // in its draw structure.
-    expect(result.rows[0].matchUpId).toBe(first.matchUpId);
-    expect(result.rows[0].drawId).toBe(first.drawId);
-    expect(result.rows[0].eventId).toBe(first.eventId);
+    expect(result.rows[0].matchUpId).toBe(second.matchUpId);
+    expect(result.rows[0].drawId).toBe(second.drawId);
+    expect(result.rows[0].eventId).toBe(second.eventId);
     expect(typeof result.rows[0].structureId).toBe('string');
 
     expect(result.summary.matchUpsWithCallData).toBe(2);

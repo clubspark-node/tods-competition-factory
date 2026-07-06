@@ -108,8 +108,9 @@ function buildRow(
  * via the schedule "Now" strip), report the signed variance in minutes.
  * Positive = called LATE (running behind); negative = called early.
  *
- * Rows are sorted worst-late first so the matches that ran furthest behind
- * surface at the top. The summary rolls up average/median/max variance,
+ * Rows are sorted most-recent-day first, then most-recently-called within each
+ * day, so the latest activity surfaces at the top. The summary rolls up
+ * average/median/max variance,
  * how many matches were called late, and how many scheduled matchUps were
  * never called at all — quantifying how far behind an event is running.
  *
@@ -139,11 +140,11 @@ export function wrapCallTimingVarianceReport({
   // Every column sizes to its content except `matchUp`, which stays flexible so
   // it absorbs the spare table width (it holds the longest strings).
   const columns = [
+    { key: 'venueName', title: 'Venue', type: 'string' as const, fitData: true },
     { key: 'eventName', title: 'Event', type: 'string' as const, fitData: true },
     { key: 'drawName', title: 'Draw', type: 'string' as const, fitData: true },
     { key: 'roundName', title: 'Round', type: 'string' as const, fitData: true },
     { key: 'matchUp', title: 'MatchUp', type: 'string' as const },
-    { key: 'venueName', title: 'Venue', type: 'string' as const, fitData: true },
     { key: 'courtName', title: 'Court', type: 'string' as const, fitData: true },
     { key: 'scheduledDate', title: 'Date', type: 'date' as const, fitData: true, width: 110 },
     { key: 'scheduledTime', title: 'Scheduled', type: 'string' as const, fitData: true },
@@ -162,8 +163,14 @@ export function wrapCallTimingVarianceReport({
     rows.push(buildRow(matchUp, planned, utcOffsetMinutes, eventNameMap, drawNameMap));
   }
 
-  // Worst-late first — furthest-behind matches rise to the top.
-  rows.sort((a, b) => b.varianceMinutes - a.varianceMinutes);
+  // Most recent day first, then most recently called within that day — so the
+  // latest activity surfaces at the top of the table.
+  rows.sort((a, b) => {
+    if (a.scheduledDate !== b.scheduledDate) return a.scheduledDate < b.scheduledDate ? 1 : -1;
+    const aCalled = Date.parse(a.calledAtIso);
+    const bCalled = Date.parse(b.calledAtIso);
+    return bCalled - aCalled;
+  });
 
   const variances = rows.map((r) => r.varianceMinutes);
   const lateCount = variances.filter((v) => v > 0).length;
