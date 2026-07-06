@@ -32,7 +32,7 @@ export function resolveDraftPositions({
 
   const draftState = firstClassOrExtension({ element: drawDefinition, attribute: 'draftState', name: DRAFT_STATE });
   if (!draftState) return { error: NOT_FOUND, info: 'No active draft found' };
-  if (draftState.status === 'COMPLETE') return { error: INVALID_VALUES, info: 'Draft is already complete' };
+  if (draftState.status === 'COMPLETED') return { error: INVALID_VALUES, info: 'Draft is already complete' };
 
   const structureId = draftState.structureId;
   const { structure } = findStructure({ drawDefinition, structureId });
@@ -195,7 +195,7 @@ function applyResolutions({
   // mark COMPLETE only when all tiers are resolved
   const allResolved = draftState.tiers.every((t: any) => t.resolved);
   if (allResolved) {
-    draftState.status = 'COMPLETE';
+    draftState.status = 'COMPLETED';
     draftState.resolvedAt = new Date().toISOString();
     draftState.transparencyReport = transparencyReport;
   }

@@ -83,10 +83,11 @@ Cross-event checks — a person represented by two distinct **individual** parti
 
 ## Where to go from here
 
-| If you want…                                  | Read                                                                                |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| The full upgrade walkthrough                  | [5.x to 6.0.0 migration](./migration-6.0.0)                                         |
-| To audit a tournament for contradictory state | [Query Governor — integrity hierarchy](./governors/query-governor)                  |
-| To report outstanding work before publishing  | The `*Completeness` companions in the [Query Governor](./governors/query-governor)  |
-| Correct `considerGames` rating computation    | [generateDynamicRatings](./scale-engine/scale-engine-api#generatedynamicratings)    |
-| Bulk-abandon still-playable matchUps          | [abandonTournamentMatchUps](./governors/matchup-governor#abandontournamentmatchups) |
+| If you want…                                  | Read                                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| The full upgrade walkthrough                  | [5.x to 6.0.0 migration](./migration-6.0.0)                                                                   |
+| To audit a tournament for contradictory state | [Query Governor — integrity hierarchy](./governors/query-governor)                                            |
+| To report outstanding work before publishing  | The `*Completeness` companions in the [Query Governor](./governors/query-governor)                            |
+| Correct `considerGames` rating computation    | [generateDynamicRatings](./scale-engine/scale-engine-api#generatedynamicratings)                              |
+| Bulk-abandon still-playable matchUps          | [abandonTournamentMatchUps](./governors/matchup-governor#abandontournamentmatchups)                           |
+| Post-6.0.0 status-value canonicalization      | [Migration addendum](./migration-6.0.0#addendum--post-600-status-value-canonicalization-shipped-non-breaking) |

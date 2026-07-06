@@ -64,7 +64,7 @@ export function initializeDraft({
 
   // check for existing draft
   const existing = firstClassOrExtension({ element: drawDefinition, attribute: 'draftState', name: DRAFT_STATE });
-  if (existing?.status && existing.status !== 'COMPLETE' && !force) {
+  if (existing?.status && existing.status !== 'COMPLETED' && !force) {
     return { error: EXISTING_DRAFT };
   }
 

@@ -619,7 +619,7 @@
     },
     "DrawStatusEnum": {
       "type": "string",
-      "enum": ["COMPLETE", "IN_PROGRESS", "TO_BE_PLAYED"]
+      "enum": ["COMPLETED", "IN_PROGRESS", "TO_BE_PLAYED"]
     },
     "Entry": {
       "type": "object",

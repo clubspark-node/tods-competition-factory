@@ -32,7 +32,7 @@ export function setDrawPositionPreferences({
   if (!draftState) return { error: NOT_FOUND, info: 'No active draft found' };
 
   // verify draft is in a state that accepts preferences
-  if (draftState.status === 'COMPLETE') return { error: INVALID_VALUES, info: 'Draft is already complete' };
+  if (draftState.status === 'COMPLETED') return { error: INVALID_VALUES, info: 'Draft is already complete' };
 
   // verify participant is in a tier
   const participantTier = draftState.tiers?.find((tier: any) => tier.participantIds?.includes(participantId));

@@ -1,3 +1,5 @@
+import { ABANDONED, ACTIVE, CANCELLED, COMPLETED } from '@Constants/tournamentConstants';
+import { DOUBLES, HYBRID, SINGLES, TEAM } from '@Constants/eventConstants';
 import type { competitionFormat } from './competitionFormat';
 
 export interface Tournament {
@@ -55,7 +57,9 @@ export interface Tournament {
   weekdays?: WeekdayUnion[];
 }
 
-export type TournamentStatusUnion = 'ABANDONDED' | 'CANCELLED' | 'ACTIVE' | 'COMPLETED';
+// Derived from tournamentConstants so the type cannot drift from the canonical
+// string values (a hand-written literal here previously read 'ABANDONDED').
+export type TournamentStatusUnion = typeof ABANDONED | typeof CANCELLED | typeof ACTIVE | typeof COMPLETED;
 
 export interface Organisation {
   onlineResources?: OnlineResource[];
@@ -228,7 +232,7 @@ export interface DrawDefinition {
   updatedAt?: Date | string;
 }
 
-export type DrawStatusUnion = 'COMPLETE' | 'IN_PROGRESS' | 'TO_BE_PLAYED';
+export type DrawStatusUnion = 'COMPLETED' | 'IN_PROGRESS' | 'TO_BE_PLAYED';
 
 export interface Entry {
   createdAt?: Date | string;
@@ -350,7 +354,8 @@ export interface Interleave {
   offset: number;
 }
 
-export type EventTypeUnion = 'SINGLES' | 'DOUBLES' | 'TEAM' | 'HYBRID';
+// Derived from eventConstants (drift-proof; see TournamentStatusUnion note).
+export type EventTypeUnion = typeof SINGLES | typeof DOUBLES | typeof TEAM | typeof HYBRID;
 
 /**
  * CODES first-class schedule attributes on a matchUp. Each field was

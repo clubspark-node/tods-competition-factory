@@ -75,3 +75,17 @@ The [data-integrity query hierarchy](./whats-new-6.0.0#the-headline-feature--dat
 2. Re-baseline any `considerGames: true` rating output against the corrected normalisation.
 3. Migrate `person.birthdate` → `person.birthDate` at every read and write site.
 4. Optionally adopt the integrity query hierarchy — no action is required to keep existing code working.
+
+## Addendum — post-6.0.0 status-value canonicalization (shipped non-breaking)
+
+After 6.0.0, three latent status-value inconsistencies were corrected so the factory's "finished" value is uniform with the ecosystem-wide `COMPLETED` (as already used by `matchUpStatus` and `tournamentStatus`):
+
+| Field / type                              | Before       | After       | Nature                                                                            |
+| ----------------------------------------- | ------------ | ----------- | --------------------------------------------------------------------------------- |
+| `drawStatus` (`DrawStatusEnum`)           | `COMPLETE`   | `COMPLETED` | schema `enum` + `DrawStatusUnion` value                                           |
+| `draftState.status` (draw-position draft) | `COMPLETE`   | `COMPLETED` | internal workflow state (`SEEDS_PLACED` → `COLLECTING_PREFERENCES` → `COMPLETED`) |
+| `TournamentStatusUnion` literal           | `ABANDONDED` | `ABANDONED` | type-only typo; the runtime value always used the correct `ABANDONED` constant    |
+
+These are **value-contract changes**: a consumer that hard-coded the old spellings would break, so in principle they belong in a major. They shipped as non-breaking `fix:` changes instead because **no such consumers were known** — `drawStatus` is never produced inside the factory (only ever externally populated) and no consumer compares it to `COMPLETE`; `draftState.status` is internal draw-position-preference workflow state whose surfaces are not yet in production use. If you hold stored records carrying `drawStatus: "COMPLETE"` or `draftState.status: "COMPLETE"`, normalize them to `"COMPLETED"` at your upgrade seam.
+
+Forward-looking: this drift class — a type/enum value diverging from its canonical constant — is now guarded by the `attr-audit` value and expression typo passes (which is how the `ABANDONDED` type typo and a live `SCHECULE.TIME.RESUME` bug were found), so future divergences fail CI rather than lurking. `TournamentStatusUnion` and `EventTypeUnion` are now _derived_ from their constants (`typeof …`) so they can no longer drift by hand.
