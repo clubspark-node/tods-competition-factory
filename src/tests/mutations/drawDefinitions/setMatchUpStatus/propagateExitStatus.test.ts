@@ -1,3 +1,5 @@
+import { removeAssignment } from '../testingUtilities';
+import { setSubscriptions } from '@Global/state/globalState';
 import tournamentEngine from '@Tests/engines/syncEngine';
 import mocksEngine from '@Assemblies/engines/mock';
 import { unique } from '@Tools/arrays';
@@ -5,7 +7,9 @@ import { expect, test } from 'vitest';
 
 // constants
 import { COMPASS, CURTIS_CONSOLATION, FIRST_MATCH_LOSER_CONSOLATION } from '@Constants/drawDefinitionConstants';
+import { TEAM } from '@Constants/matchUpTypes';
 import {
+  BYE,
   COMPLETED,
   DEFAULTED,
   DOUBLE_DEFAULT,
@@ -137,8 +141,12 @@ test(`it sets the correct status codes in a consolation match when a WO is propa
   //get the updated loser matchup
   let loserMatchUp = matchUps?.find((mU) => mU.matchUpId === matchUp?.loserMatchUpId);
   expect(loserMatchUp?.matchUpStatus).toEqual(WALKOVER);
-  //this should have the status codes set
-  expect(loserMatchUp?.matchUpStatusCodes).toEqual(['W2']);
+  // matchUpStatusCodes are position-dependent: the propagated WO participant feeds
+  // in on side 2 here, so the code sits at index 1 → ['', 'W2'] (not ['W2'], which
+  // would mis-map the walkover to the opponent on side 1).
+  expect(loserMatchUp?.matchUpStatusCodes).toEqual(['', 'W2']);
+  // the present opponent (side 1) takes the walkover win
+  expect(loserMatchUp?.winningSide).toEqual(1);
 });
 
 test.for([
@@ -533,4 +541,575 @@ test('can automatically progress the winner in a feed in round that already had 
   expect(round3ConsolationMatchUp?.sides?.[0].participantId).toBeUndefined;
   //making sure the progressed player is the one that was mark as the winner in the fed in round
   expect(round3ConsolationMatchUp?.sides?.[1].participantId).toEqual(winnerParticipantId);
+});
+
+test('FMLC: propagated WO against a consolation BYE stays a BYE and the exit cascades to the next round', () => {
+  // Scenario: FMLC 8-player draw where positions 2 and 4 are BYEs.
+  // - The R1 losers (BYEs) produce a double-BYE in consolation R1P1, which auto-cascades a BYE into consolation R2P1.
+  // - When R2P1 is set as WALKOVER (propagated), the WO participant is fed into consolation R2P1 against that BYE.
+  // Spec: a BYE is not a walkover. The feed-in matchUp stays a BYE, the participant
+  // advances through it, and the WALKOVER (exit) is applied at the next round where
+  // the participant lands — with the non-exit side winning and the code on the
+  // participant's side (position-aware).
+  const idPrefix = 'm';
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix }],
+    setState: true,
+  });
+
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+
+  // Replace positions 2 and 4 with BYEs so:
+  //   - R1P1=[position1(player), BYE]   → player1 auto-advances to R2P1 (validForConsolation)
+  //   - R1P2=[position3(player), BYE]   → player3 auto-advances to R2P1 (validForConsolation)
+  //   - Consolation R1P1 receives [BYE, BYE] → double-BYE cascades a BYE into consolation R2P1
+  removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition: 2, replaceWithBye: true });
+  removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition: 4, replaceWithBye: true });
+
+  // Set R1P3 and R1P4 scores so the bottom half of the draw completes normally
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-3', outcome, drawId });
+  tournamentEngine.setMatchUpStatus({ matchUpId: 'm-1-4', outcome, drawId });
+
+  const result = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: 'm-2-1',
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  const matchUps = tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps;
+  const consolationMatchUps = matchUps.filter((m) => m.structureId === consolationStructure.structureId);
+
+  // The feed-in consolation match (R2) is a BYE — the WO participant advances
+  // through it rather than the matchUp becoming a WALKOVER.
+  const consolationFeedInMatchUp = consolationMatchUps.find((m) => m.roundNumber === 2 && m.roundPosition === 1);
+  expect(consolationFeedInMatchUp?.matchUpStatus).toEqual(BYE);
+  const woPlayerId = consolationFeedInMatchUp?.sides?.find((s) => s.participantId)?.participantId;
+  expect(woPlayerId).toBeDefined();
+
+  // The exit (WALKOVER) cascades onto the next round where the participant landed.
+  const consolationR3MatchUp = consolationMatchUps.find(
+    (m) => m.roundNumber === 3 && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(consolationR3MatchUp?.matchUpStatus).toEqual(WALKOVER);
+
+  // The side WITHOUT the exit (the empty slot awaiting the other R2 winner) wins.
+  const woSideNumber = consolationR3MatchUp?.sides?.find((s) => s.participantId === woPlayerId)?.sideNumber;
+  expect(consolationR3MatchUp?.winningSide).toEqual(woSideNumber === 1 ? 2 : 1);
+
+  // The carried code is position-aware: it sits on the participant's side.
+  const expectedCodes = woSideNumber === 1 ? ['W1'] : ['', 'W1'];
+  expect(consolationR3MatchUp?.matchUpStatusCodes).toEqual(expectedCodes);
+});
+
+test('FMLC: propagated WO cascades through a consolation BYE, then a later fall-through auto-resolves the pending walkover', () => {
+  // Reproduces the ClubSpark drawSize-32 scenario:
+  // - Two first-round BYE winners meet in main R2P2; a WALKOVER there feeds the
+  //   loser into the consolation where it advances through a BYE to a later round,
+  //   leaving a pending WALKOVER whose winning side is an empty feed slot.
+  // - A later main completion (R2P1) sends a second-match loser through as a BYE,
+  //   which advances the consolation opponent INTO that empty winning slot. They
+  //   take the walkover (auto-resolve): keep WALKOVER, they win, the exiting player
+  //   keeps the position-aware code, and only the winner advances (no loser leak).
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.find(
+        (m) =>
+          m.structureId === mainStructure.structureId &&
+          m.roundNumber === roundNumber &&
+          m.roundPosition === roundPosition,
+      );
+  const consolationMatchUps = () =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.filter((m) => m.structureId === consolationStructure.structureId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  // complete main R1P2 so its winner is present in main R2P1
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  // WALKOVER in main R2P2 (two BYE winners) — side 1 loses and is valid for consolation
+  const woMatchUp = mainMatchUp(2, 2);
+  const woPlayerId = woMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  const woResult = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  expect(woResult.success).toEqual(true);
+
+  // the exit cascades to a pending consolation WALKOVER: WO player present, opponent empty
+  let pendingWo = consolationMatchUps().find(
+    (m) => m.matchUpStatus === WALKOVER && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(pendingWo).toBeDefined();
+  const woSide = pendingWo.sides.find((s) => s.participantId === woPlayerId).sideNumber;
+  // the empty (no-exit) side is the winner while it awaits the fall-through participant
+  expect(pendingWo.winningSide).toEqual(woSide === 1 ? 2 : 1);
+  expect(pendingWo.matchUpStatusCodes[woSide - 1]).toEqual('W1');
+  // only the exiting participant is present; the winning side is still an empty feed slot
+  expect(pendingWo.sides.filter((s) => s.participantId).length).toEqual(1);
+
+  // a later main completion (R2P1) drops a second-match loser through as a BYE
+  const completeResult = tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(2, 1).matchUpId, outcome, drawId });
+  expect(completeResult.success).toEqual(true);
+
+  // AUTO-RESOLVE: the advancing opponent now occupies the winning slot and wins the walkover
+  const resolvedWo = consolationMatchUps().find((m) => m.matchUpId === pendingWo.matchUpId);
+  expect(resolvedWo.matchUpStatus).toEqual(WALKOVER);
+  const resolvedWoSide = resolvedWo.sides.find((s) => s.participantId === woPlayerId).sideNumber;
+  const winnerParticipantId = resolvedWo.sides.find((s) => s.sideNumber === resolvedWo.winningSide)?.participantId;
+  // the exiting WO player did NOT win; the fall-through participant did
+  expect(resolvedWo.winningSide).not.toEqual(resolvedWoSide);
+  expect(winnerParticipantId).toBeDefined();
+  expect(winnerParticipantId).not.toEqual(woPlayerId);
+  // the exiting player keeps the position-aware code on their side
+  expect(resolvedWo.matchUpStatusCodes[resolvedWoSide - 1]).toEqual('W1');
+
+  // no leak: the next consolation round holds only the walkover winner, not the WO player
+  const nextRound = consolationMatchUps().find(
+    (m) =>
+      m.roundNumber === resolvedWo.roundNumber + 1 && m.sides?.some((s) => s.participantId === winnerParticipantId),
+  );
+  expect(nextRound).toBeDefined();
+  expect(nextRound.sides.some((s) => s.participantId === woPlayerId)).toEqual(false);
+});
+
+// module-level accessors shared by the undo tests' setup
+const structureMatchUps = (drawId, structureId) =>
+  tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps.filter((m) => m.structureId === structureId);
+const structureMatchUpAt = (drawId, structureId, roundNumber, roundPosition) =>
+  structureMatchUps(drawId, structureId).find(
+    (m) => m.roundNumber === roundNumber && m.roundPosition === roundPosition,
+  );
+
+// Shared setup for the UNDO regression tests below. Builds the drawSize-32 FMLC
+// cascade exactly as the forward test above, through BOTH mutations, then returns
+// the handles + captured roles needed to assert the reverse. Parameterized by exit
+// type so the same reversal can be verified for WALKOVER and DEFAULTED.
+function buildAutoResolveCascade({ exitStatus = WALKOVER, exitCode = 'W1' } = {}) {
+  const drawId = 'undoDrawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    structureMatchUpAt(drawId, mainStructure.structureId, roundNumber, roundPosition);
+  const consolationMatchUps = () => structureMatchUps(drawId, consolationStructure.structureId);
+  const consolationMatchUp = (matchUpId) => consolationMatchUps().find((m) => m.matchUpId === matchUpId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  // WALKOVER in main R2P2 propagates the loser (pWo) into the consolation as a pending exit
+  const woMatchUp = mainMatchUp(2, 2);
+  const woPlayerId = woMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: exitStatus, winningSide: 2, matchUpStatusCodes: [exitCode] },
+    propagateExitStatus: true,
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+
+  const pendingWo = consolationMatchUps().find(
+    (m) => m.matchUpStatus === exitStatus && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  const exitMatchUpId = pendingWo.matchUpId;
+
+  // later main R2P1 completion drops a BYE into consolation which auto-resolves the pending WO
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(2, 1).matchUpId, outcome, drawId });
+
+  const resolvedWo = consolationMatchUp(exitMatchUpId);
+  const advPlayerId = resolvedWo.sides.find((s) => s.sideNumber === resolvedWo.winningSide)?.participantId;
+
+  return { drawId, mainMatchUp, consolationMatchUps, consolationMatchUp, exitMatchUpId, woPlayerId, advPlayerId };
+}
+
+const resetToTBP = (drawId, matchUpId) =>
+  tournamentEngine.setMatchUpStatus({
+    matchUpStatus: TO_BE_PLAYED,
+    winningSide: undefined,
+    score: { sets: [] },
+    matchUpId,
+    drawId,
+  });
+
+// asserts the consolation exit + its downstream are untouched by a refused reset
+function expectResolvedExitUnchanged(consolationMatchUp, consolationMatchUps, exitMatchUpId, advPlayerId, exitStatus) {
+  const exit = consolationMatchUp(exitMatchUpId);
+  expect(exit.matchUpStatus).toEqual(exitStatus);
+  expect(exit.sides.find((s) => s.sideNumber === exit.winningSide)?.participantId).toEqual(advPlayerId);
+  // pAdv is still advanced beyond the exit round (the resolved walkover it won still stands)
+  const beyond = consolationMatchUps().filter(
+    (m) => m.roundNumber > exit.roundNumber && m.sides?.some((s) => s.participantId === advPlayerId),
+  );
+  expect(beyond.length).toBeGreaterThan(0);
+}
+
+// Once a propagated exit has RESOLVED downstream in the consolation — a real participant
+// fell through into the empty winner slot and advanced — that downstream is active. The
+// factory's standard rule applies: the source result cannot be reset until the downstream
+// consolation matchUps are undone first. isActiveDownstream must see PAST the fed FMLC BYE
+// the exit advanced through (its short-circuit previously masked the resolved walkover).
+
+test('FMLC: resetting the fall-through source is BLOCKED while the consolation exit is resolved downstream', () => {
+  setSubscriptions({});
+  const { drawId, mainMatchUp, consolationMatchUps, consolationMatchUp, exitMatchUpId, advPlayerId } =
+    buildAutoResolveCascade();
+
+  // sanity: before the reset, the exit is a RESOLVED walkover the fall-through (pAdv) won
+  const before = consolationMatchUp(exitMatchUpId);
+  expect(before.matchUpStatus).toEqual(WALKOVER);
+  expect(before.sides.find((s) => s.sideNumber === before.winningSide)?.participantId).toEqual(advPlayerId);
+
+  // reset the completed main R2P1 (the fall-through source) → refused (active downstream)
+  const result = resetToTBP(drawId, mainMatchUp(2, 1).matchUpId);
+  expect(result.success).not.toEqual(true);
+  expect(result.error).toBeDefined();
+
+  expectResolvedExitUnchanged(consolationMatchUp, consolationMatchUps, exitMatchUpId, advPlayerId, WALKOVER);
+});
+
+test('FMLC: resetting the propagated WALKOVER is BLOCKED while its consolation exit is resolved downstream', () => {
+  setSubscriptions({});
+  const { drawId, mainMatchUp, consolationMatchUps, consolationMatchUp, exitMatchUpId, woPlayerId, advPlayerId } =
+    buildAutoResolveCascade();
+
+  // reset the main WALKOVER (the exit source) → refused
+  const result = resetToTBP(drawId, mainMatchUp(2, 2).matchUpId);
+  expect(result.success).not.toEqual(true);
+  expect(result.error).toBeDefined();
+
+  // the propagated exit + its exiting participant are untouched
+  expect(consolationMatchUps().some((m) => m.sides?.some((s) => s.participantId === woPlayerId))).toEqual(true);
+  expectResolvedExitUnchanged(consolationMatchUp, consolationMatchUps, exitMatchUpId, advPlayerId, WALKOVER);
+});
+
+test('FMLC — DEFAULT: the active-downstream block generalizes across exit types', () => {
+  setSubscriptions({});
+  const { drawId, mainMatchUp, consolationMatchUps, consolationMatchUp, exitMatchUpId, advPlayerId } =
+    buildAutoResolveCascade({ exitStatus: DEFAULTED, exitCode: 'D1' });
+
+  // the cascade produced a DEFAULTED consolation exit (not WALKOVER)
+  expect(consolationMatchUp(exitMatchUpId).matchUpStatus).toEqual(DEFAULTED);
+
+  const result = resetToTBP(drawId, mainMatchUp(2, 2).matchUpId);
+  expect(result.success).not.toEqual(true);
+  expect(result.error).toBeDefined();
+
+  expectResolvedExitUnchanged(consolationMatchUp, consolationMatchUps, exitMatchUpId, advPlayerId, DEFAULTED);
+});
+
+test('FMLC: resetting a source while its propagated exit is still PENDING is allowed and clears cleanly', () => {
+  setSubscriptions({});
+  const drawId = 'pendingUndo';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    structureMatchUpAt(drawId, mainStructure.structureId, roundNumber, roundPosition);
+  const consolationMatchUps = () => structureMatchUps(drawId, consolationStructure.structureId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  const woMatchUp = mainMatchUp(2, 2);
+  const woPlayerId = woMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  // ONLY the WALKOVER (no later fall-through) → the consolation exit stays PENDING
+  tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  const pending = consolationMatchUps().find(
+    (m) => m.matchUpStatus === WALKOVER && m.sides?.some((s) => s.participantId === woPlayerId),
+  );
+  expect(pending).toBeDefined();
+  // pending: the WINNING side is still an empty feed slot (not active), so the reset is allowed
+  expect(pending.sides.find((s) => s.sideNumber === pending.winningSide)?.participantId).toBeUndefined();
+
+  const result = tournamentEngine.setMatchUpStatus({
+    matchUpStatus: TO_BE_PLAYED,
+    winningSide: undefined,
+    score: { sets: [] },
+    matchUpId: woMatchUp.matchUpId,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  // the pending exit clears cleanly: no participant, no stale winningSide, no stale codes
+  const cleared = consolationMatchUps().find((m) => m.matchUpId === pending.matchUpId);
+  expect(cleared.matchUpStatus).toEqual(TO_BE_PLAYED);
+  expect(cleared.winningSide).toBeUndefined();
+  expect((cleared.matchUpStatusCodes ?? []).filter(Boolean).length).toEqual(0);
+  expect(cleared.sides.some((s) => s.participantId === woPlayerId)).toEqual(false);
+});
+
+// A pending propagated exit can be resolved by a REAL consolation match (not just a
+// BYE fall-through): the winner advances into the exit's empty winner slot. drawPositions
+// is re-sorted on advancement, so winningSide (and the carried exit code) must follow the
+// participants to their new sides — the real-match path previously kept the pre-sort
+// winningSide, leaving it pointing at the exit/loser while the winner advanced onward.
+test('FMLC real-match fall-through: winningSide and exit code follow the participants after the sort', () => {
+  setSubscriptions({});
+  const drawId = 'realFallThrough';
+  const matchUpFormat = 'SET1-S:8/TB7@7';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, matchUpFormat, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    structureMatchUpAt(drawId, mainStructure.structureId, roundNumber, roundPosition);
+  const consolationMatchUp = (roundNumber, roundPosition) =>
+    structureMatchUpAt(drawId, consolationStructure.structureId, roundNumber, roundPosition);
+
+  const win1 = mocksEngine.generateOutcomeFromScoreString({
+    scoreString: '8-2',
+    winningSide: 1,
+    matchUpFormat,
+  }).outcome;
+  const win2 = mocksEngine.generateOutcomeFromScoreString({
+    scoreString: '8-3',
+    winningSide: 2,
+    matchUpFormat,
+  }).outcome;
+
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome: win1, drawId });
+  const exitId = mainMatchUp(2, 2).sides.find((s) => s.sideNumber === 1).participantId; // WALKOVER loser (the exit)
+  tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: mainMatchUp(2, 2).matchUpId,
+    drawId,
+  });
+  // main R2P1 completion drops a real loser into the consolation, making R2P1 a real match
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(2, 1).matchUpId, outcome: win2, drawId });
+
+  const consR2P1 = consolationMatchUp(2, 1);
+  const advancingWinnerId = consR2P1.sides.find((s) => s.sideNumber === 2).participantId; // winningSide 2 advances
+  expect(tournamentEngine.setMatchUpStatus({ matchUpId: consR2P1.matchUpId, outcome: win2, drawId }).success).toEqual(
+    true,
+  );
+
+  const exit = consolationMatchUp(3, 1);
+  const nextRound = consolationMatchUp(4, 1);
+  const winnerSide = exit.sides.find((s) => s.sideNumber === exit.winningSide);
+  const loserSide = exit.sides.find((s) => s.sideNumber !== exit.winningSide);
+
+  // winningSide points to the advancing winner (who advanced onward), not the exit/loser
+  expect(exit.matchUpStatus).toEqual(WALKOVER);
+  expect(winnerSide?.participantId).toEqual(advancingWinnerId);
+  expect(loserSide?.participantId).toEqual(exitId);
+  expect(nextRound.sides.find((s) => s.participantId)?.participantId).toEqual(advancingWinnerId);
+  // the carried exit code sits on the exit (loser) side, never the winner
+  expect(exit.matchUpStatusCodes?.[loserSide.sideNumber - 1]).toEqual('W1');
+  expect(exit.matchUpStatusCodes?.[winnerSide.sideNumber - 1] || '').toEqual('');
+});
+
+test('FMLC: two independently-cascaded propagated exits colliding at the consolation final produce a DOUBLE_WALKOVER', () => {
+  // All four R1 positions are BYEs, so every consolation R1 matchUp is a double-BYE
+  // and every second-round main matchUp is contested by two bye-advanced players —
+  // each of whom, on losing their real (round 2) match, is valid for consolation and
+  // is fed in via RULE 1 (opponent is BYE) at consolation R2, cascading to the
+  // consolation final (R3). Both main R2 matches propagated as WALKOVER independently
+  // cascade to the SAME consolation final, which must fire RULE 4 (DOUBLE_WALKOVER)
+  // there rather than the auto-resolve path — the cascaded-landing collision case the
+  // direct R1-feed DOUBLE_WALKOVER tests above don't exercise.
+  const idPrefix = 'm';
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 8, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 4, 6, 8].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+
+  const consolationFinal = () =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.find((m) => m.structureId === consolationStructure.structureId && m.roundNumber === 3);
+
+  const firstWo = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId: `${idPrefix}-2-1`,
+    drawId,
+  });
+  expect(firstWo.success).toEqual(true);
+
+  const pending = consolationFinal();
+  expect(pending.matchUpStatus).toEqual(WALKOVER);
+  expect(pending.sides.filter((s) => s.participantId).length).toEqual(1);
+
+  const secondWo = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W2'] },
+    propagateExitStatus: true,
+    matchUpId: `${idPrefix}-2-2`,
+    drawId,
+  });
+  expect(secondWo.success).toEqual(true);
+
+  const collided = consolationFinal();
+  expect(collided.matchUpStatus).toEqual(DOUBLE_WALKOVER);
+  expect(collided.winningSide).toBeUndefined();
+  // both carried codes are present, position-aware, no participant lost
+  expect(collided.matchUpStatusCodes?.filter(Boolean).sort()).toEqual(['W1', 'W2']);
+  expect(collided.sides.filter((s) => s.participantId).length).toEqual(2);
+});
+
+test('FMLC: a propagated RETIRED cascading through a consolation BYE carries over as WALKOVER, not RETIRED', () => {
+  // RETIRED must never propagate as-is (carryOverMatchUpStatus rule) — including
+  // through the BYE-cascade path, not just the direct-feed path already covered by
+  // the exit-type matrix at the top of this file.
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, idPrefix: 'm' }],
+    setState: true,
+  });
+  const {
+    drawDefinition: {
+      structures: [mainStructure, consolationStructure],
+    },
+  } = tournamentEngine.getEvent({ drawId });
+  [2, 6, 8, 10, 23, 31].forEach((drawPosition) =>
+    removeAssignment({ drawId, structureId: mainStructure.structureId, drawPosition, replaceWithBye: true }),
+  );
+
+  const mainMatchUp = (roundNumber, roundPosition) =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.find(
+        (m) =>
+          m.structureId === mainStructure.structureId &&
+          m.roundNumber === roundNumber &&
+          m.roundPosition === roundPosition,
+      );
+  const consolationMatchUps = () =>
+    tournamentEngine
+      .allDrawMatchUps({ drawId, inContext: true })
+      .matchUps.filter((m) => m.structureId === consolationStructure.structureId);
+
+  const { outcome } = mocksEngine.generateOutcomeFromScoreString({ scoreString: '6-1 6-1', winningSide: 1 });
+  tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(1, 2).matchUpId, outcome, drawId });
+
+  const retiredMatchUp = mainMatchUp(2, 2);
+  const retiredPlayerId = retiredMatchUp.sides.find((s) => s.sideNumber === 1).participantId;
+  const retiredResult = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: RETIRED, winningSide: 2, matchUpStatusCodes: ['RJ'] },
+    propagateExitStatus: true,
+    matchUpId: retiredMatchUp.matchUpId,
+    drawId,
+  });
+  expect(retiredResult.success).toEqual(true);
+  // the source matchUp itself keeps RETIRED
+  expect(
+    tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps.find(
+      (m) => m.matchUpId === retiredMatchUp.matchUpId,
+    )?.matchUpStatus,
+  ).toEqual(RETIRED);
+
+  // the cascaded pending exit carries WALKOVER, not RETIRED
+  const pendingExit = consolationMatchUps().find(
+    (m) => m.matchUpStatus !== BYE && m.sides?.some((s) => s.participantId === retiredPlayerId),
+  );
+  expect(pendingExit).toBeDefined();
+  expect(pendingExit.matchUpStatus).toEqual(WALKOVER);
+  const retiredSide = pendingExit.sides.find((s) => s.participantId === retiredPlayerId).sideNumber;
+  expect(pendingExit.winningSide).toEqual(retiredSide === 1 ? 2 : 1);
+  expect(pendingExit.matchUpStatusCodes[retiredSide - 1]).toEqual('RJ');
+
+  // a later main completion drops the fall-through participant into the empty slot
+  const completeResult = tournamentEngine.setMatchUpStatus({ matchUpId: mainMatchUp(2, 1).matchUpId, outcome, drawId });
+  expect(completeResult.success).toEqual(true);
+
+  const resolved = consolationMatchUps().find((m) => m.matchUpId === pendingExit.matchUpId);
+  // auto-resolve keeps WALKOVER (the status already carried on the matchUp), never RETIRED
+  expect(resolved.matchUpStatus).toEqual(WALKOVER);
+  const winnerParticipantId = resolved.sides.find((s) => s.sideNumber === resolved.winningSide)?.participantId;
+  expect(winnerParticipantId).toBeDefined();
+  expect(winnerParticipantId).not.toEqual(retiredPlayerId);
+});
+
+test('TEAM: propagated WALKOVER exit status reaches the consolation counterpart for TEAM matchUps', () => {
+  const idPrefix = 'matchUp';
+  const drawId = 'drawId';
+  mocksEngine.generateTournamentRecord({
+    drawProfiles: [{ drawId, drawSize: 32, drawType: FIRST_MATCH_LOSER_CONSOLATION, eventType: TEAM, idPrefix }],
+    setState: true,
+  });
+
+  const matchUpId = 'matchUp-1-1';
+  const result = tournamentEngine.setMatchUpStatus({
+    outcome: { matchUpStatus: WALKOVER, winningSide: 2, matchUpStatusCodes: ['W1'] },
+    propagateExitStatus: true,
+    matchUpId,
+    drawId,
+  });
+  expect(result.success).toEqual(true);
+
+  const matchUps = tournamentEngine.allDrawMatchUps({ drawId, inContext: true }).matchUps;
+  const matchUp = matchUps.find((m) => m.matchUpId === matchUpId);
+  expect(matchUp.matchUpType).toEqual(TEAM);
+  expect(matchUp.matchUpStatus).toEqual(WALKOVER);
+
+  const loserMatchUp = matchUps.find((m) => m.matchUpId === matchUp.loserMatchUpId);
+  expect(loserMatchUp.matchUpType).toEqual(TEAM);
+  expect(loserMatchUp.matchUpStatus).toEqual(WALKOVER);
+  expect(loserMatchUp.matchUpStatusCodes).toEqual(['W1']);
 });
