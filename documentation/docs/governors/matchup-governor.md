@@ -948,6 +948,34 @@ resolved walkover is correctly detected as active rather than being masked by th
 still-**pending** propagated exit (its winning side is an empty feed slot, nothing has
 fallen through yet) is not active, so the source result can still be reset while pending.
 
+### Reverting a completed matchUp to a live status
+
+A `COMPLETED` matchUp whose score **validates as a completed outcome** (a decisive
+`winningSide` backed by valid completed sets) cannot be reverted directly to a "still
+live" status — `IN_PROGRESS` or `SUSPENDED` — when no new outcome is supplied. Such a
+call returns `INCOMPATIBLE_MATCHUP_STATUS`. This guards against a completed result being
+silently stripped and the draw un-advanced (e.g. an upstream client re-asserting
+`IN_PROGRESS` on already-finished matches).
+
+The guard is deliberately narrow:
+
+- **Allowed** — submitting a new `outcome` (a corrected score / `winningSide`), which is a
+  re-score rather than a bare downgrade.
+- **Allowed** — reverting `RETIRED` / `DEFAULTED` (irregular endings whose incomplete
+  scores do not validate as a completed outcome) to `IN_PROGRESS`.
+- **Blocked** — a bare `{ matchUpStatus: IN_PROGRESS }` (or `SUSPENDED`) on a validated
+  `COMPLETED` matchUp.
+
+To reopen a completed match, submit a new outcome or clear the result first (e.g.
+`removeWinningSide`, or reset to `TO_BE_PLAYED`).
+
+The inverse is also rejected: a **single submission** whose score/winner _implies_
+completion cannot carry a live status. Passing an explicit `winningSide`, or a score
+that resolves a winner under the matchUpFormat (e.g. `6-2 6-3` in a best-of-3), together
+with `matchUpStatus: IN_PROGRESS` (or `SUSPENDED`) returns `INCOMPATIBLE_MATCHUP_STATUS`.
+A non-decisive in-progress score (e.g. a single set won in a best-of-3) is unaffected.
+TEAM matchUps are excluded (their tie score is auto-calculated).
+
 ---
 
 ## setOrderOfFinish

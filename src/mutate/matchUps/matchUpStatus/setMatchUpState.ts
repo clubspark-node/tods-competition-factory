@@ -20,6 +20,7 @@ import { getAllDrawMatchUps } from '@Query/matchUps/drawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { positionTargets } from '@Query/matchUp/positionTargets';
 import { getMatchUpsMap } from '@Query/matchUps/getMatchUpsMap';
+import { analyzeMatchUp } from '@Query/matchUp/analyzeMatchUp';
 import { pushGlobalLog } from '@Functions/global/globalLog';
 import { validateScore } from '@Validators/validateScore';
 import { findDrawMatchUp } from '@Acquire/findDrawMatchUp';
@@ -55,12 +56,19 @@ import {
   DEFAULTED,
   DOUBLE_DEFAULT,
   DOUBLE_WALKOVER,
+  IN_PROGRESS,
   INCOMPLETE,
   particicipantsRequiredMatchUpStatuses,
+  SUSPENDED,
   TO_BE_PLAYED,
   validMatchUpStatuses,
   WALKOVER,
 } from '@Constants/matchUpStatusConstants';
+
+// Reverting a validated-COMPLETED matchUp to one of these "still live / paused"
+// statuses (without providing a new outcome) would silently strip its result and
+// un-advance the draw — the class of bug behind stranded LIVE-with-score matches.
+const REVERT_GUARDED_STATUSES = new Set([IN_PROGRESS, SUSPENDED]);
 
 // NOTE: Internal method for setting matchUpStatus or score and winningSide, not to be confused with setMatchUpStatus
 
@@ -135,6 +143,29 @@ export function setMatchUpState(params: SetMatchUpStateArgs): any {
     assignedDrawPositions,
     matchUpTieId,
   } = resolved;
+
+  const revertError = checkCompletedRevertGuard({
+    matchUp,
+    matchUpStatus,
+    winningSide,
+    score,
+    structure,
+    drawDefinition,
+    event,
+  });
+  if (revertError) return revertError;
+
+  const impliedCompletionError = checkImpliedCompletionGuard({
+    matchUpStatus,
+    winningSide,
+    score,
+    isTeam,
+    matchUp,
+    structure,
+    drawDefinition,
+    event,
+  });
+  if (impliedCompletionError) return impliedCompletionError;
 
   const targetData = positionTargets({
     matchUpId: matchUpTieId || matchUpId,
@@ -268,6 +299,73 @@ export function setMatchUpState(params: SetMatchUpStateArgs): any {
   if (downstreamError) return downstreamError;
 
   return resolveAndApplyOutcome({ params, isTeam, dualWinningSideChange, activeDownstream, stack });
+}
+
+// Refuse to revert a COMPLETED matchUp that carries a *validated* winning score
+// back to a live status (IN_PROGRESS / SUSPENDED) when no new outcome is supplied.
+// A new winningSide or an applied score is treated as a correction/re-score and is
+// allowed. RETIRED/DEFAULTED (irregular endings whose scores do not validate as a
+// completed outcome) stay reversible. To reopen a completed match, submit a new
+// outcome or clear the result first (removeWinningSide / TO_BE_PLAYED).
+function checkCompletedRevertGuard({ matchUp, matchUpStatus, winningSide, score, structure, drawDefinition, event }) {
+  if (!matchUpStatus || !REVERT_GUARDED_STATUSES.has(matchUpStatus)) return undefined;
+  if (winningSide || checkScoreHasValue({ score })) return undefined;
+  if (matchUp?.matchUpStatus !== COMPLETED || !matchUp?.winningSide) return undefined;
+
+  const matchUpFormat =
+    matchUp.matchUpFormat ?? structure?.matchUpFormat ?? drawDefinition?.matchUpFormat ?? event?.matchUpFormat;
+  const { validMatchUpOutcome } = analyzeMatchUp({ matchUp, matchUpFormat });
+  if (!validMatchUpOutcome) return undefined;
+
+  return decorateResult({
+    result: { error: INCOMPATIBLE_MATCHUP_STATUS },
+    info: 'Cannot revert a COMPLETED matchUp with a validated winning score to a live status; submit a corrected outcome or clear the result first',
+    context: { matchUpStatus, currentMatchUpStatus: matchUp.matchUpStatus },
+    stack: 'setMatchUpStatus',
+  });
+}
+
+// Refuse a submission whose score/winner implies a completed outcome while the
+// requested matchUpStatus is a live/paused status (IN_PROGRESS / SUSPENDED). A
+// decisive score (one that resolves a winner under the matchUpFormat) or an
+// explicit winningSide cannot coexist with "still playing". Excludes TEAM
+// matchUps, whose tie score is auto-calculated. Non-decisive in-progress scores
+// (e.g. a single set won in a best-of-3) remain valid with IN_PROGRESS.
+function checkImpliedCompletionGuard({
+  matchUpStatus,
+  winningSide,
+  score,
+  isTeam,
+  matchUp,
+  structure,
+  drawDefinition,
+  event,
+}) {
+  if (isTeam || !matchUpStatus || !REVERT_GUARDED_STATUSES.has(matchUpStatus)) return undefined;
+  if (!winningSide && !checkScoreHasValue({ score })) return undefined;
+
+  if (winningSide) {
+    return decorateResult({
+      result: { error: INCOMPATIBLE_MATCHUP_STATUS },
+      info: 'A winningSide implies completion and cannot be set with a live matchUpStatus (IN_PROGRESS / SUSPENDED)',
+      context: { matchUpStatus, winningSide },
+      stack: 'setMatchUpStatus',
+    });
+  }
+
+  const matchUpFormat =
+    matchUp?.matchUpFormat ?? structure?.matchUpFormat ?? drawDefinition?.matchUpFormat ?? event?.matchUpFormat;
+  if (!matchUpFormat) return undefined;
+
+  const { calculatedWinningSide } = analyzeMatchUp({ matchUp: { score, matchUpFormat }, matchUpFormat });
+  if (!calculatedWinningSide) return undefined;
+
+  return decorateResult({
+    result: { error: INCOMPATIBLE_MATCHUP_STATUS },
+    info: 'Score implies a completed outcome and cannot be set with a live matchUpStatus (IN_PROGRESS / SUSPENDED)',
+    context: { matchUpStatus, calculatedWinningSide },
+    stack: 'setMatchUpStatus',
+  });
 }
 
 function validateMatchUpStateInputs({ drawDefinition, matchUpStatus, winningSide }) {
