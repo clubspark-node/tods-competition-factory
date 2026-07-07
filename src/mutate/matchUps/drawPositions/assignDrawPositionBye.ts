@@ -112,9 +112,10 @@ export function assignDrawPositionBye({
   }
 
   //
-  const hasPropagatedStatus = !!(loserMatchUp && matchUpsMap.drawMatchUps.find(
-    (m) => m.loserMatchUpId === loserMatchUp?.matchUpId && isExit(m.matchUpStatus),
-  ));
+  const hasPropagatedStatus = !!(
+    loserMatchUp &&
+    matchUpsMap.drawMatchUps.find((m) => m.loserMatchUpId === loserMatchUp?.matchUpId && isExit(m.matchUpStatus))
+  );
   // ################### Check error conditions ######################
   const drawPositionIsActive = activeDrawPositions?.includes(drawPosition);
   if (drawPositionIsActive && !hasPropagatedStatus) {
@@ -163,7 +164,7 @@ export function assignDrawPositionBye({
       //let's clear up the participant from the assignment
       //if it was there because of a propagated exit.
       if (hasPropagatedStatus) {
-        assignment.participantId = undefined
+        assignment.participantId = undefined;
       }
     }
   });
@@ -501,6 +502,33 @@ function advanceWinner({
     ({ drawPosition }) => drawPosition === drawPositionToAdvance,
   )?.bye;
 
+  // AUTO-RESOLVE a pending propagated exit: a real participant is advancing into
+  // the empty winning slot of a cascaded WALKOVER/DEFAULT (e.g. a consolation
+  // walkover that was applied while awaiting the participant who falls through
+  // later). They take the walkover — keep the exit status, make them the winner,
+  // re-position the carried code onto the exiting participant's side, and advance
+  // them onward. Without this the generic clear below reverts it to TO_BE_PLAYED.
+  if (
+    isExit(noContextWinnerMatchUp.matchUpStatus) &&
+    noContextWinnerMatchUp.winningSide &&
+    !drawPositionIsBye &&
+    !pairedDrawPositionIsBye
+  ) {
+    resolvePropagatedExitOnAdvance({
+      matchUp: noContextWinnerMatchUp,
+      drawPositionToAdvance,
+      inContextDrawMatchUps,
+      tournamentRecord,
+      drawDefinition,
+      drawPositions,
+      winnerMatchUp,
+      matchUpsMap,
+      event,
+      stack,
+    });
+    return;
+  }
+
   const matchUpStatus = drawPositionIsBye || pairedDrawPositionIsBye ? BYE : TO_BE_PLAYED;
 
   Object.assign(noContextWinnerMatchUp, {
@@ -578,6 +606,58 @@ function advanceWinner({
       }
     }
   }
+}
+
+// A participant advancing into the empty winning slot of a pending propagated
+// exit takes the walkover: keep the exit status, set them as the winner, move the
+// carried code onto the exiting participant's (re-sorted) side, then advance them.
+function resolvePropagatedExitOnAdvance({
+  matchUp,
+  drawPositionToAdvance,
+  inContextDrawMatchUps,
+  tournamentRecord,
+  drawDefinition,
+  drawPositions,
+  winnerMatchUp,
+  matchUpsMap,
+  event,
+  stack,
+}) {
+  const advancingSideNumber = drawPositions.indexOf(drawPositionToAdvance) + 1;
+  const exitSideNumber = advancingSideNumber === 1 ? 2 : 1;
+
+  const existingCode = (matchUp.matchUpStatusCodes ?? []).find(Boolean);
+  const matchUpStatusCodes: string[] = [];
+  if (existingCode) {
+    for (let i = 0; i < exitSideNumber - 1; i++) matchUpStatusCodes[i] = '';
+    matchUpStatusCodes[exitSideNumber - 1] = existingCode;
+  }
+
+  Object.assign(matchUp, {
+    // keep the exit status (WALKOVER / DEFAULTED) already on the matchUp
+    winningSide: advancingSideNumber,
+    matchUpStatusCodes,
+    score: undefined,
+    drawPositions,
+  });
+
+  modifyMatchUpNotice({
+    tournamentId: tournamentRecord?.tournamentId,
+    eventId: event?.eventId,
+    context: stack,
+    drawDefinition,
+    matchUp,
+  });
+
+  // the walkover winner advances onward to the next round
+  advanceDrawPosition({
+    matchUpId: winnerMatchUp.matchUpId,
+    drawPositionToAdvance,
+    inContextDrawMatchUps,
+    tournamentRecord,
+    drawDefinition,
+    matchUpsMap,
+  });
 }
 
 type AssignFedDrawPositionByeType = {

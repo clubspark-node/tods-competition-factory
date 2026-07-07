@@ -12,7 +12,6 @@ import { getMatchUpsMap } from '@Query/matchUps/getMatchUpsMap';
 import { pushGlobalLog } from '@Functions/global/globalLog';
 import { findStructure } from '@Acquire/findStructure';
 import { ensureInt } from '@Tools/ensureInt';
-import { isExit } from '@Validators/isExit';
 import { overlap } from '@Tools/arrays';
 
 // constants and types
@@ -398,17 +397,13 @@ function removeDrawPosition({
   );
   const matchUpContainsBye = matchUpAssignments.filter((assignment) => assignment.bye).length;
 
-  const newMatchUpStatus =
-    (matchUpContainsBye && BYE) ||
-    (targetMatchUp.matchUpStatus && isExit(targetMatchUp.matchUpStatus) && targetMatchUp.matcHUpStatus) ||
-    TO_BE_PLAYED;
-
-  targetMatchUp.matchUpStatus = newMatchUpStatus;
-
-  // if the matchUpStatus is WALKOVER then it is DOUBLE_WALKOVER produced
-  // if the matchUpStatus is DEFAULTED then it is DOUBLE_DEFAULT produced
-  // ... and the winningSide must be removed
-  if (targetMatchUp.matchUpStatus && isExit(targetMatchUp.matchUpStatus)) targetMatchUp.winningSide = undefined;
+  // Collapse to BYE (when a BYE remains) or TO_BE_PLAYED. Neither is a decided
+  // matchUp, so a leftover winningSide and any carried exit codes (e.g. from removing
+  // a still-pending propagated WALKOVER/DEFAULT whose winner slot was never filled)
+  // must be dropped along with it.
+  targetMatchUp.matchUpStatus = (matchUpContainsBye && BYE) || TO_BE_PLAYED;
+  targetMatchUp.winningSide = undefined;
+  if (targetMatchUp.matchUpStatusCodes?.length) targetMatchUp.matchUpStatusCodes = [];
 
   const removedDrawPosition = initialDrawPositions?.find(
     (position) => !targetMatchUp.drawPositions?.includes(position),

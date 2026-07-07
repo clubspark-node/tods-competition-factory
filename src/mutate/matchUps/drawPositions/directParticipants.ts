@@ -6,6 +6,7 @@ import { decorateResult } from '@Functions/global/decorateResult';
 import { isAdHoc } from '@Query/drawDefinition/isAdHoc';
 import { directWinner } from './directWinner';
 import { directLoser } from './directLoser';
+import { isExit } from '@Validators/isExit';
 
 // constants
 import { MISSING_DRAW_POSITIONS } from '@Constants/errorConditionConstants';
@@ -88,7 +89,18 @@ export function directParticipants(params): ResultType {
       },
     } = targetData;
 
-    if (winnerMatchUp) {
+    // A propagated exit (WALKOVER/DEFAULT) can carry a winningSide whose side is
+    // still an empty feed slot — the eventual opponent has not fallen through yet.
+    // There is no participant to advance, and the index-based winningDrawPosition
+    // would resolve to the LOSER's position. Suppress winner advancement until the
+    // real opponent arrives (advanceWinner auto-resolves and advances them then).
+    const inContextMatchUp = inContextDrawMatchUps?.find((m) => m.matchUpId === matchUpId);
+    const winningSideParticipantId = inContextMatchUp?.sides?.find(
+      (side) => side.sideNumber === (projectedWinningSide || winningSide),
+    )?.participantId;
+    const winnerSlotEmpty = isExit(matchUpStatus) && !winningSideParticipantId;
+
+    if (winnerMatchUp && !winnerSlotEmpty) {
       const result = directWinner({
         sourceMatchUpStatus: (matchUpStatusIsValid && matchUpStatus) || COMPLETED,
         winnerMatchUpDrawPositionIndex,
