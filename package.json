@@ -1,5 +1,5 @@
 {
-  "name": "tods-competition-factory",
+  "name": "@clubspark-node/tods-competition-factory",
   "author": "Charles Allen <charles@CourtHive.com> (CourtHive.com)",
   "description": "Create and mutate TODS compliant tournament objects",
   "keywords": [
@@ -27,12 +27,12 @@
   "private": false,
   "homepage": "https://courthive.github.io/tods-competition-factory/",
   "bugs": {
-    "url": "https://github.com/CourtHive/tods-competition-factory/issues",
+    "url": "https://github.com/clubspark-node/tods-competition-factory/issues",
     "email": "support@CourtHive.com"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CourtHive/tods-competition-factory.git"
+    "url": "git+https://github.com/clubspark-node/tods-competition-factory.git"
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -66,7 +66,7 @@
     "node": ">=20"
   },
   "publishConfig": {
-    "registry": "https://registry.npmjs.org"
+    "registry": "https://npm.pkg.github.com/@clubspark-node"
   },
   "scripts": {
     "commits": "git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges --pretty=format:'%s: %h' | sed '/factory/d'",
