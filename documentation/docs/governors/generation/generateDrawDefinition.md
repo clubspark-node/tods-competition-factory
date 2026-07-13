@@ -254,6 +254,30 @@ const { drawDefinition } = engine.generateDrawDefinition({
 // Targeted matchUps get external IDs; untargeted matchUps get generated UUIDs
 ```
 
+## Replacing an existing draw (recovery)
+
+Calling `generateDrawDefinition` (or `addDrawDefinition`) again with an **existing `drawId`**
+and `allowReplacement: true` overwrites the current draw with the newly generated one — this
+is how a regenerate/reset flow reshapes a draw in place.
+
+If the **outgoing** draw has matchUps, the replace now emits a recoverable **`AUDIT`
+snapshot** of that draw before it is discarded, using the same `DELETE_DRAW_DEFINITIONS`
+contract as [`deleteDrawDefinitions`](/docs/governors/event-governor). A subscriber (notably
+the server's `AuditService`) records it as `metadata.deletedDrawSnapshot`, so an
+overwritten scored draw is recoverable via `/audit/deleted-draws` and `restore-draw` rather
+than being lost silently. Empty-scaffold regenerations (no matchUps on the outgoing draw)
+do not emit a snapshot.
+
+> Replacing a draw that carries scores is destructive. Prefer
+> [`deleteDrawDefinitions`](/docs/governors/event-governor) (which refuses on `SCORES_PRESENT`
+> unless forced) when the intent is to remove a draw, and confirm intent in the UI before
+> regenerating over completed matchUps.
+
+For recovering draws that were overwritten **before** this snapshot behavior existed — or to
+rebuild from the full mutation history — the `Mentat/tools/draw-recovery` utility replays the
+`audit_log` generation payload plus the recorded `assignDrawPosition`/`setMatchUpStatus`
+events through the engine to reconstruct a schema-valid `drawDefinition`.
+
 ## Related
 
 - [Draw Types](/docs/concepts/draw-types) — all supported draw type configurations

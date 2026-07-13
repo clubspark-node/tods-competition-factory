@@ -1,6 +1,7 @@
 import { newDrawDefinition } from '@Assemblies/generators/drawDefinitions/newDrawDefinition';
 import { firstClassOrExtension } from '@Acquire/firstClassOrExtension';
 import { addDrawDefinition } from '@Mutate/drawDefinitions/addDrawDefinition';
+import { setSubscriptions } from '@Global/state/globalState';
 import mocksEngine from '@Assemblies/engines/mock';
 import tournamentEngine from '@Engines/syncEngine';
 import { describe, expect, it } from 'vitest';
@@ -8,8 +9,10 @@ import { describe, expect, it } from 'vitest';
 // constants
 import { DIRECT_ACCEPTANCE, WILDCARD } from '@Constants/entryStatusConstants';
 import { SINGLE_ELIMINATION } from '@Constants/drawDefinitionConstants';
+import { DELETE_DRAW_DEFINITIONS } from '@Constants/auditConstants';
 import { FLIGHT_PROFILE } from '@Constants/extensionConstants';
 import { DrawDefinition } from '@Types/tournamentTypes';
+import { AUDIT } from '@Constants/topicConstants';
 import {
   DRAW_ID_EXISTS,
   INVALID_DRAW_DEFINITION,
@@ -65,6 +68,66 @@ describe('addDrawDefinition coverage', () => {
       allowReplacement: true,
     });
     expect(result.success).toBe(true);
+  });
+
+  it('emits an AUDIT snapshot of the outgoing draw when replaced via allowReplacement', () => {
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [{ drawType: SINGLE_ELIMINATION, drawSize: 8 }],
+      setState: true,
+    });
+
+    const { events } = tournamentEngine.getEvents();
+    const event = events[0];
+    const existingDrawDefinition = event.drawDefinitions[0];
+
+    const audited: any[] = [];
+    setSubscriptions({ subscriptions: { [AUDIT]: (notices) => audited.push(...notices) } });
+
+    const result = tournamentEngine.addDrawDefinition({
+      drawDefinition: existingDrawDefinition,
+      eventId: event.eventId,
+      allowReplacement: true,
+    });
+    expect(result.success).toBe(true);
+
+    // the outgoing (overwritten) draw is captured on the same contract deleteDrawDefinitions
+    // uses, so the server AuditService records metadata.deletedDrawSnapshot and the draw is
+    // recoverable via /audit/deleted-draws — closing the silent-data-loss gap on replace.
+    expect(audited.length).toEqual(1);
+    expect(audited[0].detail[0].action).toEqual(DELETE_DRAW_DEFINITIONS);
+    const snapshot = audited[0].detail[0].payload.drawDefinitions[0];
+    expect(snapshot.drawId).toEqual(existingDrawDefinition.drawId);
+    expect(snapshot.structures?.length).toBeGreaterThan(0);
+
+    setSubscriptions({ subscriptions: { [AUDIT]: true } }); // remove subscriber
+  });
+
+  it('does not emit an AUDIT snapshot when the replaced draw has no matchUps', () => {
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [{ drawType: SINGLE_ELIMINATION, drawSize: 8 }],
+      setState: true,
+    });
+    const { events } = tournamentEngine.getEvents();
+    const eventId = events[0].eventId;
+
+    // add an empty (matchUp-less) draw, then replace it — the gate must keep this quiet
+    expect(
+      tournamentEngine.addDrawDefinition({ drawDefinition: newDrawDefinition({ drawId: 'empty-draw' }), eventId })
+        .success,
+    ).toBe(true);
+
+    let auditCount = 0;
+    setSubscriptions({ subscriptions: { [AUDIT]: () => (auditCount += 1) } });
+
+    const result = tournamentEngine.addDrawDefinition({
+      drawDefinition: newDrawDefinition({ drawId: 'empty-draw' }),
+      allowReplacement: true,
+      eventId,
+    });
+    expect(result.success).toBe(true);
+    expect(auditCount).toEqual(0);
+
+    setSubscriptions({ subscriptions: { [AUDIT]: true } }); // remove subscriber
   });
 
   it('respects existingDrawCount mismatch', () => {

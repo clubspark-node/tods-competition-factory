@@ -2,6 +2,7 @@ import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExte
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
+import { addNotice, hasTopic } from '@Global/state/globalState';
 import { getMatchUpId } from '@Functions/global/extractors';
 import { ensureInt } from '@Tools/ensureInt';
 import {
@@ -14,9 +15,11 @@ import {
 // constants and types
 import { STRUCTURE_SELECTED_STATUSES } from '@Constants/entryStatusConstants';
 import { DrawDefinition, Event, Tournament } from '@Types/tournamentTypes';
+import { DELETE_DRAW_DEFINITIONS } from '@Constants/auditConstants';
 import { FLIGHT_PROFILE } from '@Constants/extensionConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 import { ResultType } from '@Types/factoryTypes';
+import { AUDIT } from '@Constants/topicConstants';
 import {
   DRAW_ID_EXISTS,
   INVALID_DRAW_DEFINITION,
@@ -232,6 +235,18 @@ function replaceExistingDraw({
   const existingMatchUpIds: string[] = existingMatchUps?.map(getMatchUpId) ?? [];
   const incomingMatchUps = allDrawMatchUps({ drawDefinition })?.matchUps;
 
+  // Capture a recoverable snapshot of the OUTGOING draw before it is discarded.
+  // Without this a replace is silent data-loss: unlike deleteDrawDefinitions the
+  // replace path emits no AUDIT snapshot, so a populated/scored draw overwritten via
+  // allowReplacement was previously unrecoverable. Reuses the DELETE_DRAW_DEFINITIONS
+  // audit contract so the server's AuditService records it identically
+  // (metadata.deletedDrawSnapshot -> /audit/deleted-draws + restore-draw). Emitted
+  // regardless of suppressNotifications (data-safety, not a UI notice) and gated on the
+  // outgoing draw actually having matchUps so empty-scaffold regenerations stay quiet.
+  if (existingMatchUpIds.length) {
+    dispatchDrawReplacementAudit({ existingDrawDefinition, tournamentId, eventId: eventId ?? event?.eventId });
+  }
+
   if (!suppressNotifications) {
     if (existingMatchUpIds?.length) {
       deleteMatchUpsNotice({
@@ -250,6 +265,16 @@ function replaceExistingDraw({
     const structureIds = drawDefinition.structures?.map(({ structureId }) => structureId);
     modifyDrawNotice({ drawDefinition, tournamentId, structureIds, eventId });
   }
+}
+
+function dispatchDrawReplacementAudit({ existingDrawDefinition, tournamentId, eventId }) {
+  // Mirror deleteDrawDefinitions' AUDIT emission so an overwritten draw is recoverable
+  // through the same subscriber path. Only dispatched when a subscriber is present.
+  if (!hasTopic(AUDIT)) return;
+  const auditTrail = [
+    { action: DELETE_DRAW_DEFINITIONS, payload: { drawDefinitions: [existingDrawDefinition], eventId } },
+  ];
+  addNotice({ topic: AUDIT, payload: { tournamentId, detail: auditTrail } });
 }
 
 function addNewDraw({ suppressNotifications, tournamentRecord, drawDefinition, tournamentId, eventId, event }) {
