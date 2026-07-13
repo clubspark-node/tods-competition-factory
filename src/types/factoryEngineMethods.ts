@@ -334,6 +334,7 @@ export type FactoryEngineMethod =
   | 'getScaledEntries'
   | 'getScaleValues'
   | 'getScheduledRoundsDetails'
+  | 'getScheduleProjection'
   | 'getSchedulingProfile'
   | 'getSchedulingProfileIssues'
   | 'getSchemaWriteMode'
@@ -404,6 +405,7 @@ export type FactoryEngineMethod =
   | 'matchUpScheduleChange'
   | 'mcpValidator'
   | 'mergeAdjacentSegments'
+  | 'mergeFacilitySchedule'
   | 'mergeOverlappingAvailability'
   | 'mergeParticipants'
   | 'migrateTournamentRecord'
@@ -966,6 +968,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'getScaledEntries',
   'getScaleValues',
   'getScheduledRoundsDetails',
+  'getScheduleProjection',
   'getSchedulingProfile',
   'getSchedulingProfileIssues',
   'getSchemaWriteMode',
@@ -1036,6 +1039,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'matchUpScheduleChange',
   'mcpValidator',
   'mergeAdjacentSegments',
+  'mergeFacilitySchedule',
   'mergeOverlappingAvailability',
   'mergeParticipants',
   'migrateTournamentRecord',

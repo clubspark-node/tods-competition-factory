@@ -185,9 +185,11 @@ import type { generateBookings } from '@Generators/scheduling/utils/generateBook
 import type { getApplicableAwardProfileLevels } from '@Query/scales/getApplicableAwardProfileLevels';
 import type { getLuckyDrawRoundStatus } from '@Query/drawDefinition/getLuckyDrawRoundStatus';
 import type { getMatchUpDailyLimitsUpdate } from '@Query/extensions/getMatchUpDailyLimitsUpdate';
+import type { getScheduleProjection } from '@Query/facilitySchedule/getScheduleProjection';
 import type { getTournamentCalendarEntry } from '@Query/tournaments/getTournamentCalendarEntry';
 import type { getTournamentPublishStatus } from '@Query/tournaments/getTournamentPublishStatus';
 import type { initializeDraft } from '@Mutate/drawDefinitions/draft/initializeDraft';
+import type { mergeFacilitySchedule } from '@Query/facilitySchedule/mergeFacilitySchedule';
 import type { predictMatchUpCompetitiveBands } from '@Query/matchUp/predictMatchUpCompetitiveBands';
 import type { removeRatings } from '@Mutate/participants/scaleItems/removeRatings';
 import type { scheduleProfileGrid } from '@Mutate/matchUps/schedule/scheduleProfileGrid';
@@ -861,6 +863,7 @@ export interface MethodSignatures {
   getScaledEntries: EngineMethod<typeof getScaledEntries>;
   getScaleValues: EngineMethod<typeof getScaleValues>;
   getScheduledRoundsDetails: EngineMethod<typeof getScheduledRoundsDetails>;
+  getScheduleProjection: EngineMethod<typeof getScheduleProjection>;
   getSchedulingProfile: EngineMethod<typeof getSchedulingProfile>;
   getSchedulingProfileIssues: EngineMethod<typeof getSchedulingProfileIssues>;
   getScore: EngineMethod<typeof getScore>;
@@ -920,6 +923,7 @@ export interface MethodSignatures {
   matchUpActions: EngineMethod<typeof matchUpActions>;
   matchUpScheduleChange: EngineMethod<typeof matchUpScheduleChange>;
   mcpValidator: EngineMethod<typeof mcpValidator>;
+  mergeFacilitySchedule: EngineMethod<typeof mergeFacilitySchedule>;
   mergeParticipants: EngineMethod<typeof mergeParticipants>;
   migrateTournamentRecord: EngineMethod<typeof migrateTournamentRecord>;
   modifyCertification: EngineMethod<typeof modifyCertification>;
