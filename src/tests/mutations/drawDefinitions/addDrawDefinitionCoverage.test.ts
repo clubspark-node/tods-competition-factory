@@ -19,6 +19,7 @@ import {
   INVALID_VALUES,
   MISSING_DRAW_DEFINITION,
   MISSING_EVENT,
+  SCORES_PRESENT,
 } from '@Constants/errorConditionConstants';
 
 describe('addDrawDefinition coverage', () => {
@@ -126,6 +127,70 @@ describe('addDrawDefinition coverage', () => {
     });
     expect(result.success).toBe(true);
     expect(auditCount).toEqual(0);
+
+    setSubscriptions({ subscriptions: { [AUDIT]: true } }); // remove subscriber
+  });
+
+  it('refuses to replace a draw with scores present unless forced', () => {
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [
+        {
+          drawType: SINGLE_ELIMINATION,
+          drawSize: 4,
+          outcomes: [{ roundNumber: 1, roundPosition: 1, scoreString: '6-2 6-1', winningSide: 1 }],
+        },
+      ],
+      setState: true,
+    });
+
+    const { events } = tournamentEngine.getEvents();
+    const event = events[0];
+    const existingDrawDefinition = event.drawDefinitions[0];
+
+    const blocked = tournamentEngine.addDrawDefinition({
+      drawDefinition: existingDrawDefinition,
+      eventId: event.eventId,
+      allowReplacement: true,
+    });
+    expect(blocked.error).toEqual(SCORES_PRESENT);
+
+    const forced = tournamentEngine.addDrawDefinition({
+      drawDefinition: existingDrawDefinition,
+      eventId: event.eventId,
+      allowReplacement: true,
+      force: true,
+    });
+    expect(forced.success).toBe(true);
+  });
+
+  it('emits the AUDIT snapshot when force-replacing a scored draw', () => {
+    mocksEngine.generateTournamentRecord({
+      drawProfiles: [
+        {
+          drawType: SINGLE_ELIMINATION,
+          drawSize: 4,
+          outcomes: [{ roundNumber: 1, roundPosition: 1, scoreString: '6-2 6-1', winningSide: 1 }],
+        },
+      ],
+      setState: true,
+    });
+
+    const { events } = tournamentEngine.getEvents();
+    const event = events[0];
+    const existingDrawDefinition = event.drawDefinitions[0];
+
+    const audited: any[] = [];
+    setSubscriptions({ subscriptions: { [AUDIT]: (notices) => audited.push(...notices) } });
+
+    const forced = tournamentEngine.addDrawDefinition({
+      drawDefinition: existingDrawDefinition,
+      eventId: event.eventId,
+      allowReplacement: true,
+      force: true,
+    });
+    expect(forced.success).toBe(true);
+    expect(audited.length).toEqual(1);
+    expect(audited[0].detail[0].payload.drawDefinitions[0].drawId).toEqual(existingDrawDefinition.drawId);
 
     setSubscriptions({ subscriptions: { [AUDIT]: true } }); // remove subscriber
   });

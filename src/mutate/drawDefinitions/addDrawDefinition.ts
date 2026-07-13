@@ -1,4 +1,6 @@
 import { setFirstClassOrExtension } from '@Mutate/extensions/setFirstClassOrExtension';
+import { getAppliedPolicies } from '@Query/extensions/getAppliedPolicies';
+import { checkScoreHasValue } from '@Query/matchUp/checkScoreHasValue';
 import { allDrawMatchUps } from '@Query/matchUps/getAllDrawMatchUps';
 import { decorateResult } from '@Functions/global/decorateResult';
 import { getFlightProfile } from '@Query/event/getFlightProfile';
@@ -17,6 +19,7 @@ import { STRUCTURE_SELECTED_STATUSES } from '@Constants/entryStatusConstants';
 import { DrawDefinition, Event, Tournament } from '@Types/tournamentTypes';
 import { DELETE_DRAW_DEFINITIONS } from '@Constants/auditConstants';
 import { FLIGHT_PROFILE } from '@Constants/extensionConstants';
+import { POLICY_TYPE_SCORING } from '@Constants/policyConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 import { ResultType } from '@Types/factoryTypes';
 import { AUDIT } from '@Constants/topicConstants';
@@ -26,6 +29,7 @@ import {
   INVALID_VALUES,
   MISSING_DRAW_DEFINITION,
   MISSING_EVENT,
+  SCORES_PRESENT,
 } from '@Constants/errorConditionConstants';
 
 type AddDrawDefinitionArgs = {
@@ -38,6 +42,7 @@ type AddDrawDefinitionArgs = {
   allowReplacement?: boolean;
   checkEntryStatus?: boolean;
   tournamentId?: string;
+  force?: boolean; // permit replacing a draw that has scores present
   event: Event;
 };
 
@@ -53,6 +58,7 @@ export function addDrawDefinition(
     checkEntryStatus, // optional boolean to enable checking that flight.drawEntries match event.entries
     tournamentRecord,
     drawDefinition,
+    force,
     event,
   } = params;
   if (!drawDefinition) return { error: MISSING_DRAW_DEFINITION };
@@ -165,6 +171,11 @@ export function addDrawDefinition(
 
   if (existingDrawDefinition) {
     if (!allowReplacement) return { error: DRAW_ID_EXISTS };
+    // Refuse to overwrite a draw whose matchUps have scores unless explicitly forced (or the
+    // scoring policy permits it) — mirrors deleteDrawDefinitions so a replace can't silently
+    // wipe completed results. The AUDIT snapshot below still fires when the replace proceeds.
+    if (replacementBlockedByScores({ existingDrawDefinition, tournamentRecord, event, force }))
+      return { error: SCORES_PRESENT };
     replaceExistingDraw({
       existingDrawDefinition,
       suppressNotifications,
@@ -265,6 +276,16 @@ function replaceExistingDraw({
     const structureIds = drawDefinition.structures?.map(({ structureId }) => structureId);
     modifyDrawNotice({ drawDefinition, tournamentId, structureIds, eventId });
   }
+}
+
+function replacementBlockedByScores({ existingDrawDefinition, tournamentRecord, event, force }) {
+  const matchUps = allDrawMatchUps({ drawDefinition: existingDrawDefinition })?.matchUps ?? [];
+  const scoresPresent = matchUps.some(({ score }) => checkScoreHasValue({ score }));
+  if (!scoresPresent) return false;
+  const { appliedPolicies } = getAppliedPolicies({ tournamentRecord, event });
+  const allowReplacementWithScores =
+    force ?? appliedPolicies?.[POLICY_TYPE_SCORING]?.allowDeletionWithScoresPresent?.drawDefinitions;
+  return !allowReplacementWithScores;
 }
 
 function dispatchDrawReplacementAudit({ existingDrawDefinition, tournamentId, eventId }) {
