@@ -42,6 +42,7 @@ verifyDepsBeforeRun: false
 # - multer: GHSA-72gw-mp4g-v24j (DoS via nested field names); patched 2.2.0. Via @nestjs/platform-express.
 # - piscina: GHSA-x9g3-xrwr-cwfg (prototype-pollution → RCE); patched 4.9.3. Via @swc/cli.
 overrides:
+  typescript: 6.0.3 # block native TS7 (no classic JS API — crashes tsc/nest/sonarjs); pairs with renovate TS-major block
   qs: '^6.15.2'
   form-data: '>=4.0.6'
   multer: '>=2.2.0'
