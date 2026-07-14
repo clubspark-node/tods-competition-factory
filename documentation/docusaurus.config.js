@@ -4,11 +4,13 @@ module.exports = {
   tagline: 'Open-source engine for tournament management — draws, scheduling, scoring, and more.',
   url: 'https://courthive.github.io',
   baseUrl: '/competition-factory/',
-  // Explicit to satisfy the GitHub Pages deploy warning. `true` matches the
-  // existing folder-style output (docs/foo/index.html → /docs/foo/), so live
-  // URLs are unchanged and GitHub Pages no longer needs a direct-access
-  // redirect to add the slash. (Was previously unset — never removed.)
-  trailingSlash: true,
+  // trailingSlash is intentionally left UNSET. Docusaurus warns about this on a
+  // GitHub Pages deploy, but the warning is cosmetic — and setting it either way
+  // breaks internal links: the docs are authored with relative sibling links
+  // ending in a slash (e.g. `./data-standards/`), which only resolve correctly
+  // under the default. `true` re-bases them under the current page (404s);
+  // `false` switches to flat .html output so the slash target has no folder.
+  // Silencing the warning would require rewriting those relative links repo-wide.
   onBrokenLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'CourtHive',
