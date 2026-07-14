@@ -4,6 +4,11 @@ module.exports = {
   tagline: 'Open-source engine for tournament management — draws, scheduling, scoring, and more.',
   url: 'https://courthive.github.io',
   baseUrl: '/competition-factory/',
+  // Explicit to satisfy the GitHub Pages deploy warning. `true` matches the
+  // existing folder-style output (docs/foo/index.html → /docs/foo/), so live
+  // URLs are unchanged and GitHub Pages no longer needs a direct-access
+  // redirect to add the slash. (Was previously unset — never removed.)
+  trailingSlash: true,
   onBrokenLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'CourtHive',
