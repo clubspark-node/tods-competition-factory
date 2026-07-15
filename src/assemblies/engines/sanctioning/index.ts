@@ -23,6 +23,7 @@ import { updateProposal } from '@Mutate/sanctioning/updateProposal';
 import { addReviewNote } from '@Mutate/sanctioning/addReviewNote';
 import { meetCondition } from '@Mutate/sanctioning/meetCondition';
 import { factoryVersion } from '@Functions/global/factoryVersion';
+import { executeDeclarationQueue } from '@Functions/declaration/executeDeclarationQueue';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
 import {
   getSanctioningRecords,
@@ -47,7 +48,6 @@ import {
 
 // constants
 import { SANCTIONING_RECORD_EXISTS } from '@Constants/sanctioningConstants';
-import { INVALID_VALUES } from '@Constants/errorConditionConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 
 // types
@@ -285,49 +285,14 @@ export const sanctioningEngine = (() => {
     // -----------------------------------------------------------------------
     // Execution Queue
     // -----------------------------------------------------------------------
-    executionQueue: (directives: SanctioningDirectives, rollbackOnError?: boolean) => {
-      if (!Array.isArray(directives))
-        return { error: INVALID_VALUES, context: { message: 'directives must be an array' } };
-
-      const snapshot = rollbackOnError ? makeDeepCopy(getSanctioningRecords(), false, true) : undefined;
-
-      const results: any[] = [];
-      for (const directive of directives) {
-        if (typeof directive !== 'object')
-          return { error: INVALID_VALUES, context: { message: 'directive must be an object' } };
-
-        const { method: methodName, pipe } = directive;
-        const params: any = directive.params ? { ...directive.params } : {};
-
-        const method = (engine as any)[methodName];
-        if (!method) {
-          if (snapshot) setSanctioningRecords(snapshot);
-          return {
-            error: INVALID_VALUES,
-            context: { message: `Method not found: ${methodName}` },
-            rolledBack: !!snapshot,
-          };
-        }
-
-        if (pipe && results.length) {
-          const lastResult = results.at(-1);
-          for (const pipeKey of Object.keys(pipe)) {
-            if (lastResult[pipeKey] !== undefined) params[pipeKey] = lastResult[pipeKey];
-          }
-        }
-
-        const result = method(params);
-        if (result?.error) {
-          if (snapshot) setSanctioningRecords(snapshot);
-          return { ...result, rolledBack: !!snapshot };
-        }
-
-        results.push({ ...result, methodName });
-      }
-
-      const success = results.every((r) => r.success);
-      return { success, results };
-    },
+    executionQueue: (directives: SanctioningDirectives, rollbackOnError?: boolean) =>
+      executeDeclarationQueue({
+        engine,
+        directives,
+        rollbackOnError,
+        getRecords: getSanctioningRecords,
+        setRecords: setSanctioningRecords,
+      }),
   };
 
   return engine;

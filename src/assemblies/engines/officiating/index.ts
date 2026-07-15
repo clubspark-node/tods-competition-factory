@@ -23,6 +23,7 @@ import { factoryVersion } from '@Functions/global/factoryVersion';
 import { addEvaluation } from '@Mutate/officiating/addEvaluation';
 import { addSuspension } from '@Mutate/officiating/addSuspension';
 import { assignOfficial } from '@Mutate/officiating/assignOfficial';
+import { executeDeclarationQueue } from '@Functions/declaration/executeDeclarationQueue';
 import { makeDeepCopy } from '@Tools/makeDeepCopy';
 import {
   getOfficialRecords,
@@ -37,7 +38,6 @@ import {
 
 // Constants
 import { OFFICIAL_RECORD_EXISTS } from '@Constants/officiatingConstants';
-import { INVALID_VALUES } from '@Constants/errorConditionConstants';
 import { SUCCESS } from '@Constants/resultConstants';
 
 // Types
@@ -226,49 +226,14 @@ export const officiatingEngine = (() => {
     // -----------------------------------------------------------------------
     // Execution Queue
     // -----------------------------------------------------------------------
-    executionQueue: (directives: OfficiatingDirectives, rollbackOnError?: boolean) => {
-      if (!Array.isArray(directives))
-        return { error: INVALID_VALUES, context: { message: 'directives must be an array' } };
-
-      const snapshot = rollbackOnError ? makeDeepCopy(getOfficialRecords(), false, true) : undefined;
-
-      const results: any[] = [];
-      for (const directive of directives) {
-        if (typeof directive !== 'object')
-          return { error: INVALID_VALUES, context: { message: 'directive must be an object' } };
-
-        const { method: methodName, pipe } = directive;
-        const params: any = directive.params ? { ...directive.params } : {};
-
-        const method = (engine as any)[methodName];
-        if (!method) {
-          if (snapshot) setOfficialRecords(snapshot);
-          return {
-            error: INVALID_VALUES,
-            context: { message: `Method not found: ${methodName}` },
-            rolledBack: !!snapshot,
-          };
-        }
-
-        if (pipe && results.length) {
-          const lastResult = results.at(-1);
-          for (const pipeKey of Object.keys(pipe)) {
-            if (lastResult[pipeKey] !== undefined) params[pipeKey] = lastResult[pipeKey];
-          }
-        }
-
-        const result = method(params);
-        if (result?.error) {
-          if (snapshot) setOfficialRecords(snapshot);
-          return { ...result, rolledBack: !!snapshot };
-        }
-
-        results.push({ ...result, methodName });
-      }
-
-      const success = results.every((r) => r.success);
-      return { success, results };
-    },
+    executionQueue: (directives: OfficiatingDirectives, rollbackOnError?: boolean) =>
+      executeDeclarationQueue({
+        engine,
+        directives,
+        rollbackOnError,
+        getRecords: getOfficialRecords,
+        setRecords: setOfficialRecords,
+      }),
   };
 
   return engine;
