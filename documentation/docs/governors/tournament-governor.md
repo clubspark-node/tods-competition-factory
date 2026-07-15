@@ -279,6 +279,23 @@ If a [primary venue](../concepts/venues-courts.md#primary-venue) is designated a
 
 ---
 
+## getTournamentTimeZone
+
+Resolves the authoritative IANA time zone for a tournament.
+
+```js
+const { timeZone, inferred, error } = engine.getTournamentTimeZone();
+```
+
+**Resolution order:**
+
+1. `tournamentRecord.localTimeZone` when set — validated as a real IANA zone (`INVALID_TIME_ZONE` if not).
+2. Otherwise inferred from venue addresses — a venue is the physical location, so a single distinct `address.timeZone` across all venues is used and returned with `inferred: true`.
+
+Returns `CONFLICTING_TIME_ZONES` when venues specify different zones and no tournament-level `localTimeZone` is set (the rare border-city case). Returns `{}` (no `timeZone`, no `error`) when no zone can be determined.
+
+---
+
 ## getTournamentPenalties
 
 Returns all penalties issued in the tournament.

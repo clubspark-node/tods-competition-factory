@@ -457,6 +457,10 @@ export const INVALID_TIME_ZONE = {
   message: 'Invalid Time Zone',
   code: 'ERR_INVALID_TIME_ZONE',
 };
+export const CONFLICTING_TIME_ZONES = {
+  message: 'Conflicting venue time zones and no tournament localTimeZone is set',
+  code: 'ERR_CONFLICTING_TIME_ZONES',
+};
 export const INVALID_EMBARGO = {
   message: 'Invalid embargo: must be an ISO 8601 datetime with timezone (Z or ±HH:MM offset)',
   code: 'ERR_INVALID_EMBARGO',

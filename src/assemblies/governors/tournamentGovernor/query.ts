@@ -10,6 +10,7 @@ export { getCompetitionPenalties } from '@Query/participants/getCompetitionPenal
 export { getCompetitionDateRange } from '@Query/tournaments/getCompetitionDateRange';
 export { getTournamentPenalties } from '@Query/participants/getTournamentPenalties';
 export { getRegistrationProfile } from '@Query/tournaments/getRegistrationProfile';
+export { getTournamentTimeZone } from '@Query/tournaments/getTournamentTimeZone';
 export { getAggregateTeamResults } from '@Query/scales/getAggregateTeamResults';
 export { getTournamentPersons } from '@Query/tournaments/getTournamentPersons';
 export { getEventRankingPoints } from '@Query/scales/getEventRankingPoints';
