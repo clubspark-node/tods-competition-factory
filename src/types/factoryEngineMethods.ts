@@ -371,6 +371,7 @@ export type FactoryEngineMethod =
   | 'getTournamentPublishStatus'
   | 'getTournamentStructures'
   | 'getTournamentTimeItem'
+  | 'getTournamentTimeZone'
   | 'getValidGroupSizes'
   | 'getVenueData'
   | 'getVenuesAndCourts'
@@ -1005,6 +1006,7 @@ export const FACTORY_ENGINE_METHODS: readonly FactoryEngineMethod[] = [
   'getTournamentPublishStatus',
   'getTournamentStructures',
   'getTournamentTimeItem',
+  'getTournamentTimeZone',
   'getValidGroupSizes',
   'getVenueData',
   'getVenuesAndCourts',

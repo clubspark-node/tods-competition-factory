@@ -283,6 +283,7 @@ import type { getEvaluationTemplate } from '@Query/officiating/getEvaluationTemp
 import type { getMatchUpScheduleDetails } from '@Query/matchUp/getMatchUpScheduleDetails';
 import type { getParticipantIdFinishingPositions } from '@Query/drawDefinition/finishingPositions';
 import type { getPracticeRegistrations } from '@Query/practice/getPracticeRegistrations';
+import type { getTournamentTimeZone } from '@Query/tournaments/getTournamentTimeZone';
 import type { modifyTournamentRecord } from '@Generators/mocks/modifyTournamentRecord';
 import type { removePolicy } from '@Mutate/extensions/policies/removePolicy';
 import type { setOrderOfFinish } from '@Mutate/drawDefinitions/setOrderOfFinish';
@@ -896,6 +897,7 @@ export interface MethodSignatures {
   getTournamentPublishStatus: EngineMethod<typeof getTournamentPublishStatus>;
   getTournamentStructures: EngineMethod<typeof getTournamentStructures>;
   getTournamentTimeItem: EngineMethod<typeof getTournamentTimeItem>;
+  getTournamentTimeZone: EngineMethod<typeof getTournamentTimeZone>;
   getValidGroupSizes: EngineMethod<typeof getValidGroupSizes>;
   getVenueData: EngineMethod<typeof getVenueData>;
   getVenuesAndCourts: EngineMethod<typeof getVenuesAndCourts>;
