@@ -1,5 +1,6 @@
 import { requestEndorsement, endorseApplication, declineEndorsement } from '@Mutate/sanctioning/endorsement';
 import { activateFromSanctioning } from '@Mutate/sanctioning/activateFromSanctioning';
+import { openProposalRegistration } from '@Mutate/sanctioning/openProposalRegistration';
 import { createSanctioningRecord } from '@Mutate/sanctioning/createSanctioningRecord';
 import { getAvailableTransitions } from '@Query/sanctioning/getAvailableTransitions';
 import { proposeAmendment, reviewAmendment } from '@Mutate/sanctioning/amendments';
@@ -192,6 +193,11 @@ export const sanctioningEngine = (() => {
     activateFromSanctioning: (params: any) => {
       const sanctioningRecord = params.sanctioningRecord ?? resolveRecord(params.sanctioningId);
       return activateFromSanctioning({ ...params, sanctioningRecord });
+    },
+
+    openProposalRegistration: (params: any) => {
+      const sanctioningRecord = params.sanctioningRecord ?? resolveRecord(params.sanctioningId);
+      return openProposalRegistration({ ...params, sanctioningRecord });
     },
 
     proposeAmendment: (params: any) => {
