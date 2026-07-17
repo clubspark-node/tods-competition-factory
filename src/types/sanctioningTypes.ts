@@ -82,8 +82,7 @@ export const SanctioningRelationshipEnum = {
   INDEPENDENT: 'INDEPENDENT',
 } as const;
 
-export type SanctioningRelationship =
-  (typeof SanctioningRelationshipEnum)[keyof typeof SanctioningRelationshipEnum];
+export type SanctioningRelationship = (typeof SanctioningRelationshipEnum)[keyof typeof SanctioningRelationshipEnum];
 
 export const AmendmentSeverityEnum = {
   MINOR: 'MINOR',
@@ -110,8 +109,8 @@ export interface SanctioningRecord {
 
   // Who
   applicant: Applicant;
-  endorsement?: Endorsement;        // convenience accessor — first endorsement (backward compat)
-  endorsements?: Endorsement[];     // full multi-level endorsement chain
+  endorsement?: Endorsement; // convenience accessor — first endorsement (backward compat)
+  endorsements?: Endorsement[]; // full multi-level endorsement chain
   reviewer?: Reviewer;
 
   // What
@@ -181,8 +180,8 @@ export interface Endorsement {
   endorserNotes?: string;
   endorserContact?: PersonReference;
   conditions?: string[];
-  endorsementLevel?: number;            // 1 = first required, 2 = second, etc.
-  prerequisiteEndorserId?: string;      // must be endorsed before this one can proceed
+  endorsementLevel?: number; // 1 = first required, 2 = second, etc.
+  prerequisiteEndorserId?: string; // must be endorsed before this one can proceed
   extensions?: Extension[];
 }
 
@@ -244,6 +243,14 @@ export interface TournamentProposal {
   safeguardingCompliance?: boolean;
 
   // Registration
+  /**
+   * Tournament id assigned at open-registration — BEFORE the tournamentRecord exists — so
+   * public registration (courthive-public) can reference the tournament by id and people can
+   * register/onboard against a proposal that has not yet been activated.
+   * `activateFromSanctioning` reuses this id (falling back to a fresh UUID) when it materializes
+   * the tournamentRecord. See planning/PUBLIC_REGISTRATION_AND_ONBOARDING.md.
+   */
+  tournamentId?: string;
   registrationProfile?: RegistrationProfile;
 
   // Calendar
@@ -437,7 +444,7 @@ export interface SanctioningPolicy {
   transitionGuards?: TransitionGuard[];
 
   requireEndorsement?: boolean;
-  requiredEndorsementCount?: number;     // default 1 when requireEndorsement is true
+  requiredEndorsementCount?: number; // default 1 when requireEndorsement is true
   requireInsurance?: boolean;
   requireSafetyPlan?: boolean;
   requireMedicalPlan?: boolean;
@@ -561,19 +568,15 @@ export interface PostEventRequirement {
 }
 
 export type TransitionGuardType =
-  | 'ENDORSEMENT_REQUIRED'
-  | 'PROPOSAL_VALID'
-  | 'ALL_CONDITIONS_MET'
-  | 'COMPLIANCE_COMPLETE'
-  | 'CUSTOM';
+  'ENDORSEMENT_REQUIRED' | 'PROPOSAL_VALID' | 'ALL_CONDITIONS_MET' | 'COMPLIANCE_COMPLETE' | 'CUSTOM';
 
 export interface TransitionGuard {
   from: SanctioningStatus;
   to: SanctioningStatus;
   guard: TransitionGuardType;
-  customGuardField?: string;         // dot-path field that must be truthy (for CUSTOM guard)
-  message?: string;                  // error message when guard fails
-  tiers?: string[];                  // only apply to specific tiers
+  customGuardField?: string; // dot-path field that must be truthy (for CUSTOM guard)
+  message?: string; // error message when guard fails
+  tiers?: string[]; // only apply to specific tiers
 }
 
 // ---------------------------------------------------------------------------

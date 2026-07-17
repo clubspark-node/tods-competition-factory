@@ -196,6 +196,42 @@ describe('Activation — Tournament Generation', () => {
   });
 });
 
+describe('Activation — pre-assigned tournamentId (registration before the record)', () => {
+  beforeEach(() => {
+    sanctioningEngine.reset();
+  });
+
+  it('reuses the proposal.tournamentId assigned at open-registration', () => {
+    const preassigned = 'pre-assigned-tid-123';
+    sanctioningEngine.executionQueue([
+      {
+        method: 'createSanctioningRecord',
+        params: {
+          governingBodyId: 'gov-001',
+          applicant: testApplicant,
+          proposal: { ...testProposal, tournamentId: preassigned },
+          sanctioningLevel: 'Level 2',
+        },
+      },
+      { method: 'submitApplication', params: { sanctioningPolicy: testPolicy } },
+      { method: 'reviewApplication', params: {} },
+      { method: 'approveApplication', params: {} },
+    ]);
+
+    let result: any = sanctioningEngine.activateFromSanctioning({ sanctioningPolicy: testPolicy });
+    expect(result.success).toBe(true);
+    expect(result.tournamentRecord.tournamentId).toEqual(preassigned);
+  });
+
+  it('mints a fresh tournamentId when the proposal has none (back-compat)', () => {
+    createApprovedRecord(); // testProposal carries no tournamentId
+    let result: any = sanctioningEngine.activateFromSanctioning({ sanctioningPolicy: testPolicy });
+    expect(result.success).toBe(true);
+    expect(result.tournamentRecord.tournamentId).toBeDefined();
+    expect(result.tournamentRecord.tournamentId).not.toEqual('pre-assigned-tid-123');
+  });
+});
+
 describe('Full Lifecycle — End-to-End', () => {
   beforeEach(() => {
     sanctioningEngine.reset();

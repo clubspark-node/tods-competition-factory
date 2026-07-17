@@ -28,7 +28,10 @@ export function activateFromSanctioning({ sanctioningRecord, sanctioningPolicy }
 
   // --- Generate tournamentRecord ---
   const tournamentRecord: Tournament = {
-    tournamentId: UUID(),
+    // Reuse the id assigned at open-registration (so pre-activation registrations keyed by it
+    // remain valid); mint a fresh one only when no id was pre-assigned. See
+    // planning/PUBLIC_REGISTRATION_AND_ONBOARDING.md.
+    tournamentId: proposal.tournamentId ?? UUID(),
     tournamentName: proposal.tournamentName,
     formalName: proposal.formalName,
     promotionalName: proposal.promotionalName,
