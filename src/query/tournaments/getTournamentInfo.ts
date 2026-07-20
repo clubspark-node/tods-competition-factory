@@ -53,6 +53,7 @@ export function getTournamentInfo(params?: {
     notes,
 
     registrationProfile,
+    parentOrganisation,
 
     updatedAt,
   }: Tournament) => ({
@@ -76,6 +77,10 @@ export function getTournamentInfo(params?: {
     notes,
 
     registrationProfile,
+    // The owning provider (organisationId / name / abbreviation). Public info —
+    // lets off-server consumers scope provider-keyed reads/writes (e.g. courthive-
+    // public registration against the declarations service) without a mutation-server call.
+    parentOrganisation,
 
     updatedAt,
   });

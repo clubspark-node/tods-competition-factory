@@ -2060,6 +2060,8 @@ const { searchText, tournamentId, providerId, tournament } = engine.getTournamen
 
 Returns tournament attributes. Used to attach details to publishing payload by `getEventData`.
 
+`parentOrganisation` (the owning provider — `organisationId` / `organisationName` / `organisationAbbreviation`) is included when present. It is public information and lets off-server consumers scope provider-keyed reads/writes (e.g. courthive-public registration against the declarations service) without a mutation-server round-trip. Absent when the tournament has no owning organisation.
+
 ```js
 const { tournamentInfo } = getTournamentInfo({ tournamentRecord });
 const {
@@ -2077,6 +2079,9 @@ const {
 
   hostCountryCode,
   tournamentStatus,
+
+  registrationProfile,
+  parentOrganisation, // { organisationId, organisationName, organisationAbbreviation }
 } = tournamentInfo;
 ```
 
