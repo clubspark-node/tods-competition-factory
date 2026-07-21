@@ -46,6 +46,13 @@ export function openProposalRegistration({
   const now = new Date().toISOString();
 
   proposal.tournamentId = tournamentId ?? proposal.tournamentId ?? UUID();
+
+  // Assign a stable eventId to each proposed event (idempotent — reuse any already assigned).
+  // activateFromSanctioning reuses these, so registrations reference events by a durable id.
+  for (const eventProposal of proposal.events ?? []) {
+    eventProposal.eventId ??= UUID();
+  }
+
   proposal.registrationProfile = {
     ...(proposal.registrationProfile ?? {}),
     ...(registrationProfile ?? {}),

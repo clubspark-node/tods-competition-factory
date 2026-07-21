@@ -262,6 +262,10 @@ export interface TournamentProposal {
 
 export interface EventProposal {
   eventProposalId?: string;
+  // Stable eventId assigned at open-registration (openProposalRegistration) and REUSED by
+  // activateFromSanctioning, so a registration keyed to this event survives activation as an
+  // id-join rather than a fragile event-name match. Mirrors proposal.tournamentId reuse.
+  eventId?: string;
   eventName: string;
   eventType: EventTypeUnion;
   gender?: GenderUnion;

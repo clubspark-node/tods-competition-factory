@@ -94,4 +94,29 @@ describe('openProposalRegistration', () => {
     expect(activation.success).toBe(true);
     expect(activation.tournamentRecord.tournamentId).toEqual(openedTid);
   });
+
+  it('assigns a stable eventId to each proposed event (idempotent across re-open)', () => {
+    approve();
+    sanctioningEngine.openProposalRegistration({});
+    let record: any = sanctioningEngine.getSanctioningRecord().sanctioningRecord;
+    const events = record.proposal.events;
+    expect(events.every((e: any) => typeof e.eventId === 'string' && e.eventId.length > 0)).toBe(true);
+    const firstIds = events.map((e: any) => e.eventId);
+
+    // Re-opening/adjusting registration must not mint fresh eventIds.
+    sanctioningEngine.openProposalRegistration({ registrationProfile: { entryMethod: 'online' } });
+    let reopened: any = sanctioningEngine.getSanctioningRecord().sanctioningRecord;
+    expect(reopened.proposal.events.map((e: any) => e.eventId)).toEqual(firstIds);
+  });
+
+  it('activation reuses the eventIds assigned at open-registration (id-join, not name-join)', () => {
+    approve();
+    sanctioningEngine.openProposalRegistration({});
+    let record: any = sanctioningEngine.getSanctioningRecord().sanctioningRecord;
+    const openedEventIds = record.proposal.events.map((e: any) => e.eventId);
+
+    let activation: any = sanctioningEngine.activateFromSanctioning({ sanctioningPolicy: testPolicy });
+    expect(activation.success).toBe(true);
+    expect(activation.tournamentRecord.events.map((e: any) => e.eventId)).toEqual(openedEventIds);
+  });
 });

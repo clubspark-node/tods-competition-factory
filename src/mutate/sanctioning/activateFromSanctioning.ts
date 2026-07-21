@@ -60,7 +60,9 @@ export function activateFromSanctioning({ sanctioningRecord, sanctioningPolicy }
     // Events
     events: proposal.events.map((ep) => {
       const event: Event = {
-        eventId: UUID(),
+        // Reuse the stable eventId assigned at open-registration (so registrations keyed to it
+        // resolve by id); mint only when no id was pre-assigned. Mirrors the tournamentId reuse.
+        eventId: ep.eventId ?? UUID(),
         eventName: ep.eventName,
         eventType: ep.eventType,
         gender: ep.gender,
