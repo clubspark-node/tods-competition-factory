@@ -40,8 +40,12 @@ verifyDepsBeforeRun: false
 #   dev/test tooling (body-parser, supertest) only — not a runtime dependency.
 # - form-data: GHSA-hmw2-7cc7-3qxx (CRLF injection); patched 4.0.6. Via supertest/superagent.
 # - multer: GHSA-72gw-mp4g-v24j (DoS via nested field names); patched 2.2.0. Via @nestjs/platform-express.
+# - brace-expansion: GHSA-v6h2-p8h4-qcjw (ReDoS via exponential expansion); patched 1.1.16 / 2.1.2.
+#   Two lines present (v1 via minimatch@3, v2 via other jest tooling) — patch each major separately.
 overrides:
   typescript: 6.0.3 # block native TS7 (no classic JS API — crashes tsc/nest/sonarjs); pairs with renovate TS-major block
   qs: '^6.15.2'
   form-data: '>=4.0.6'
   multer: '>=2.2.0'
+  brace-expansion@1: '>=1.1.16'
+  brace-expansion@2: '>=2.1.2'
